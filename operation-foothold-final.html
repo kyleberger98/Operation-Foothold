@@ -339,6 +339,10 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 #mpCodeBox{font-family:'Saira Condensed',sans-serif; letter-spacing:.18em; font-size:14px; color:var(--dim);
   border:1px dashed var(--amber); border-radius:10px; padding:10px 14px; text-align:center; margin:12px 0}
 #mpCodeBox b{color:var(--amber); font-size:26px; letter-spacing:.3em; margin-left:10px; vertical-align:-2px}
+#mpInvite{display:flex; gap:8px; flex-wrap:wrap; margin:-4px 0 12px}
+#mpInvite .opt{flex:1 1 160px}
+#mpInvite .opt span{max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+#mpJoinBtn.invited{border-color:var(--amber); color:var(--amber); animation:etPulse 1.4s ease-in-out infinite}
 #mpSlots{margin-bottom:6px}
 .mpslot{display:flex; align-items:center; gap:10px; padding:8px 12px; margin-bottom:6px;
   background:var(--panel2); border:1px solid var(--line); border-radius:9px; font-size:12px}
@@ -467,6 +471,10 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
       <div id="mpStatus" class="sec"></div>
       <div id="mpLobby" style="display:none">
         <div id="mpCodeBox">ROOM CODE<b id="mpCodeVal">&mdash;</b></div>
+        <div id="mpInvite" style="display:none">
+          <button id="mpCopyBtn" class="opt">Copy invite link<span id="mpInviteUrl"></span></button>
+          <button id="mpShareBtn" class="opt" style="display:none">Share invite<span>send it to a friend</span></button>
+        </div>
         <div id="mpSlots"></div>
         <div class="sec">Your faction</div>
         <div id="mpFactionGrid"></div>
@@ -3586,7 +3594,7 @@ const NET={
   },
   renderLobby(){
     if(!this.slots) return;
-    mpMsg(this.host?'Share the code \u2014 allies pick Multiplayer \u25b8 Join.':'Connected. Pick a faction and stand by.');
+    mpMsg(this.host?(CAN_LINK?'Send the invite link, or share the code \u2014 allies pick Online \u25b8 Join.':'Share the code \u2014 allies pick Online \u25b8 Join.'):'Connected. Pick a faction and stand by.');
     const box=$('mpSlots'); box.innerHTML='';
     this.slots.forEach((sl,i)=>{
       const d=document.createElement('div');
@@ -3715,7 +3723,41 @@ function showDefeat(){
 
 /* ---- small chrome: status line, lobby toggles, connection bar ---- */
 function mpMsg(m){ const el=$('mpStatus'); if(el) el.textContent=m||''; }
+/* ---- invite links: <game url>#join=CODE opens the Online screen with the code filled in ---- */
+const CAN_LINK=/^https?:$/.test(location.protocol);   // a file:// path is no use to a friend
+function inviteUrl(){ return location.origin+location.pathname+'#join='+NET.code; }
+$('mpCopyBtn').onclick=()=>{
+  const url=inviteUrl();
+  const done=()=>{ mpMsg('Invite link copied \u2014 paste it to a friend.'); sfx.select(); };
+  const fallback=()=>{
+    const t=document.createElement('textarea'); t.value=url; t.setAttribute('readonly','');
+    t.style.cssText='position:fixed;left:-9999px'; document.body.appendChild(t); t.select();
+    let ok=false; try{ ok=document.execCommand('copy'); }catch(e){}
+    t.remove();
+    if(ok) done(); else mpMsg('Copy this link: '+url);
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done,fallback);
+  else fallback();
+};
+$('mpShareBtn').onclick=()=>{
+  navigator.share({title:'Operation Foothold', text:'Join my Operation Foothold game \u2014 room '+NET.code, url:inviteUrl()}).catch(()=>{});
+};
+function openInviteFromUrl(){
+  const m=/^#join=([A-Za-z0-9]{4,6})$/.exec(location.hash);
+  if(!m) return;
+  history.replaceState(null,'',location.pathname+location.search);   // a reload shouldn't re-open the invite
+  const code=m[1].toUpperCase();
+  showSetup(); setupView('mp');
+  $('mpCode').value=code;
+  $('mpJoinBtn').classList.add('invited');
+  mpMsg('Invite to room '+code+' \u2014 pick a callsign, then tap Join.');
+  if(!$('mpName').value) $('mpName').focus();
+}
 function mpShowLobby(){
+  $('mpJoinBtn').classList.remove('invited');
+  $('mpInvite').style.display=NET.host&&CAN_LINK?'':'none';
+  $('mpShareBtn').style.display=navigator.share?'':'none';
+  $('mpInviteUrl').textContent=CAN_LINK?inviteUrl().replace(/^https?:\/\//,''):'';
   $('mpEntry').style.display='none';
   $('mpLobby').style.display='';
   $('mpHostOpts').style.display=NET.host?'':'none';
@@ -3820,6 +3862,7 @@ sizeRenderer();
 applyCam();
 buildSkyClouds();
 showSetup();
+openInviteFromUrl();
 requestAnimationFrame(loop);
 </script>
 <script>
