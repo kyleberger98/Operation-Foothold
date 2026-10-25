@@ -13,6 +13,7 @@
 }
 *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent}
 html,body{height:100%}
+[hidden]{display:none!important}
 body{
   background:var(--bg); color:var(--text);
   font-family:'IBM Plex Mono',monospace; font-size:13px;
@@ -81,6 +82,26 @@ button{font:inherit; transition:background .15s ease, color .15s ease, border-co
 #endTurn .disc svg{width:34px; height:34px}
 #endTurn.pulse .disc{animation:etPulse 1.4s ease-in-out infinite}
 #nextBtn{right:calc(env(safe-area-inset-right,0px) + 104px)}
+#undoBtn{left:calc(env(safe-area-inset-left,0px) + 96px)}
+#undoBtn .disc,#nextBtn .disc{width:54px; height:54px}
+#undoBtn .disc svg{width:24px; height:24px}
+.hud-box .v.low{color:var(--red)}
+/* enemy-turn speed toggle, under the turn banner */
+#speedBtn{position:fixed; z-index:13; top:calc(env(safe-area-inset-top,0px) + 108px); left:50%; transform:translateX(-50%);
+  display:flex; align-items:center; gap:7px; white-space:nowrap; cursor:pointer; border-radius:999px; padding:5px 14px;
+  background:rgba(14,20,16,.9); border:1px solid rgba(255,255,255,.14); color:#eef3ee; box-shadow:0 6px 18px rgba(0,0,0,.4);
+  font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em; text-transform:uppercase}
+#speedBtn i{font-style:normal; color:var(--amber)}
+#speedBtn span{font-family:'IBM Plex Mono',monospace; font-weight:400; font-size:10px; letter-spacing:.04em; text-transform:none; color:var(--dim)}
+#speedBtn:hover{border-color:var(--amber)}
+#speedBtn:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
+/* after the game: browse the revealed map, then start over */
+#endBar{position:fixed; z-index:14; left:50%; transform:translateX(-50%); bottom:calc(env(safe-area-inset-bottom,0px) + 104px);
+  display:flex; align-items:center; gap:12px; padding:8px 8px 8px 16px; border-radius:999px; white-space:nowrap;
+  background:rgba(14,20,16,.94); border:1px solid var(--amber); box-shadow:0 10px 28px rgba(0,0,0,.5)}
+#endText{font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:15px; letter-spacing:.1em; text-transform:uppercase}
+#endNew{cursor:pointer; border-radius:999px; padding:6px 14px; border:1px solid var(--blue); background:linear-gradient(180deg,#3d73a0,#24496a);
+  color:#eaf4ff; font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em; text-transform:uppercase}
 #nextBtn .disc{width:54px; height:54px}
 #nextBtn .disc svg{width:24px; height:24px}
 #nextBtn .badge{position:absolute; top:-3px; right:-3px; min-width:21px; height:21px; padding:0 6px; border-radius:11px;
@@ -96,7 +117,7 @@ button{font:inherit; transition:background .15s ease, color .15s ease, border-co
   font-family:'Saira Condensed',sans-serif; font-size:15px; letter-spacing:.2em; white-space:nowrap;
   padding:4px 18px; pointer-events:none; display:none; text-transform:uppercase; box-shadow:0 6px 20px rgba(0,0,0,.4)}
 #turnBanner.show{display:block}
-#toasts{position:fixed; z-index:13; top:calc(env(safe-area-inset-top,0px) + 112px); left:50%; transform:translateX(-50%);
+#toasts{position:fixed; z-index:13; top:calc(env(safe-area-inset-top,0px) + 146px); left:50%; transform:translateX(-50%);
   width:min(420px, calc(100vw - 32px)); display:flex; flex-direction:column; align-items:center; gap:6px; pointer-events:none}
 .toast{max-width:100%; background:rgba(14,20,16,.92); border:1px solid rgba(255,255,255,.08); border-left:4px solid var(--tc,var(--amber));
   border-radius:12px; padding:7px 14px; font-size:12px; line-height:1.45; box-shadow:0 8px 22px rgba(0,0,0,.45);
@@ -282,6 +303,8 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 #overlay h2{font-family:'Saira Condensed',sans-serif; font-size:42px; letter-spacing:.18em; text-transform:uppercase; text-shadow:0 0 36px currentColor}
 #overlay h2.win{color:var(--blue)} #overlay h2.lose{color:var(--red)}
 #overlay p{color:var(--dim); max-width:420px; line-height:1.6}
+.ovBtns{display:flex; flex-wrap:wrap; gap:10px; justify-content:center}
+#overlay #ovAlt{background:var(--panel2); border-color:var(--line); color:var(--text)}
 #overlay button{background:linear-gradient(180deg,#3d73a0,#24496a); border:1px solid var(--blue); color:#eaf4ff; border-radius:12px;
   font-family:'Saira Condensed',sans-serif; font-size:18px; letter-spacing:.12em; padding:10px 34px; cursor:pointer; text-transform:uppercase}
 
@@ -351,6 +374,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
   <div class="hud-box hb-turn"><span class="v" id="hudTurn">1</span><span class="k">Turn</span></div>
   <div class="hud-box hb-stars"><span class="v stars"><span id="hudStars">0</span><small id="hudIncome">+0</small></span><span class="k">Stars</span></div>
   <div class="hud-box hb-cities"><span class="v" id="hudCities">1</span><span class="k">Cities</span></div>
+  <div class="hud-box hb-timer" id="hudTimerBox" hidden><span class="v" id="hudTimer">0:00</span><span class="k">Time</span></div>
   <div class="hud-box hb-side"><span class="v" id="hudSide">YOU</span></div>
 </div>
 <button id="menuBtn" class="rb" title="Menu" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h14"/></svg></button>
@@ -359,9 +383,12 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
   <button id="muteBtn" class="rb" title="Sound on/off (M)" aria-label="Sound on"></button>
 </div>
 <div id="turnBanner">◂ ENEMY TURN ▸</div>
+<button id="speedBtn" hidden></button>
+<div id="endBar" hidden><span id="endText"></span><button id="endNew">New game</button></div>
 <div id="toasts" aria-live="polite"></div>
 
 <button id="techBtn" class="dock" title="Tech tree (T)"><span class="disc"><svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v6.2L4.8 18.3A1.8 1.8 0 0 0 6.4 21h11.2a1.8 1.8 0 0 0 1.6-2.7L14 9.2V3"/><path d="M7.2 14.5h9.6"/></svg></span><span class="lb">Tech</span></button>
+<button id="undoBtn" class="dock" title="Undo (U or Ctrl+Z)" hidden><span class="disc"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></span><span class="lb">Undo</span></button>
 <button id="nextBtn" class="dock" title="Next ready unit (Tab)"><span class="disc"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5.5"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4"/></svg><span class="badge" id="hudReady">0</span></span><span class="lb">Next</span></button>
 <button id="endTurn" class="dock" title="End turn (Space)"><span class="disc"><svg viewBox="0 0 24 24"><path d="M5 5.5l7 6.5-7 6.5M12 5.5l7 6.5-7 6.5"/></svg></span><span class="lb">End turn</span></button>
 
@@ -451,6 +478,13 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
             <button class="opt" data-size="13">Large<span>13&times;13</span></button>
             <button class="opt" data-size="15">Huge<span>15&times;15</span></button>
           </div>
+          <div class="sec">Turn timer</div>
+          <div class="optRow" id="mpTimerRow">
+            <button class="opt sel" data-timer="0">Off<span>no limit</span></button>
+            <button class="opt" data-timer="60">1 min<span>per turn</span></button>
+            <button class="opt" data-timer="120">2 min<span>per turn</span></button>
+            <button class="opt" data-timer="300">5 min<span>per turn</span></button>
+          </div>
           <button id="mpStartBtn">Launch Operation &#9656;</button>
         </div>
         <div id="mpWait" style="display:none">Waiting for the host to launch&hellip;</div>
@@ -477,7 +511,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 <div id="overlay">
   <h2 id="ovTitle"></h2>
   <p id="ovBody"></p>
-  <button id="restart">Redeploy</button>
+  <div class="ovBtns"><button id="restart">Redeploy</button><button id="ovAlt" hidden></button></div>
 </div>
 
 <div id="netBar" style="display:none"></div>
@@ -815,14 +849,16 @@ function startTurn(s, first){
     });
   }
   units.forEach(u=>{ if(u.owner===s){u.moved=false;u.attacked=false;u.held=false;} });
-  if(s===P && !first) turn++;
+  if(s===turnOrder.find(x=>alive[x]) && !first) turn++;   // counts on even after the player is knocked out
+  undoStack.length=0;   // undo never reaches back past the start of a turn
+  if(NET.host&&NET.inGame) NET.turnEnds=(NET.timer&&(s===P||NET.humans[s]))?Date.now()+NET.timer*1000:0;
   if(s===MYSIDE && !first && !gameOver) toast('Your turn \u00b7 turn '+turn+' \u00b7 +'+income(s)+'\u2605 income', meta(s).css);
   sel=null;
   refresh();
   if(!gameOver){
     if(NET.host) NET.flushSoon(true);
     if(NET.isRemoteHuman(s)){ if(NET.host) log('sys','\u25c2 Awaiting orders from '+meta(s).name+'\u2026'); }
-    else if(s!==MYSIDE){ const g0=gen; setTimeout(()=>{ if(gen===g0) aiTurn(s); }, 480); }
+    else if(s!==MYSIDE){ const g0=gen; setTimeout(()=>{ if(gen===g0) aiTurn(s); }, aiDelay(480)); }
   }
 }
 
@@ -1074,8 +1110,7 @@ function moveUnit(u,x,y){
     log(u.owner, c.capital?`${capWho} the HQ!`:`${capWho} a city.`);
     if(prev===MYSIDE && u.owner!==MYSIDE) toast((wasCap?'Your HQ':'One of your cities')+' fell to '+meta(u.owner).name+'!','var(--red)');
     if(wasCap && prev && prev!==u.owner){
-      if(!NET.on && prev===MYSIDE) endGame(u.owner);
-      else eliminate(prev, u.owner);
+      eliminate(prev, u.owner);
     }
   }
 }
@@ -1092,11 +1127,30 @@ function eliminate(s, by){
   sfx.boom();
   const rem=turnOrder.filter(x=>alive[x]);
   if(rem.length<=1) endGame(rem[0]||by);
-  else if(NET.on && s===MYSIDE) showDefeat();
+  else if(s===MYSIDE) showDefeat();   // rivals fight on; the beaten player can watch
 }
 
 /* ---------------- AI ---------------- */
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+/* ---- enemy-turn speed: normal, fast or instant (remembered per device) ---- */
+const SPEEDS=[{v:1,l:'Normal',i:'\u25b6'},{v:2.5,l:'Fast',i:'\u25b6\u25b6'},{v:0,l:'Instant',i:'\u23ed'}];
+let aiSpeed=1;
+try{ const v=localStorage.getItem('foothold-ai-speed'); if(SPEEDS.some(s=>String(s.v)===v)) aiSpeed=+v; }catch(e){}
+const aiDelay=ms=>aiSpeed?ms/aiSpeed:0;
+const aiPan=(x,y)=>{ if(aiSpeed) panTo(x,y); };   // instant turns leave the camera where you put it
+function syncSpeed(){
+  const s=SPEEDS.find(x=>x.v===aiSpeed)||SPEEDS[0];
+  $('speedBtn').innerHTML=`<i>${s.i}</i>${s.l}<span>enemy turns \u00b7 tap to change</span>`;
+  $('speedBtn').title='Enemy turn speed (F)';
+}
+function cycleSpeed(){
+  const i=SPEEDS.findIndex(x=>x.v===aiSpeed);
+  aiSpeed=SPEEDS[(i+1)%SPEEDS.length].v;
+  try{ localStorage.setItem('foothold-ai-speed', String(aiSpeed)); }catch(e){}
+  syncSpeed(); sfx.select();
+}
+$('speedBtn').onclick=cycleSpeed;
+syncSpeed();
+const sleep=ms=>new Promise(r=>setTimeout(r,aiDelay(ms)));
 async function aiTurn(me){
   if(gameOver||!alive[me]) return;
   const g0=gen, stale=()=>gen!==g0||gameOver;
@@ -1105,6 +1159,7 @@ async function aiTurn(me){
   banner.style.borderColor=meta(me).css;
   banner.style.color=meta(me).css;
   banner.classList.add('show');
+  $('speedBtn').hidden=false;
   // research: follow a build order, keeping a small reserve
   const AI_TECH_ORDER=['MINING','MARKS','MECH','DRILL','LOGI','MEDIC','DRILLS','SIEGE','RADIO','AVIA','FORT',
                        'URBAN','ARMOR','AIRDEF','CAMO','SPG','TURBO','HOSP','FWDOBS','CIVDEF','NUKE','SAT'];
@@ -1155,7 +1210,7 @@ async function aiTurn(me){
       const nu=units[units.length-1]; nu.moved=true; nu.attacked=true;
       log(me,`${meta(me).name} deploys ${UNIT_TYPES[pick].name}.`);
       refresh();
-      if(explored[c.y][c.x]){ panTo(c.x,c.y); await sleep(280); }
+      if(explored[c.y][c.x]){ aiPan(c.x,c.y); await sleep(280); }
     }
   }
   // objectives: every rival's cities and units
@@ -1180,7 +1235,7 @@ async function aiTurn(me){
         if(n>bestN){ bestN=n; bestT={x,y}; }
       }
       if(bestT && bestN>=2){
-        panTo(bestT.x,bestT.y); await sleep(400);
+        aiPan(bestT.x,bestT.y); await sleep(400);
         nukeStrike(u,bestT.x,bestT.y);
         refresh(); await sleep(400);
       } else { u.attacked=true; } // hold fire until a worthwhile cluster appears
@@ -1190,7 +1245,7 @@ async function aiTurn(me){
     let tg=attackTargets(u);
     if(tg.length){
       tg.sort((a,b)=>a.hp-b.hp);
-      if(visXY(tg[0].x,tg[0].y)){ panTo(tg[0].x,tg[0].y); await sleep(280); }
+      if(visXY(tg[0].x,tg[0].y)){ aiPan(tg[0].x,tg[0].y); await sleep(280); }
       attack(u,tg[0]);
       acted=visXY(u.x,u.y);
     } else {
@@ -1217,7 +1272,7 @@ async function aiTurn(me){
           tg=attackTargets(u);
           if(tg.length && units.includes(u)){
             tg.sort((a,b)=>a.hp-b.hp);
-            if(visXY(u.x,u.y)){ panTo(u.x,u.y); await sleep(240); }
+            if(visXY(u.x,u.y)){ aiPan(u.x,u.y); await sleep(240); }
             attack(u,tg[0]);
             acted=acted||visXY(u.x,u.y);
           }
@@ -1227,11 +1282,12 @@ async function aiTurn(me){
     refresh();
     if(acted) await sleep(280);
   }
-  if(stale()){ banner.classList.remove('show'); return; }
+  if(stale()){ banner.classList.remove('show'); $('speedBtn').hidden=true; return; }
   refresh();
   banner.classList.remove('show');
+  $('speedBtn').hidden=true;
   const nx=nextAlive(me);
-  setTimeout(()=>{ if(gen===g0&&!gameOver) startTurn(nx); }, 280);
+  setTimeout(()=>{ if(gen===g0&&!gameOver) startTurn(nx); }, aiDelay(280));
 }
 
 /* ================================================================
@@ -1294,7 +1350,7 @@ let pdown=false, pmoved=0, px=0, py=0, pinchD=0;
 let camGoal=null;
 function panTo(x,y){ camGoal=new THREE.Vector3(wx(x),0,wz(y)); }
 const cvs=renderer.domElement;
-cvs.addEventListener('pointerdown',e=>{pdown=true;pmoved=0;px=e.clientX;py=e.clientY;cvs.setPointerCapture(e.pointerId);cvs.style.cursor='grabbing'});
+cvs.addEventListener('pointerdown',e=>{if(e.button===2) return; pdown=true;pmoved=0;px=e.clientX;py=e.clientY;cvs.setPointerCapture(e.pointerId);cvs.style.cursor='grabbing'});
 cvs.addEventListener('pointermove',e=>{
   if(!pdown){ hoverMove(e); return; }
   if(pinchD){ px=e.clientX; py=e.clientY; return; } // two-finger zoom in progress: don't pan
@@ -1308,6 +1364,7 @@ cvs.addEventListener('pointermove',e=>{
   px=e.clientX; py=e.clientY; applyCam();
 });
 cvs.addEventListener('pointerup',e=>{
+  if(e.button===2) return;   // right button gives orders (see quickOrder)
   pdown=false; cvs.style.cursor='grab';
   if(pmoved<6) handleClick(e);
 });
@@ -1359,7 +1416,7 @@ function setHover(h){
     const su=units.find(q=>q.id===sel.id);
     const tu=unitAt(h.x,h.y);
     if(su&&su.owner===MYSIDE&&tu&&tu.owner!==MYSIDE&&attackTargets(su).includes(tu)){
-      txt=fcText(forecast(su,tu),tu);
+      txt=fcText(forecast(su,tu),tu)+(COARSE?'':' <span style="color:var(--dim)">\u00b7 right-click to fire</span>');
       cvs.style.cursor='crosshair';
     } else if(su&&!tu&&reachable(su).has(key(h.x,h.y))){
       const c=tileAt(h.x,h.y).city;
@@ -2120,6 +2177,7 @@ function loop(now){
   }
   fx.step(dt);
   coachTick();
+  NET.timerTick();
   if(camGoal){
     cam.target.lerp(camGoal, Math.min(1, dt*5));
     applyCam();
@@ -2174,6 +2232,35 @@ function handleClick(e){
   const {x,y}=hit.object.userData;
   onTileClick(x,y);
 }
+/* right-click: the selected unit moves to / fires at the tile straight away (no confirm tap) */
+function tileFromEvent(e){
+  const r=cvs.getBoundingClientRect();
+  ndc.x=((e.clientX-r.left)/r.width)*2-1;
+  ndc.y=-((e.clientY-r.top)/r.height)*2+1;
+  ray.setFromCamera(ndc,camera);
+  const hit=ray.intersectObjects(pickTiles)[0];
+  return hit?hit.object.userData:null;
+}
+function quickOrder(x,y){
+  const su=sel&&sel.kind==='unit'?byId(sel.id):null;
+  if(!su||su.owner!==MYSIDE||!explored[y][x]){ sel=null; refresh(); return; }
+  pendingAtk=null;
+  const u=unitAt(x,y);
+  if(su.type==='NUKE'){
+    if(!su.attacked&&cheb(su,{x,y})<=uRange(su)){ act({t:'nuke',uid:su.id,x,y}); sel=null; refresh(); } else sfx.denied();
+    return;
+  }
+  if(u&&u.owner!==MYSIDE&&attackTargets(su).includes(u)){ act({t:'atk',uid:su.id,tid:u.id}); sel=null; refresh(); return; }
+  if(!u&&reachable(su).has(key(x,y))){ act({t:'move',uid:su.id,x,y}); sel=su.attacked?null:{kind:'unit',id:su.id}; refresh(); return; }
+  sfx.denied();
+}
+cvs.addEventListener('contextmenu',e=>{
+  e.preventDefault();
+  if(COARSE) return;   // a long press on touch screens must not skip the confirm tap
+  if(side!==MYSIDE||gameOver||$('setup').classList.contains('show')) return;
+  const h=tileFromEvent(e);
+  if(h) quickOrder(h.x,h.y);
+});
 function onTileClick(x,y){
   if($('setup').classList.contains('show')) return;
   if(!explored[y][x]){ sel=null; refresh(); return; }
@@ -2253,6 +2340,7 @@ function refresh(){
   syncUnits(); syncCities(); syncHighlights(); renderInfo();
   NET.uiTick();
   if($('techPanel').classList.contains('show')) renderTech();
+  syncUndo();
 }
 
 /* ---------------- tech panel: a radial tree like Polytopia's ----------------
@@ -2379,6 +2467,8 @@ function hasSave(){ if(!CAN_STORE) return false; try{ return !!localStorage.getI
 function restoreGame(data, net){
   try{
     gen++;
+    undoStack.length=0;
+    $('endBar').hidden=true;
     if(!net) NET.leave();
     pendingAtk=null;
     cfg={...data.cfg};
@@ -2590,7 +2680,7 @@ function toast(msg,color){
   setTimeout(()=>{ t.classList.add('out'); setTimeout(()=>t.remove(),320); },3200);
 }
 function toastFromLog(who,msg){
-  const big=/ELIMINATED|NUCLEAR/i.test(msg);
+  const big=/ELIMINATED|NUCLEAR|ran out of time/i.test(msg);
   if(!big && !(who===MYSIDE||who==='sys')) return;
   if(!big && !/captured|grew to level|research|Satellite/i.test(msg)) return;
   toast(msg, who===MYSIDE||who==='sys'?'var(--amber)':playerMeta[who]?meta(who).css:'var(--red)');
@@ -2932,8 +3022,10 @@ window.addEventListener('keydown',e=>{
     return;
   }
   if(e.key==='h'||e.key==='H'){ $('helpBtn').click(); return; }
+  if(e.key==='f'||e.key==='F'){ cycleSpeed(); return; }
   if(side!==MYSIDE) return;
   if(e.key===' '||e.key==='Enter'){ e.preventDefault(); $('endTurn').click(); return; }
+  if(e.key==='u'||e.key==='U'||((e.key==='z'||e.key==='Z')&&(e.ctrlKey||e.metaKey))){ e.preventDefault(); undo(); return; }
   if(e.key==='Tab'||e.key==='n'||e.key==='N'){ e.preventDefault(); nextUnit(); return; }
   if(e.key==='c'||e.key==='C'){
     for(let y=0;y<H;y++)for(let x=0;x<W;x++){
@@ -2959,6 +3051,8 @@ function endGame(winner){
   if(NET.host) NET.winner=winner;
   if(!NET.on) clearSave();
   $('turnBanner').classList.remove('show');
+  $('speedBtn').hidden=true;
+  revealAll();
   const ov=$('overlay');
   const t=$('ovTitle');
   const b=$('ovBody');
@@ -2971,26 +3065,42 @@ function endGame(winner){
     b.textContent=(NET.on?'All rival factions eliminated. The region is yours, Commander.'
                          :'All enemy factions eliminated. The region is yours, Commander.')+tally; }
   else { t.textContent=NET.on?'Operation Failed':'HQ Lost'; t.className='lose';
-    b.textContent=(NET.on&&winner&&playerMeta[winner]?meta(winner).name+' controls the region.'
+    b.textContent=(winner&&playerMeta[winner]?meta(winner).name+' controls the region.'
                                                      :'Hostile forces overran your headquarters.')+tally; }
+  const alt=$('ovAlt');
+  alt.hidden=false; alt.textContent='View battlefield';
+  alt.onclick=()=>{
+    $('overlay').classList.remove('show'); resetOverlayButton();
+    $('endText').textContent=t.textContent+' \u00b7 turn '+turn;
+    $('endBar').hidden=false;
+  };
   ov.classList.add('show');
   refresh();
   if(NET.host) NET.flushSoon(true);
 }
+/* lift the fog for good: at the end of a game, or once the player is out and watching */
+function revealAll(){
+  if(!map) return;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++) explored[y][x]=true;
+  syncFog();
+}
+$('endNew').onclick=()=>{ $('endBar').hidden=true; NET.leave(); showSetup(); };
 $('restart').onclick=()=>{ $('overlay').classList.remove('show'); NET.leave(); showSetup(); };
 $('helpBtn').onclick=()=>{
   const lines=[
     ['Goal','Capture every enemy HQ by marching a unit onto it. Lose if your own HQ falls.'],
-    ['Move & Attack','Click a unit: blue tiles = move, red rings = attack. One move + one attack each per turn. Melee units (range 1) advance into a tile when they destroy its defender — a kill on a city captures it.'],
+    ['Move & Attack','Click a unit: blue tiles = move, red rings = attack. One move + one attack each per turn. On a computer, right-click a tile to move or fire with the selected unit straight away. Melee units (range 1) advance into a tile when they destroy its defender — a kill on a city captures it.'],
     ['Fog','Cloud cover hides undiscovered land. Units and cities see 2 tiles around them; explored ground stays visible.'],
     ['Economy','Crops (2\u2605), ore (4\u2605) and oil (6\u2605) sit near cities. Harvest one inside your territory to add population — fill the bar to level the city up for +1\u2605 income, permanently. Capture gray neutral cities to claim their resources.'],
     ['Counters','Snipers +50% vs Infantry \u00b7 Tanks take 50% less from Snipers \u00b7 Helicopters +50% vs Tanks \u00b7 Flak Batteries +75% vs Helicopters and resist their fire. Artillery blasts all enemies around its target for 50%.'],
     ['Factions','Aegis heals 4 HP (free Field Medicine) \u00b7 Crimson trains units 1\u2605 cheaper \u00b7 Solaris mines from the start & harvests cheaper \u00b7 Ghost sees 3 tiles & has range-3 Snipers.'],
     ['Tech','Combat: Sniper \u2192 Tank \u2192 Artillery, plus drills, armor and self-propelled guns. Industry: Ore \u2192 Oil \u2192 Helicopter, plus cheaper training, +1\u2605 per city and faster gunships. Support: healing, 2\u00d7 city defense, forest camouflage, field hospitals and blast protection. Intel: +1 vision, the Flak Battery and longer artillery range. Strategic: Satellite Network (reveals the map) and Manhattan Project (the Nuclear Missile — a one-use 5\u00d75 strike). Prices rise with each city you own.'],
     ['Recon','Tap any rival unit or city to inspect it \u2014 stats, income, and the red zone shows where that unit can reach next turn. Your own units dim once they\u2019ve acted.'],
-    ['Multiplayer','Host an operation from the menu to get a 5-letter room code \u2014 up to three friends join with it. The host\u2019s device referees the match, so keep it online; if the host drops, guests can Export Save and finish the campaign solo.'],
+    ['Multiplayer','Host an operation from the menu to get a 5-letter room code \u2014 up to three friends join with it. The host\u2019s device referees the match, so keep it online; if the host drops, guests can Export Save and finish the campaign solo. The host can set a per-turn timer in the lobby.'],
+    ['Undo','Single player: step back through this turn\u2019s moves, training, harvests and holds. Attacks, captures, research and ending the turn are final.'],
+    ['Enemy turns','Tap the speed pill under the banner (or press F) to watch enemy turns at normal speed, fast, or skip straight to your turn.'],
     ['Tutorial','Replay the guided first game any time: Menu \u2192 How to play.'],
-    ['Hotkeys','Space/Enter end turn \u00b7 Tab/N next unit \u00b7 C center on HQ \u00b7 T tech \u00b7 H manual \u00b7 M mute \u00b7 Esc deselect.'],
+    ['Hotkeys','Space/Enter end turn \u00b7 Tab/N next unit \u00b7 U or Ctrl+Z undo \u00b7 F enemy speed \u00b7 C center on HQ \u00b7 T tech \u00b7 H manual \u00b7 M mute \u00b7 Esc deselect.'],
   ];
   $('ovTitle').textContent='Field Manual';
   $('ovTitle').className='';
@@ -3000,9 +3110,11 @@ $('helpBtn').onclick=()=>{
   const btn=$('restart');
   btn.textContent='Close';
   btn.onclick=()=>{ $('overlay').classList.remove('show'); resetOverlayButton(); };
+  $('ovAlt').hidden=true;
   $('overlay').classList.add('show');
 };
 function resetOverlayButton(){
+  $('ovAlt').hidden=true;
   const btn=$('restart');
   btn.textContent='Redeploy';
   btn.onclick=()=>{ $('overlay').classList.remove('show'); NET.leave(); showSetup(); };
@@ -3030,8 +3142,44 @@ function act(a){
     if(s) sfx[s]();      // optimistic feedback; combat sounds arrive with the effect stream
     return;
   }
+  if(!NET.on){ undoableAct(a); return; }
   doAction(MYSIDE, a);
 }
+/* ---- undo (single player): step back through this turn's moves, training, harvests and holds.
+   Attacks, captures, research, launches and ending the turn can't be taken back and clear the history. ---- */
+const undoStack=[];
+const UNDOABLE={move:1, train:1, harvest:1, hold:1};
+function undoSnap(){
+  return JSON.stringify({units, stars, uid, map:map.map(row=>row.map(t=>[t.city, t.resource]))});
+}
+function undoableAct(a){
+  const u=a.t==='move'?byId(a.uid):null, c=u&&inb(a.x,a.y)?tileAt(a.x,a.y).city:null;
+  const can=UNDOABLE[a.t] && !(c&&c.owner!==u.owner);   // stepping onto a rival city captures it: final
+  const before=can?undoSnap():null;
+  doAction(MYSIDE, a);
+  if(!can) undoStack.length=0;
+  else if(undoSnap()!==before){ undoStack.push(before); if(undoStack.length>40) undoStack.shift(); }
+  syncUndo();
+}
+function undo(){
+  if(NET.on||side!==MYSIDE||gameOver||!undoStack.length) return;
+  const d=JSON.parse(undoStack.pop());
+  units=d.units; stars=d.stars; uid=d.uid;
+  d.map.forEach((row,y)=>row.forEach(([c,r],x)=>{
+    const t=map[y][x];
+    t.city=c;
+    if(r&&!t.resource){ t.resource=r; addResourceDecor(x,y); }
+    else if(!r&&t.resource){ t.resource=null; removeResourceDecor(x,y); }
+  }));
+  sel=null; pendingAtk=null;
+  sfx.select();
+  refresh();
+}
+function syncUndo(){
+  const b=$('undoBtn');
+  if(b) b.hidden=!(map&&!NET.on&&side===MYSIDE&&!gameOver&&undoStack.length);
+}
+$('undoBtn').onclick=undo;
 /* host/solo: validate and execute one action for side s */
 function doAction(s, a){
   if(gameOver||!a||side!==s||!alive[s]) return;
@@ -3081,6 +3229,7 @@ const NET={
   peer:null, hconn:null, mySlot:null,
   humans:{},              // host: side -> {name, conn|null}
   slots:null, size:11,    // lobby
+  timer:0, turnEnds:0,    // optional per-turn limit in seconds; turnEnds is a local clock deadline
   code:'', myName:'', setup:null,
   evts:[], winner:null, humansList:[],
   _syncTimer:null, _lastSide:null, _yourTurnT:null, _retry:0, _takeT:null, _idTry:0,
@@ -3094,6 +3243,7 @@ const NET={
     this.peer=null; this.hconn=null; this.mySlot=null;
     this.humans={}; this.slots=null; this.setup=null;
     this.on=false; this.host=false; this.client=false; this.inGame=false;
+    this.timer=0; this.turnEnds=0;
     this.evts.length=0; this.winner=null; this.humansList=[]; this._retry=0; this._lastSide=null;
     clearTimeout(this._syncTimer); this._syncTimer=null;
     clearTimeout(this._takeT); this._takeT=null;
@@ -3213,7 +3363,7 @@ const NET={
     const slots=this.slots.map(x=>({s:x.s,kind:x.kind,name:x.name,fac:x.fac}));
     for(const s in this.humans){
       const c=this.humans[s].conn;
-      if(c&&c.open){ try{ c.send({t:'lobby', slots, size:this.size, you:s}); }catch(e){} }
+      if(c&&c.open){ try{ c.send({t:'lobby', slots, size:this.size, timer:this.timer, you:s}); }catch(e){} }
     }
   },
   launch(){
@@ -3277,6 +3427,7 @@ const NET={
       alive:{...alive}, stars:{...stars},
       tech:Object.fromEntries(turnOrder.map(s=>[s,[...tech[s]]])),
       turn, uid, side, over:gameOver, winner:this.winner, stats:{...stats},
+      tm:this.timer, tl:this.turnEnds?Math.max(0,this.turnEnds-Date.now()):0,
       units:units.map(u=>({...u})),
       explored:null,
       map:map.map(row=>row.map(t=>({t:t.terrain, c:t.city?{o:t.city.owner,cap:!!t.city.capital,l:t.city.level,p:t.city.pop}:0, r:t.resource||0})))
@@ -3345,7 +3496,7 @@ const NET={
     this._retry=0;
     if(m.t==='deny'){ const dm='\u26a0 '+(m.m||'The host declined the connection.'); this.leave(); mpMsg(dm); return; }
     if(m.t==='lobby'){
-      this.slots=m.slots; this.size=m.size;
+      this.slots=m.slots; this.size=m.size; this.timer=m.timer||0;
       if(m.you) this.mySlot=m.you;
       mpShowLobby(); this.renderLobby();
       return;
@@ -3381,6 +3532,22 @@ const NET={
   },
   sendAction(a){
     if(this.hconn&&this.hconn.open){ try{ this.hconn.send({t:'act', a}); }catch(e){} }
+  },
+
+  /* ---------------- turn timer: everyone sees the clock, the host enforces it ---------------- */
+  timerTick(){
+    const box=$('hudTimerBox'), on=this.on&&this.inGame&&!gameOver&&this.turnEnds>0;
+    if(box.hidden===on) box.hidden=!on;
+    if(!on) return;
+    const left=Math.max(0,this.turnEnds-Date.now()), sec=Math.ceil(left/1000);
+    const el=$('hudTimer'), txt=Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');
+    if(el.textContent!==txt) el.textContent=txt;
+    el.classList.toggle('low', sec<=15);
+    if(this.host&&left<=0&&(side===P||this.humans[side])&&alive[side]){
+      this.turnEnds=0;
+      log('sys', meta(side).name+' ran out of time.');
+      doAction(side,{t:'endturn'});
+    }
   },
 
   /* ---------------- shared UI ---------------- */
@@ -3462,6 +3629,8 @@ const NET={
       grid.appendChild(card);
     }
     if(this.host) document.querySelectorAll('#mpSizeRow .opt').forEach(o=>o.classList.toggle('sel', +o.dataset.size===this.size));
+    if(this.host) document.querySelectorAll('#mpTimerRow .opt').forEach(o=>o.classList.toggle('sel', +o.dataset.timer===this.timer));
+    else $('mpWait').textContent='Waiting for the host to launch\u2026 \u00b7 turn timer '+(this.timer?(this.timer/60)+' min':'off');
   },
 };
 
@@ -3478,6 +3647,7 @@ const NET={
 
 /* ---- guest side: full restore on start, incremental apply per broadcast ---- */
 function netRestore(d){
+  NET.timer=d.tm||0; NET.turnEnds=d.tl?Date.now()+d.tl:0;
   if(restoreGame(d, true)){
     if(!alive[MYSIDE]&&!gameOver) showDefeat();
     if(gameOver) endGame(d.winner);
@@ -3499,6 +3669,7 @@ function applyNetState(d, evts){
   tech={}; for(const s of turnOrder) tech[s]=new Set(d.tech[s]||[]);
   side=d.side;
   NET.humansList=d.humans||[];
+  NET.timer=d.tm||0; NET.turnEnds=d.tl?Date.now()+d.tl:0;
   if(terr) buildBoard();
   if(sel){
     if(sel.kind==='unit'){ if(!byId(sel.id)) sel=null; }
@@ -3526,12 +3697,18 @@ function replayEvts(list){
   }
 }
 function showDefeat(){
+  revealAll();
+  if(!NET.on) clearSave();
+  refresh();
   $('ovTitle').textContent='HQ Lost'; $('ovTitle').className='lose';
   $('ovBody').style.textAlign=''; $('ovBody').style.maxWidth='';
-  $('ovBody').textContent='Your headquarters has fallen, Commander. The battle rages on \u2014 observe until a victor emerges.';
+  $('ovBody').textContent='Your headquarters has fallen, Commander. The fog is lifted \u2014 watch the battle until a victor emerges.';
   const btn=$('restart');
-  btn.textContent='Spectate';
+  btn.textContent='Watch the battle';
   btn.onclick=()=>{ $('overlay').classList.remove('show'); resetOverlayButton(); };
+  const alt=$('ovAlt');
+  alt.hidden=NET.on; alt.textContent='New game';
+  alt.onclick=()=>{ $('overlay').classList.remove('show'); resetOverlayButton(); showSetup(); };
   $('overlay').classList.add('show');
   sfx.boom();
 }
@@ -3574,6 +3751,9 @@ $('mpStartBtn').onclick=()=>NET.launch();
 document.querySelectorAll('#mpSizeRow .opt').forEach(b=>{
   b.onclick=()=>{ if(!NET.host||NET.inGame) return; NET.size=+b.dataset.size; sfx.select(); NET.renderLobby(); NET.lobbySync(); };
 });
+document.querySelectorAll('#mpTimerRow .opt').forEach(b=>{
+  b.onclick=()=>{ if(!NET.host||NET.inGame) return; NET.timer=+b.dataset.timer; sfx.select(); NET.renderLobby(); NET.lobbySync(); };
+});
 if(CAN_STORE){ try{ const n=localStorage.getItem('foothold-callsign'); if(n) $('mpName').value=n; }catch(e){} }
 
 /* ================================================================
@@ -3581,6 +3761,9 @@ if(CAN_STORE){ try{ const n=localStorage.getItem('foothold-callsign'); if(n) $('
 ================================================================ */
 function newGame(){
   gen++;
+  undoStack.length=0;
+  $('endBar').hidden=true;
+  $('speedBtn').hidden=true;
   pendingAtk=null;
   setBoardSize(cfg.size);
   // assign factions: player picks, enemies draw distinct factions from the rest
