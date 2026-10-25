@@ -12,314 +12,296 @@
   --blue:#5aa7e8; --blue-d:#274a66; --red:#e8625a;
 }
 *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent}
+html,body{height:100%}
 body{
   background:var(--bg); color:var(--text);
   font-family:'IBM Plex Mono',monospace; font-size:13px;
-  min-height:100vh; display:flex; flex-direction:column; align-items:center;
-  padding:10px 14px 18px;
+  height:100%; overflow:hidden;
 }
-h1{font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:24px; letter-spacing:.14em; text-transform:uppercase}
-h1 .op{color:var(--amber)}
-.sub{color:var(--dim); font-size:11px; letter-spacing:.08em; margin-bottom:10px}
+h1{font-family:'Saira Condensed',sans-serif; font-weight:700; letter-spacing:.12em; text-transform:uppercase; line-height:1}
+h1 .op{color:var(--amber); text-shadow:0 0 24px rgba(240,179,92,.4)}
+button{font:inherit; transition:background .15s ease, color .15s ease, border-color .15s ease,
+       transform .12s ease, box-shadow .15s ease, filter .15s ease, opacity .15s ease}
 
-#hud{display:flex; gap:10px; align-items:stretch; flex-wrap:wrap; justify-content:center; width:100%; max-width:none; margin-bottom:10px}
-#main{display:flex; gap:12px; width:100%; align-items:stretch; flex:1; min-height:0}
-#wrap{flex:1; min-width:0; max-width:none}
-#command{
-  width:340px; min-width:300px; max-width:340px; margin-top:0;
-  display:flex; flex-direction:column; flex-wrap:nowrap;
-}
-#info{flex:1 1 auto; border-right:none; min-height:118px; overflow-y:auto}
-#log{flex:1 1 auto; max-height:none; min-height:120px}
-@media (max-width:900px){
-  #main{flex-direction:column}
-  #command{width:100%; max-width:none}
-  #log{max-height:140px}
-}
-.hud-box{background:var(--panel); border:1px solid var(--line); padding:7px 14px; display:flex; flex-direction:column; gap:1px; min-width:88px}
-.hud-box .k{font-size:9px; letter-spacing:.16em; color:var(--dim); text-transform:uppercase}
-.hud-box .v{font-size:17px; font-weight:600}
-.v.stars{color:var(--amber)} .v.blue{color:var(--blue)} .v.red{color:var(--red)}
-#endTurn{margin-left:auto; background:var(--blue-d); color:#dceeff; border:1px solid var(--blue);
-  font-family:'Saira Condensed',sans-serif; font-size:16px; letter-spacing:.12em; padding:0 22px; cursor:pointer; text-transform:uppercase}
-#endTurn:hover{background:#31597a}
-#endTurn:disabled{opacity:.4; cursor:default}
-#endTurn:focus-visible{outline:2px solid var(--amber)}
-#techBtn{margin-left:auto; background:var(--panel2); color:var(--amber); border:1px solid var(--amber);
-  font-family:'Saira Condensed',sans-serif; font-size:16px; letter-spacing:.12em; padding:0 18px; cursor:pointer; text-transform:uppercase}
-#techBtn:hover{background:#2a3526}
-#techBtn{position:relative}
-#techBtn.avail::after{
-  content:''; position:absolute; top:-4px; right:-4px; width:11px; height:11px;
-  border-radius:50%; background:var(--amber); border:2px solid var(--bg);
-  animation:etPulse 1.6s ease-in-out infinite;
-}
-#techBtn~#endTurn{margin-left:0}
-#muteBtn,#nextBtn,#menuBtn{
-  background:var(--panel2); color:var(--dim); border:1px solid var(--line);
-  font-family:'Saira Condensed',sans-serif; font-size:15px; letter-spacing:.1em;
-  padding:0 14px; cursor:pointer; text-transform:uppercase;
-}
-#menuBtn{margin-left:auto}
-#menuBtn~#muteBtn,#muteBtn~#nextBtn,#muteBtn~#techBtn,#menuBtn~#techBtn{margin-left:0}
-#muteBtn:hover,#nextBtn:hover,#menuBtn:hover{color:var(--text); border-color:var(--dim)}
-#nextBtn:disabled{opacity:.4; cursor:default}
+/* ================= the map fills the screen; every control floats over it ================= */
+#wrap{position:fixed; inset:0; z-index:0; background:#0b100e}
+#wrap canvas{display:block; touch-action:none; cursor:grab}
+#vignette{position:absolute; inset:0; pointer-events:none; z-index:5; box-shadow:inset 0 0 120px rgba(0,0,0,.5)}
 
-/* ---------- setup menu ---------- */
-#setup{
-  position:fixed; inset:0; background:rgba(8,12,10,.94); z-index:60; display:none;
-  align-items:flex-start; justify-content:center; overflow-y:auto; padding:30px 12px;
-}
+/* ---- top centre: turn · stars · cities ---- */
+#hud{position:fixed; top:calc(env(safe-area-inset-top,0px) + 10px); left:50%; transform:translateX(-50%);
+  z-index:10; display:flex; gap:6px; pointer-events:none}
+.hud-box{display:flex; flex-direction:column; align-items:center; min-width:70px; padding:6px 13px 5px;
+  background:rgba(14,20,16,.8); border:1px solid rgba(255,255,255,.07); border-radius:14px;
+  backdrop-filter:blur(8px); box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.hud-box .v{font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:24px; line-height:1; color:#f4f7f4;
+  font-variant-numeric:tabular-nums; white-space:nowrap}
+.hud-box .v.stars{color:var(--amber)}
+.hud-box .v small{font-size:14px; font-weight:500; color:#d9b779; margin-left:3px}
+.hud-box .k{font-size:9px; letter-spacing:.18em; color:var(--dim); text-transform:uppercase; margin-top:4px}
+.hb-side{display:none}
+
+/* ---- small round buttons in the top corners ---- */
+.rb{width:46px; height:46px; border-radius:50%; border:none; cursor:pointer; color:#eef3ee;
+  display:grid; place-items:center; padding:0;
+  background:rgba(14,20,16,.8); backdrop-filter:blur(8px);
+  box-shadow:0 6px 18px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.09)}
+.rb svg,.dock svg,.abtn svg,.por svg{fill:none; stroke:currentColor; stroke-width:2.1; stroke-linecap:round; stroke-linejoin:round}
+.rb svg{width:22px; height:22px}
+.rb:hover{filter:brightness(1.2)}
+.rb:active{transform:scale(.94)}
+.rb:focus-visible,.dock:focus-visible .disc,.abtn:focus-visible .disc,.bigbtn:focus-visible{outline:2px solid var(--amber); outline-offset:3px}
+.rb.off{color:var(--dim)}
+#menuBtn{position:fixed; z-index:11; top:calc(env(safe-area-inset-top,0px) + 12px); left:calc(env(safe-area-inset-left,0px) + 12px)}
+#topRight{position:fixed; z-index:11; top:calc(env(safe-area-inset-top,0px) + 12px); right:calc(env(safe-area-inset-right,0px) + 12px);
+  display:flex; gap:8px}
+
+/* ---- bottom dock: Tech on the left, Next unit + End turn on the right ---- */
+.dock{position:fixed; z-index:12; bottom:calc(env(safe-area-inset-bottom,0px) + 12px);
+  display:flex; flex-direction:column; align-items:center; gap:5px;
+  padding:0; background:none; border:none; cursor:pointer; color:var(--text)}
+.dock .disc{position:relative; width:66px; height:66px; border-radius:50%; display:grid; place-items:center; color:#fff;
+  background:rgba(14,20,16,.85); backdrop-filter:blur(8px);
+  box-shadow:0 8px 22px rgba(0,0,0,.5), inset 0 0 0 2px rgba(255,255,255,.1); transition:transform .12s ease, filter .15s ease, box-shadow .2s ease}
+.dock .disc svg{width:30px; height:30px}
+.dock .lb{font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:12.5px; letter-spacing:.16em; text-transform:uppercase;
+  color:#e9f0e9; text-shadow:0 1px 5px rgba(0,0,0,.95)}
+.dock:hover:not(:disabled) .disc{filter:brightness(1.15)}
+.dock:active:not(:disabled) .disc{transform:scale(.93)}
+.dock:disabled{cursor:default}
+.dock:disabled .disc{opacity:.45}
+.dock:disabled .lb{opacity:.6}
+#techBtn{left:calc(env(safe-area-inset-left,0px) + 14px)}
+#techBtn .disc{color:var(--amber); background:linear-gradient(180deg,#463818,#2a2111); box-shadow:0 8px 22px rgba(0,0,0,.5), inset 0 0 0 2px rgba(240,179,92,.55)}
+#techBtn.avail .disc::after{content:''; position:absolute; top:2px; right:2px; width:14px; height:14px; border-radius:50%;
+  background:var(--amber); border:2px solid #1a1408; animation:dotPulse 1.6s ease-in-out infinite}
+#endTurn{right:calc(env(safe-area-inset-right,0px) + 14px)}
+#endTurn .disc{width:76px; height:76px; background:linear-gradient(180deg,#3d73a0,#24496a);
+  box-shadow:0 8px 22px rgba(0,0,0,.5), inset 0 0 0 2px rgba(150,200,240,.45)}
+#endTurn .disc svg{width:34px; height:34px}
+#endTurn.pulse .disc{animation:etPulse 1.4s ease-in-out infinite}
+#nextBtn{right:calc(env(safe-area-inset-right,0px) + 104px)}
+#nextBtn .disc{width:54px; height:54px}
+#nextBtn .disc svg{width:24px; height:24px}
+#nextBtn .badge{position:absolute; top:-3px; right:-3px; min-width:21px; height:21px; padding:0 6px; border-radius:11px;
+  background:var(--amber); color:#1a1408; font-weight:600; font-size:11.5px; display:grid; place-items:center;
+  box-shadow:0 2px 6px rgba(0,0,0,.4)}
+@keyframes etPulse{0%,100%{box-shadow:0 8px 22px rgba(0,0,0,.5), inset 0 0 0 2px rgba(240,179,92,.9), 0 0 0 0 rgba(240,179,92,0)}
+  50%{box-shadow:0 8px 22px rgba(0,0,0,.5), inset 0 0 0 2px rgba(240,179,92,.9), 0 0 0 9px rgba(240,179,92,.28)}}
+@keyframes dotPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+
+/* ---- turn banner + toasts under the stat bar ---- */
+#turnBanner{position:fixed; z-index:13; top:calc(env(safe-area-inset-top,0px) + 74px); left:50%; transform:translateX(-50%);
+  background:rgba(92,42,38,.88); border:1px solid var(--red); color:#ffd9d4; border-radius:999px;
+  font-family:'Saira Condensed',sans-serif; font-size:15px; letter-spacing:.2em; white-space:nowrap;
+  padding:4px 18px; pointer-events:none; display:none; text-transform:uppercase; box-shadow:0 6px 20px rgba(0,0,0,.4)}
+#turnBanner.show{display:block}
+#toasts{position:fixed; z-index:13; top:calc(env(safe-area-inset-top,0px) + 112px); left:50%; transform:translateX(-50%);
+  width:min(420px, calc(100vw - 32px)); display:flex; flex-direction:column; align-items:center; gap:6px; pointer-events:none}
+.toast{max-width:100%; background:rgba(14,20,16,.92); border:1px solid rgba(255,255,255,.08); border-left:4px solid var(--tc,var(--amber));
+  border-radius:12px; padding:7px 14px; font-size:12px; line-height:1.45; box-shadow:0 8px 22px rgba(0,0,0,.45);
+  animation:toastIn .25s ease both}
+.toast.out{animation:toastOut .3s ease both}
+@keyframes toastIn{from{opacity:0; transform:translateY(-6px)}to{opacity:1; transform:none}}
+@keyframes toastOut{to{opacity:0; transform:translateY(-6px)}}
+
+/* ---- selection card: pops up above the dock ---- */
+#command{position:fixed; z-index:9; left:50%; bottom:calc(env(safe-area-inset-bottom,0px) + 104px);
+  width:min(560px, calc(100vw - 24px)); max-height:min(50vh, 400px); overflow-y:auto;
+  background:rgba(14,20,16,.92); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.07); border-radius:18px;
+  box-shadow:0 16px 40px rgba(0,0,0,.5);
+  transform:translate(-50%, 18px); opacity:0; pointer-events:none; transition:transform .22s ease, opacity .18s ease}
+body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:auto}
+#info{padding:12px 14px 14px}
+.ihead{display:flex; gap:12px; align-items:center}
+.por{width:56px; height:56px; flex:none; border-radius:50%; display:grid; place-items:center; overflow:hidden; color:var(--fc,#cfd8cf);
+  background:radial-gradient(circle at 50% 38%, #304236, #141b16); box-shadow:inset 0 0 0 2px var(--fc,#3a4a3e)}
+.por img{width:112%; height:112%; object-fit:contain; margin-top:4%}
+.por svg{width:28px; height:28px}
+.por:empty{display:none}
+.itxt{min-width:0}
+#info .title{font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:20px; letter-spacing:.07em; text-transform:uppercase; line-height:1.1}
+.isub{font-size:11px; color:var(--dim); margin-top:2px}
+.chips{display:flex; flex-wrap:wrap; gap:5px; margin-top:9px}
+.chips:empty{display:none}
+.chip{display:inline-flex; align-items:center; gap:5px; font-size:11px; padding:3px 9px; border-radius:999px;
+  background:rgba(255,255,255,.06); color:var(--dim); font-variant-numeric:tabular-nums}
+.chip b{color:#f1f5f1; font-weight:600}
+.chip.good{color:#8fd89a; background:rgba(143,216,154,.1)}
+.chip .bar{width:38px; height:6px; border-radius:3px; background:rgba(0,0,0,.45); overflow:hidden}
+.chip .bar i{display:block; height:100%; border-radius:3px; background:#7ed87e}
+#info .stat{color:var(--dim); font-size:11.5px; line-height:1.6; margin-top:8px}
+#info .stat:empty{display:none}
+#info .stat b{color:var(--text)}
+#forecast{color:var(--amber)}
+#forecast b{color:#ffd9a8}
+#train{display:flex; gap:8px; overflow-x:auto; padding:12px 2px 2px; scrollbar-width:none}
+#train:empty{display:none}
+#train::-webkit-scrollbar{display:none}
+.abtn{flex:none; width:68px; display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding:0; background:none; border:none; color:var(--text); cursor:pointer}
+.abtn .disc{position:relative; width:56px; height:56px; border-radius:50%; display:grid; place-items:center; overflow:hidden; color:#e9f0e9;
+  background:radial-gradient(circle at 50% 35%, #33473a, #18211b); box-shadow:inset 0 0 0 2px rgba(255,255,255,.12), 0 4px 10px rgba(0,0,0,.4);
+  transition:transform .12s ease, box-shadow .15s ease, filter .15s ease}
+.abtn .disc img{width:116%; height:116%; object-fit:contain; margin-top:6%}
+.abtn .disc svg{width:26px; height:26px}
+.abtn .nm{font-family:'Saira Condensed',sans-serif; font-size:12.5px; letter-spacing:.05em; text-transform:uppercase; text-align:center; line-height:1.05}
+.abtn .cost{font-size:11px; font-weight:600; color:var(--amber); font-variant-numeric:tabular-nums}
+.abtn:hover:not(:disabled) .disc{box-shadow:inset 0 0 0 2px var(--amber), 0 6px 14px rgba(0,0,0,.45); transform:translateY(-2px)}
+.abtn:active:not(:disabled) .disc{transform:scale(.94)}
+.abtn:disabled{cursor:default}
+.abtn:disabled .disc{filter:grayscale(.8) brightness(.55)}
+.abtn:disabled .nm{color:var(--dim)}
+.abtn:disabled .cost{color:#8a7a5c}
+.abtn.more .disc{background:rgba(255,255,255,.04); box-shadow:inset 0 0 0 2px rgba(240,179,92,.35); color:var(--amber)}
+.abtn.more .nm{color:var(--amber)}
+.abtn.danger .disc{box-shadow:inset 0 0 0 2px rgba(232,98,90,.7), 0 4px 10px rgba(0,0,0,.4)}
+
+/* ---- first-game coach bubble ---- */
+#coach{position:fixed; z-index:40; width:min(300px, calc(100vw - 28px)); background:#f4f0e3; color:#18201a;
+  border-radius:14px; padding:12px 14px 9px; box-shadow:0 14px 34px rgba(0,0,0,.55); font-size:12.5px; line-height:1.5}
+#coach b{color:#000}
+#coach .crow{display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:11px; color:#5d6b60}
+#coach .skip{background:none; border:none; padding:2px 0; color:#5d6b60; text-decoration:underline; cursor:pointer; font-size:11px}
+#coach::after{content:''; position:absolute; left:var(--ax,50%); width:14px; height:14px; background:#f4f0e3; transform:translateX(-50%) rotate(45deg)}
+#coach.below::after{top:-6px}
+#coach.above::after{bottom:-6px}
+#coach.free::after{display:none}
+.coach-ping .disc,.abtn.coach-ping .disc{animation:coachPing 1.3s ease-in-out infinite}
+@keyframes coachPing{0%,100%{box-shadow:0 0 0 0 rgba(244,240,227,0), inset 0 0 0 2px rgba(244,240,227,.9)}
+  50%{box-shadow:0 0 0 10px rgba(244,240,227,.25), inset 0 0 0 2px rgba(244,240,227,.9)}}
+
+/* ================= title screen + custom game ================= */
+#setup{position:fixed; inset:0; z-index:60; display:none; align-items:flex-start; justify-content:center; overflow-y:auto;
+  padding:max(30px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 30px max(12px, env(safe-area-inset-left));
+  background:radial-gradient(ellipse at 50% 30%, rgba(30,44,34,.92), rgba(8,12,10,.97) 70%); backdrop-filter:blur(5px)}
 #setup.show{display:flex}
-#setupInner{
-  background:var(--panel); border:1px solid var(--line); max-width:860px; width:100%;
-  padding:22px 24px 26px;
-}
-#setupInner h3{
-  font-family:'Saira Condensed',sans-serif; font-size:26px; letter-spacing:.16em;
-  text-transform:uppercase; margin-bottom:4px;
-}
-#setupInner .sec{
-  font-family:'Saira Condensed',sans-serif; font-size:13px; letter-spacing:.18em;
-  text-transform:uppercase; color:var(--dim); margin:18px 0 8px;
-  border-bottom:1px solid var(--line); padding-bottom:5px;
-}
+#setupInner{background:var(--panel); border:1px solid var(--line); max-width:860px; width:100%; margin:auto 0;
+  padding:22px 24px 26px; border-radius:18px; box-shadow:0 24px 70px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04)}
+#setupInner.home{max-width:440px; background:rgba(22,29,24,.9)}
+#homePane{display:flex; flex-direction:column; align-items:center; text-align:center; gap:6px}
+#homePane h1{font-size:clamp(34px, 9vw, 48px)}
+#homePane h1 .three{display:block; font-size:.36em; letter-spacing:.5em; color:var(--dim); margin-top:6px}
+#homePane .tag{color:var(--dim); font-size:11px; letter-spacing:.1em; text-transform:uppercase; margin:4px 0 16px}
+.homeBtns{display:flex; flex-direction:column; gap:10px; width:100%}
+.bigbtn{display:flex; flex-direction:column; align-items:center; gap:2px; width:100%; cursor:pointer;
+  padding:13px 16px; border-radius:14px; border:1px solid var(--line); background:var(--panel2); color:var(--text);
+  font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:19px; letter-spacing:.14em; text-transform:uppercase}
+.bigbtn span{font-family:'IBM Plex Mono',monospace; font-weight:400; font-size:10.5px; letter-spacing:.04em; text-transform:none; color:var(--dim)}
+.bigbtn:hover{filter:brightness(1.15)}
+.bigbtn:active{transform:translateY(1px)}
+.bigbtn.primary{background:linear-gradient(180deg,#3d73a0,#24496a); border-color:#5aa7e8; color:#eaf4ff}
+.bigbtn.primary span{color:#b9d6ef}
+.bigbtn.gold{background:linear-gradient(180deg,#4f3f1b,#2e2511); border-color:var(--amber); color:var(--amber)}
+.bigbtn.gold span{color:#d6bd8c}
+.bigbtn.armed{border-color:var(--red); color:#ffd9d4; background:#3a1f1c}
+.bigbtn.armed span{color:#f0b3ab}
+.homeRow{display:flex; gap:10px; width:100%}
+.homeRow .bigbtn{font-size:16px; padding:11px 10px}
+.backBtn{background:none; border:none; color:var(--dim); cursor:pointer; padding:4px 0; margin-bottom:10px;
+  font-family:'Saira Condensed',sans-serif; font-size:14px; letter-spacing:.14em; text-transform:uppercase}
+.backBtn:hover{color:var(--text)}
+#setupInner h3{font-family:'Saira Condensed',sans-serif; font-size:26px; letter-spacing:.16em; text-transform:uppercase; margin-bottom:4px}
+#setupInner .sec{font-family:'Saira Condensed',sans-serif; font-size:13px; letter-spacing:.18em; text-transform:uppercase; color:var(--dim);
+  margin:18px 0 8px; border-bottom:1px solid var(--line); padding-bottom:5px}
 #factionGrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:10px}
-.fcard{
-  background:var(--panel2); border:1px solid var(--line); border-left:5px solid var(--line);
-  padding:10px 12px; cursor:pointer; text-align:left;
-  font-family:'IBM Plex Mono',monospace; color:var(--text);
-}
+.fcard{background:var(--panel2); border:1px solid var(--line); border-left:5px solid var(--line); border-radius:10px;
+  padding:10px 12px; cursor:pointer; text-align:left; font-family:'IBM Plex Mono',monospace; color:var(--text);
+  transition:transform .14s ease, border-color .14s ease, box-shadow .14s ease, background .14s ease}
 .fcard .fn{font-family:'Saira Condensed',sans-serif; font-size:16px; letter-spacing:.08em; text-transform:uppercase}
 .fcard .fp{font-size:10.5px; color:var(--dim); line-height:1.55; margin-top:4px}
-.fcard:hover{border-color:var(--dim)}
+.fcard:hover{border-color:var(--dim); transform:translateY(-2px); box-shadow:0 8px 18px rgba(0,0,0,.4)}
 .fcard.sel{border-color:var(--amber); background:#221f15; box-shadow:inset 0 0 0 1px var(--amber)}
 .optRow{display:flex; gap:8px; flex-wrap:wrap}
-.opt{
-  background:var(--panel2); border:1px solid var(--line); color:var(--text); cursor:pointer;
-  font-family:'Saira Condensed',sans-serif; font-size:15px; letter-spacing:.08em;
-  text-transform:uppercase; padding:8px 16px; display:flex; flex-direction:column; align-items:center; gap:1px;
-}
+.opt{background:var(--panel2); border:1px solid var(--line); border-radius:9px; color:var(--text); cursor:pointer;
+  font-family:'Saira Condensed',sans-serif; font-size:15px; letter-spacing:.08em; text-transform:uppercase;
+  padding:8px 16px; display:flex; flex-direction:column; align-items:center; gap:1px}
 .opt span{font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--dim); text-transform:none}
-.opt:hover{border-color:var(--dim)}
+.opt:hover{border-color:var(--dim); transform:translateY(-1px)}
 .opt.sel{border-color:var(--amber); background:#221f15; color:var(--amber)}
-#startBtn{
-  margin-top:22px; width:100%; background:var(--blue-d); border:1px solid var(--blue); color:#dceeff;
-  font-family:'Saira Condensed',sans-serif; font-size:19px; letter-spacing:.16em;
-  padding:12px 0; cursor:pointer; text-transform:uppercase;
-}
-#startBtn:hover{background:#31597a}
+#startBtn{margin-top:22px}
 .saveRow{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
 .saveRow .opt{flex:1 1 140px}
-#continueBtn{border-color:var(--amber); color:var(--amber)}
 .saveNote{margin-top:10px; font-size:10.5px; color:var(--dim); letter-spacing:.04em; text-align:center}
-@keyframes etPulse{
-  0%,100%{box-shadow:0 0 0 0 rgba(240,179,92,0)}
-  50%{box-shadow:0 0 0 4px rgba(240,179,92,.45)}
-}
-#endTurn.pulse{animation:etPulse 1.4s ease-in-out infinite; border-color:var(--amber)}
-@media (prefers-reduced-motion:reduce){ #endTurn.pulse{animation:none; border-color:var(--amber)} }
-#turnBanner{
-  position:absolute; top:10px; left:50%; transform:translateX(-50%);
-  background:rgba(92,42,38,.85); border:1px solid var(--red); color:#ffd9d4;
-  font-family:'Saira Condensed',sans-serif; font-size:17px; letter-spacing:.22em;
-  padding:5px 22px; pointer-events:none; display:none; text-transform:uppercase;
-}
-#turnBanner.show{display:block}
-#forecast{margin-top:6px; color:var(--amber); min-height:0}
-#forecast b{color:#ffd9a8}
+#factionGrid,.optRow,.homeBtns{animation:panelIn .22s ease both}
+@keyframes panelIn{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:none}}
 
-/* ---------- tech panel ---------- */
-#techPanel{
-  position:fixed; inset:0; background:rgba(8,12,10,.86); z-index:45; display:none;
-  align-items:flex-start; justify-content:center; overflow-y:auto; padding:30px 12px;
-}
+/* ================= research: radial tech tree ================= */
+#techPanel{position:fixed; inset:0; z-index:45; display:none; flex-direction:column;
+  background:radial-gradient(ellipse at 50% 45%, rgba(26,38,30,.95), rgba(8,12,10,.97) 72%); backdrop-filter:blur(6px)}
 #techPanel.show{display:flex}
-#techInner{
-  background:var(--panel); border:1px solid var(--line); max-width:1180px; width:100%;
-  padding:18px 18px 22px;
-}
-#techHead{display:flex; align-items:baseline; gap:14px; margin-bottom:14px}
-#techHead h3{font-family:'Saira Condensed',sans-serif; font-size:22px; letter-spacing:.14em; text-transform:uppercase}
-#techHead .stars{color:var(--amber); font-size:14px}
-#techClose{margin-left:auto; background:none; border:1px solid var(--line); color:var(--dim);
-  font-family:'IBM Plex Mono',monospace; font-size:12px; padding:4px 12px; cursor:pointer}
-#techClose:hover{color:var(--text)}
-#techCols{display:flex; gap:12px; flex-wrap:wrap}
-.tcol{flex:1 1 180px; min-width:180px}
-.tcol h4{font-family:'Saira Condensed',sans-serif; font-size:13px; letter-spacing:.18em;
-  text-transform:uppercase; color:var(--dim); border-bottom:1px solid var(--line); padding-bottom:5px; margin-bottom:8px}
-.tnode{
-  background:var(--panel2); border:1px solid var(--line); padding:9px 11px; margin-bottom:8px;
-  position:relative;
-}
-.tnode::after{content:''; position:absolute; left:50%; bottom:-9px; width:1px; height:8px; background:var(--line)}
-.tnode:last-child::after{display:none}
-.tnode .tn{font-family:'Saira Condensed',sans-serif; font-size:15px; letter-spacing:.08em; text-transform:uppercase}
-.tnode .tn .tier{float:right; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.06em; color:var(--dim); margin-top:3px}
-.tnode .td{font-size:10.5px; color:var(--dim); line-height:1.5; margin:3px 0 7px}
-.tnode.owned{border-color:#4d7a55}
-.tnode.owned .tn{color:#8fd89a}
-.tnode.locked{opacity:.55}
-.tnode .rbtn{
-  background:var(--blue-d); border:1px solid var(--blue); color:#dceeff; cursor:pointer;
-  font-family:'IBM Plex Mono',monospace; font-size:11px; padding:4px 10px;
-}
-.tnode .rbtn:disabled{opacity:.4; cursor:default}
-.tnode .owned-tag{color:#8fd89a; font-size:11px}
-.tnode .lock-tag{color:var(--dim); font-size:10.5px}
+#techInner{display:flex; flex-direction:column; height:100%; width:100%}
+#techHead{display:flex; align-items:center; gap:12px;
+  padding:calc(env(safe-area-inset-top,0px) + 12px) max(14px, env(safe-area-inset-right)) 4px max(14px, env(safe-area-inset-left))}
+#techHead h3{font-family:'Saira Condensed',sans-serif; font-size:24px; letter-spacing:.14em; text-transform:uppercase}
+#techStars{color:var(--amber); font-size:12px}
+#techClose{margin-left:auto}
+#techCols{flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:0 6px}
+#techTree{width:100%; height:100%; max-width:720px; overflow:visible}
+#techTree .edge{stroke:#2e3d32; stroke-width:3.5; stroke-linecap:round}
+#techTree .edge.on{stroke:var(--fac)}
+#techTree .tn{cursor:pointer}
+#techTree .tn:focus{outline:none}
+#techTree .tn-c{fill:#1b241e; stroke:#3b4b3f; stroke-width:2}
+#techTree .tn-t{font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:11.5px; letter-spacing:.04em; fill:#dfe7df; text-anchor:middle}
+#techTree .tn-cost{font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:10.5px; fill:var(--amber); text-anchor:middle}
+#techTree .tn.owned .tn-c{fill:var(--fac); stroke:#f4f7f4}
+#techTree .tn.owned .tn-t{fill:#0f1412}
+#techTree .tn.avail .tn-c{stroke:var(--amber); stroke-width:3}
+#techTree .tn.avail.cant .tn-c{stroke:#8a7a5c; stroke-width:2}
+#techTree .tn.locked{opacity:.42}
+#techTree .tn.locked .tn-cost{fill:var(--dim)}
+#techTree .tn-pill{fill:#0f1412; stroke:rgba(240,179,92,.5); stroke-width:1}
+#techTree .tn.locked .tn-pill,#techTree .tn.cant .tn-pill{stroke:#3b4b3f}
+#techTree .tn.sel .tn-ring{stroke:#f4f0e3; stroke-width:2.5; fill:none}
+#techTree .tn:hover .tn-c{filter:brightness(1.25)}
+#techTree .tn:focus-visible .tn-ring{stroke:var(--amber); stroke-width:2.5; fill:none}
+#techTree .hub{fill:var(--fac)}
+#techTree .hub-t{font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:17px; fill:#0f1412; text-anchor:middle}
+#techTree .hub-k{font-family:'IBM Plex Mono',monospace; font-size:8px; letter-spacing:.14em; fill:#0f1412; text-anchor:middle}
+#techLegend{display:flex; flex-wrap:wrap; justify-content:center; gap:4px 14px; font-size:10.5px; color:var(--dim); padding:2px 12px 8px}
+#techLegend i{display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; vertical-align:-1px}
+#techDetail{width:min(540px, calc(100vw - 24px)); margin:0 auto calc(env(safe-area-inset-bottom,0px) + 14px);
+  background:rgba(22,29,24,.95); border:1px solid var(--line); border-radius:16px; padding:12px 14px;
+  display:flex; gap:14px; align-items:center; min-height:76px}
+#techDetail .tdx{flex:1; min-width:0}
+#techDetail .tdn{font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:18px; letter-spacing:.08em; text-transform:uppercase}
+#techDetail .tdm{font-size:10.5px; color:var(--dim); letter-spacing:.06em; text-transform:uppercase}
+#techDetail .tdd{font-size:12px; color:var(--text); margin-top:3px; line-height:1.5}
+#techDetail .tdq{font-size:11px; color:var(--dim); margin-top:2px}
+#techDetail .rbtn{flex:none; cursor:pointer; border-radius:12px; padding:10px 16px; border:1px solid var(--amber);
+  background:linear-gradient(180deg,#4f3f1b,#2e2511); color:var(--amber);
+  font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:16px; letter-spacing:.1em; text-transform:uppercase}
+#techDetail .rbtn:disabled{opacity:.4; cursor:default}
+#techDetail .done{flex:none; color:#8fd89a; font-size:12px}
 
-#wrap{width:100%; position:relative; border:1px solid var(--line); background:#0b100e}
-#wrap canvas{display:block; touch-action:none; cursor:grab}
-#camHint{position:absolute; left:8px; bottom:6px; font-size:10px; color:var(--dim); pointer-events:none; letter-spacing:.06em}
-
-#command{background:var(--panel); border:1px solid var(--line)}
-#info{padding:12px 14px}
-#info .title{font-family:'Saira Condensed',sans-serif; font-size:16px; letter-spacing:.1em; text-transform:uppercase; margin-bottom:4px}
-#info .stat{color:var(--dim); font-size:11px; line-height:1.7}
-#info .stat b{color:var(--text)}
-#train{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px}
-.tbtn{background:var(--panel2); border:1px solid var(--line); color:var(--text);
-  font-family:'IBM Plex Mono',monospace; font-size:11px; padding:6px 9px; cursor:pointer;
-  display:flex; flex-direction:column; align-items:center; gap:1px; min-width:62px}
-.tbtn b{font-family:'Saira Condensed',sans-serif; font-size:13px; letter-spacing:.08em}
-.tbtn .c{color:var(--amber)}
-.tbtn:hover:not(:disabled){border-color:var(--blue)}
-.tbtn:disabled{opacity:.35; cursor:default}
-#log{padding:10px 14px; overflow-y:auto; font-size:11px; color:var(--dim); line-height:1.65}
-#log .e{display:block}
-#log .e.P{color:#9cc8ee} #log .e.A{color:#eea49e} #log .e.sys{color:var(--amber)}
-
-#overlay{position:fixed; inset:0; background:rgba(8,12,10,.88); display:none;
-  align-items:center; justify-content:center; flex-direction:column; gap:14px; z-index:50; text-align:center; padding:20px}
+/* ================= end-of-game + field manual ================= */
+#overlay{position:fixed; inset:0; background:rgba(8,12,10,.88); display:none; backdrop-filter:blur(5px);
+  align-items:center; justify-content:center; flex-direction:column; gap:14px; z-index:50; text-align:center; padding:20px; overflow-y:auto}
 #overlay.show{display:flex}
-#overlay h2{font-family:'Saira Condensed',sans-serif; font-size:42px; letter-spacing:.18em; text-transform:uppercase}
+#overlay h2{font-family:'Saira Condensed',sans-serif; font-size:42px; letter-spacing:.18em; text-transform:uppercase; text-shadow:0 0 36px currentColor}
 #overlay h2.win{color:var(--blue)} #overlay h2.lose{color:var(--red)}
 #overlay p{color:var(--dim); max-width:420px; line-height:1.6}
-#overlay button{background:var(--blue-d); border:1px solid var(--blue); color:#dceeff;
+#overlay button{background:linear-gradient(180deg,#3d73a0,#24496a); border:1px solid var(--blue); color:#eaf4ff; border-radius:12px;
   font-family:'Saira Condensed',sans-serif; font-size:18px; letter-spacing:.12em; padding:10px 34px; cursor:pointer; text-transform:uppercase}
-#helpBtn{background:none; border:1px solid var(--line); color:var(--dim); font-size:11px;
-  padding:4px 12px; cursor:pointer; margin-top:8px; font-family:'IBM Plex Mono',monospace}
-#helpBtn:hover{color:var(--text); border-color:var(--dim)}
 
-/* ================= polish layer: smooth & soft ================= */
-button{transition:background .15s ease, color .15s ease, border-color .15s ease,
-       transform .12s ease, box-shadow .15s ease, filter .15s ease, opacity .15s ease}
-.hud-box{
-  border-radius:10px;
-  background:linear-gradient(180deg,#1a231c,#141b16);
-  box-shadow:0 2px 6px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.035);
+@media (max-width:520px){
+  .hud-box{min-width:60px; padding:5px 10px 4px}
+  .hud-box .v{font-size:21px}
+  .rb{width:42px; height:42px}
+  #hud{top:calc(env(safe-area-inset-top,0px) + 12px)}
+  #setupInner{padding:18px 16px 22px}
 }
-#wrap{
-  border-radius:14px; overflow:hidden;
-  box-shadow:0 14px 40px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.045);
+@media (max-width:380px){
+  .hb-cities{display:none}
 }
-#command{
-  border-radius:14px; overflow:hidden;
-  box-shadow:0 14px 40px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.03);
-}
-#endTurn,#techBtn,#muteBtn,#nextBtn,#menuBtn{border-radius:9px}
-#endTurn{background:linear-gradient(180deg,#30597b,#224663)}
-#endTurn:hover:not(:disabled){filter:brightness(1.14)}
-#endTurn:active:not(:disabled){transform:translateY(1px)}
-#techBtn:active,#muteBtn:active,#nextBtn:active,#menuBtn:active{transform:translateY(1px)}
-.tbtn{border-radius:8px}
-.tbtn:hover:not(:disabled){transform:translateY(-1px); box-shadow:0 4px 10px rgba(0,0,0,.35)}
-.tbtn:active:not(:disabled){transform:translateY(0)}
-.tnode{border-radius:10px}
-.tnode:hover{transform:translateY(-1px); box-shadow:0 5px 14px rgba(0,0,0,.3)}
-.tnode{transition:transform .13s ease, border-color .13s ease, box-shadow .13s ease}
-.tnode .rbtn{border-radius:7px}
-.fcard{border-radius:10px; transition:transform .14s ease, border-color .14s ease, box-shadow .14s ease, background .14s ease}
-.fcard:hover{transform:translateY(-2px); box-shadow:0 8px 18px rgba(0,0,0,.4)}
-.opt{border-radius:9px}
-.opt:hover{transform:translateY(-1px)}
-#setupInner,#techInner{border-radius:16px; box-shadow:0 24px 70px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04)}
-#setup,#techPanel,#overlay{backdrop-filter:blur(5px)}
-#startBtn{border-radius:10px; background:linear-gradient(180deg,#30597b,#224663)}
-#startBtn:hover{filter:brightness(1.14)}
-#startBtn:active{transform:translateY(1px)}
-#turnBanner{border-radius:9px; backdrop-filter:blur(3px); z-index:6;
-  box-shadow:0 6px 20px rgba(0,0,0,.4)}
-#camHint{border-radius:7px; background:rgba(10,15,12,.6); padding:3px 10px; z-index:6}
-#vignette{position:absolute; inset:0; pointer-events:none; z-index:5;
-  box-shadow:inset 0 0 110px rgba(0,0,0,.5)}
-#log{scrollbar-width:thin; scrollbar-color:var(--line) transparent}
-#log::-webkit-scrollbar{width:8px}
-#log::-webkit-scrollbar-track{background:transparent}
-#log::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px}
-#log::-webkit-scrollbar-thumb:hover{background:#3c4e40}
-#log .e{animation:logIn .28s ease both}
-@keyframes logIn{from{opacity:0; transform:translateX(-5px)}to{opacity:1; transform:none}}
-#techCols,#factionGrid,.optRow{animation:panelIn .22s ease both}
-@keyframes panelIn{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:none}}
-h1 .op{text-shadow:0 0 20px rgba(240,179,92,.4)}
-#overlay h2{text-shadow:0 0 36px currentColor}
-#info .title{transition:color .15s ease}
-#forecast{transition:opacity .15s ease}
 @media (prefers-reduced-motion:reduce){
-  button,.tbtn,.tnode,.fcard,.opt{transition:none}
-  #log .e,#techCols,#factionGrid,.optRow{animation:none}
-}
-
-/* ================= immersive mobile: map fullscreen, UI floats on top ================= */
-@media (max-width:820px){
-  body{padding:0; overflow:hidden; height:100vh}
-  h1,.sub,#helpBtn,#camHint,#log,.hb-income,.hb-side{display:none}
-  #main{display:block}
-  #wrap{position:fixed; inset:0; border:none; border-radius:0; box-shadow:none; z-index:0; max-width:none}
-  #vignette{border-radius:0; box-shadow:inset 0 0 80px rgba(0,0,0,.45)}
-  #hud{
-    position:fixed; top:max(8px, env(safe-area-inset-top)); left:0; right:0; z-index:10;
-    margin:0; padding:0 10px; gap:6px; row-gap:6px; max-width:none;
-    justify-content:flex-start; flex-wrap:wrap;
-  }
-  .hud-box{
-    min-width:auto; padding:4px 9px; border-radius:10px; flex:0 0 auto;
-    background:rgba(18,25,20,.78); backdrop-filter:blur(8px);
-    border-color:rgba(44,58,48,.9);
-  }
-  .hud-box .k{font-size:7.5px}
-  .hud-box .v{font-size:14px}
-  #menuBtn,#muteBtn,#nextBtn,#techBtn{
-    margin-left:0; flex:0 0 auto; padding:5px 9px; font-size:12.5px; height:auto;
-    letter-spacing:.05em;
-    background:rgba(22,30,24,.8); backdrop-filter:blur(8px);
-  }
-  /* Tech is the most important button — surface it right after the stat chips */
-  .hud-box{order:0}
-  #techBtn{order:1; color:var(--amber); border-color:var(--amber)}
-  #menuBtn{order:2}
-  #muteBtn{order:3}
-  #nextBtn{order:4}
-  #endTurn{
-    position:fixed; right:14px; bottom:calc(16px + env(safe-area-inset-bottom,0px));
-    z-index:12; margin:0; padding:15px 24px; font-size:17px; letter-spacing:.1em;
-    border-radius:32px; box-shadow:0 8px 22px rgba(0,0,0,.55);
-  }
-  #turnBanner{top:calc(max(8px, env(safe-area-inset-top)) + 76px); font-size:14px; padding:4px 16px}
-  #command{
-    position:fixed; left:0; right:0; bottom:0; z-index:9; width:auto; max-width:none; min-width:0;
-    border:none; border-radius:18px 18px 0 0;
-    background:rgba(16,22,18,.93); backdrop-filter:blur(10px);
-    box-shadow:0 -10px 34px rgba(0,0,0,.55);
-    transform:translateY(110%); transition:transform .26s ease;
-    max-height:46vh; overflow-y:auto;
-  }
-  body.selOpen #command{transform:translateY(0)}
-  #info{border:none; padding:13px 16px calc(16px + env(safe-area-inset-bottom,0px)); min-height:0}
-  #info .title{font-size:17px}
-  .tbtn{padding:8px 11px; min-width:70px}
-  #setupInner,#techInner{border-radius:14px}
-  @media (prefers-reduced-motion:reduce){ #command{transition:none} }
+  button,.fcard,.opt,#command{transition:none}
+  #factionGrid,.optRow,.homeBtns,.toast,.toast.out{animation:none}
+  #endTurn.pulse .disc,#techBtn.avail .disc::after,.coach-ping .disc{animation:none}
 }
 
 /* ---- multiplayer ---- */
-#modeTabs{display:flex; gap:8px; margin-bottom:14px}
-.mtab{flex:1; padding:9px 0; background:var(--panel2); border:1px solid var(--line); color:var(--dim);
-  font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:14px; letter-spacing:.14em;
-  text-transform:uppercase; cursor:pointer; border-radius:9px}
-.mtab.sel{color:var(--amber); border-color:var(--amber); background:#221f15}
 #mpName,#mpCode{background:var(--panel2); border:1px solid var(--line); color:var(--text);
   font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.12em; padding:10px 12px;
   border-radius:9px; outline:none; text-transform:uppercase}
@@ -361,48 +343,66 @@ h1 .op{text-shadow:0 0 20px rgba(240,179,92,.4)}
 </head>
 <body>
 
-<h1><span class="op">Operation</span> Foothold <span style="color:var(--dim);font-size:16px">3D</span></h1>
-<div class="sub">TURN-BASED TACTICS · CAPTURE THE ENEMY HQ</div>
-
-<div id="hud">
-  <div class="hud-box hb-stars"><span class="k">Stars</span><span class="v stars" id="hudStars">0</span></div>
-  <div class="hud-box hb-income"><span class="k">Income</span><span class="v stars" id="hudIncome">+0</span></div>
-  <div class="hud-box hb-turn"><span class="k">Turn</span><span class="v" id="hudTurn">1</span></div>
-  <div class="hud-box hb-side"><span class="k">Active</span><span class="v blue" id="hudSide">YOU</span></div>
-  <div class="hud-box hb-ready"><span class="k">Ready</span><span class="v" id="hudReady">0</span></div>
-  <button id="menuBtn" title="New game setup">☰ Menu</button>
-  <button id="muteBtn" title="Sound on/off (M)">♪ ON</button>
-  <button id="nextBtn" title="Select next ready unit (Tab / N)">Next ▸▸</button>
-  <button id="techBtn">Tech ▾</button>
-  <button id="endTurn">End Turn ▸</button>
-</div>
-
-<div id="main">
 <div id="wrap">
   <div id="vignette"></div>
-  <div id="camHint">drag = pan · wheel / pinch = zoom · click tile = act · Tab = next unit · Space = end turn</div>
-  <div id="turnBanner">◂ ENEMY TURN ▸</div>
 </div>
+
+<div id="hud">
+  <div class="hud-box hb-turn"><span class="v" id="hudTurn">1</span><span class="k">Turn</span></div>
+  <div class="hud-box hb-stars"><span class="v stars"><span id="hudStars">0</span><small id="hudIncome">+0</small></span><span class="k">Stars</span></div>
+  <div class="hud-box hb-cities"><span class="v" id="hudCities">1</span><span class="k">Cities</span></div>
+  <div class="hud-box hb-side"><span class="v" id="hudSide">YOU</span></div>
+</div>
+<button id="menuBtn" class="rb" title="Menu" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h14"/></svg></button>
+<div id="topRight">
+  <button id="helpBtn" class="rb" title="How to play (H)" aria-label="How to play"><svg viewBox="0 0 24 24"><path d="M9.2 9.2a2.9 2.9 0 1 1 4 2.7c-.8.4-1.2 1-1.2 1.8v.6"/><path d="M12 17.6v.2"/></svg></button>
+  <button id="muteBtn" class="rb" title="Sound on/off (M)" aria-label="Sound on"></button>
+</div>
+<div id="turnBanner">◂ ENEMY TURN ▸</div>
+<div id="toasts" aria-live="polite"></div>
+
+<button id="techBtn" class="dock" title="Tech tree (T)"><span class="disc"><svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v6.2L4.8 18.3A1.8 1.8 0 0 0 6.4 21h11.2a1.8 1.8 0 0 0 1.6-2.7L14 9.2V3"/><path d="M7.2 14.5h9.6"/></svg></span><span class="lb">Tech</span></button>
+<button id="nextBtn" class="dock" title="Next ready unit (Tab)"><span class="disc"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5.5"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4"/></svg><span class="badge" id="hudReady">0</span></span><span class="lb">Next</span></button>
+<button id="endTurn" class="dock" title="End turn (Space)"><span class="disc"><svg viewBox="0 0 24 24"><path d="M5 5.5l7 6.5-7 6.5M12 5.5l7 6.5-7 6.5"/></svg></span><span class="lb">End turn</span></button>
 
 <div id="command">
   <div id="info">
-    <div class="title" id="infoTitle">No selection</div>
-    <div class="stat" id="infoBody">Click one of your units to move it, a friendly city to train, or a resource near your city to harvest it.</div>
+    <div class="ihead">
+      <div class="por" id="infoPor"></div>
+      <div class="itxt"><div class="title" id="infoTitle">No selection</div><div class="isub" id="infoSub"></div></div>
+    </div>
+    <div class="chips" id="infoChips"></div>
+    <div class="stat" id="infoBody"></div>
     <div class="stat" id="forecast"></div>
     <div id="train"></div>
   </div>
 </div>
+
+<div id="coach" hidden role="status">
+  <div id="coachText"></div>
+  <div class="crow"><span id="coachStep"></span><button class="skip" id="coachSkip">Skip tutorial</button></div>
 </div>
-<button id="helpBtn">field manual</button>
 
 <div id="setup">
   <div id="setupInner">
-    <h3>New Operation</h3>
-    <div id="modeTabs">
-      <button id="tabSolo" class="mtab sel">Skirmish</button>
-      <button id="tabMp" class="mtab">Multiplayer</button>
+    <div id="homePane">
+      <h1><span class="op">Operation</span> Foothold<span class="three">3D</span></h1>
+      <div class="tag">Turn-based tactics · capture the enemy HQ</div>
+      <div class="homeBtns">
+        <button id="resumeBtn" class="bigbtn primary" style="display:none">Resume<span>back to the battlefield</span></button>
+        <button id="continueBtn" class="bigbtn primary" style="display:none">Continue campaign<span id="continueInfo"></span></button>
+        <button id="quickBtn" class="bigbtn gold">Quick play<span id="quickInfo"></span></button>
+        <div class="homeRow">
+          <button id="customBtn" class="bigbtn">Custom</button>
+          <button id="mpOpenBtn" class="bigbtn">Online</button>
+        </div>
+        <button id="tutBtn" class="bigbtn">How to play<span>a guided first game</span></button>
+      </div>
+      <div class="saveNote">Your campaign auto-saves every move on this device.</div>
     </div>
-    <div id="soloPane">
+    <div id="soloPane" style="display:none">
+    <button class="backBtn" data-back>◂ Back</button>
+    <h3>Custom game</h3>
     <div class="sec">Choose your faction</div>
     <div id="factionGrid"></div>
     <div class="sec">Map size</div>
@@ -418,16 +418,16 @@ h1 .op{text-shadow:0 0 20px rgba(240,179,92,.4)}
       <button class="opt" data-en="2">2 enemies</button>
       <button class="opt" data-en="3">3 enemies</button>
     </div>
-    <button id="startBtn">Begin Operation ▸</button>
+    <button id="startBtn" class="bigbtn primary">Begin operation<span>start a new game with these settings</span></button>
     <div class="saveRow">
-      <button id="continueBtn" class="opt" style="display:none">▶ Continue Campaign<span id="continueInfo"></span></button>
       <button id="exportBtn" class="opt">⬇ Export Save<span>download file</span></button>
       <button id="importBtn" class="opt">⬆ Import Save<span>load from file</span></button>
       <input type="file" id="importFile" accept=".json,application/json" style="display:none">
     </div>
-    <div class="saveNote">Your campaign auto-saves every move on this device.</div>
     </div>
     <div id="mpPane" style="display:none">
+      <button class="backBtn" data-back>◂ Back</button>
+      <h3>Online</h3>
       <div class="sec">Callsign</div>
       <input id="mpName" maxlength="14" placeholder="COMMANDER" autocomplete="off" spellcheck="false">
       <div id="mpEntry">
@@ -465,10 +465,12 @@ h1 .op{text-shadow:0 0 20px rgba(240,179,92,.4)}
   <div id="techInner">
     <div id="techHead">
       <h3>Research</h3>
-      <span class="stars" id="techStars"></span>
-      <button id="techClose">close ✕</button>
+      <span id="techStars"></span>
+      <button id="techClose" class="rb" title="Close (Esc)" aria-label="Close tech tree"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div id="techCols"></div>
+    <div id="techLegend"></div>
+    <div id="techDetail"></div>
   </div>
 </div>
 
@@ -814,6 +816,7 @@ function startTurn(s, first){
   }
   units.forEach(u=>{ if(u.owner===s){u.moved=false;u.attacked=false;u.held=false;} });
   if(s===P && !first) turn++;
+  if(s===MYSIDE && !first && !gameOver) toast('Your turn \u00b7 turn '+turn+' \u00b7 +'+income(s)+'\u2605 income', meta(s).css);
   sel=null;
   refresh();
   if(!gameOver){
@@ -1069,6 +1072,7 @@ function moveUnit(u,x,y){
     if(visXY(x,y)) sfx.capture();
     const capWho=NET.on?meta(u.owner).name+' captured':(u.owner===MYSIDE?'You captured':'Enemy captured');
     log(u.owner, c.capital?`${capWho} the HQ!`:`${capWho} a city.`);
+    if(prev===MYSIDE && u.owner!==MYSIDE) toast((wasCap?'Your HQ':'One of your cities')+' fell to '+meta(u.owner).name+'!','var(--red)');
     if(wasCap && prev && prev!==u.owner){
       if(!NET.on && prev===MYSIDE) endGame(u.owner);
       else eliminate(prev, u.owner);
@@ -1255,18 +1259,7 @@ renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 wrap.insertBefore(renderer.domElement, wrap.firstChild);
 
 function sizeRenderer(){
-  const immersive=window.matchMedia('(max-width:820px)').matches;
-  let w,h;
-  if(immersive){
-    w=window.innerWidth; h=window.innerHeight;
-  } else {
-    w=wrap.clientWidth;
-    if(window.innerWidth<=900){
-      h=Math.min(Math.round(w*0.75), Math.round(window.innerHeight*0.55));
-    } else {
-      h=Math.max(360, window.innerHeight - wrap.getBoundingClientRect().top - 24);
-    }
-  }
+  const w=window.innerWidth, h=window.innerHeight;
   renderer.setSize(w,h);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
   camera.aspect=w/h; camera.updateProjectionMatrix();
@@ -2126,6 +2119,7 @@ function loop(now){
     if(g.userData.radar) g.userData.radar.rotation.y+=dt*2.4;
   }
   fx.step(dt);
+  coachTick();
   if(camGoal){
     cam.target.lerp(camGoal, Math.min(1, dt*5));
     applyCam();
@@ -2245,6 +2239,8 @@ function refresh(){
   hs.style.color=side===MYSIDE?'var(--blue)':(playerMeta[side]?meta(side).css:'var(--red)');
   const ready=side===MYSIDE?readyCount():0;
   $('hudReady').textContent=ready;
+  $('hudReady').style.display=ready?'':'none';
+  $('hudCities').textContent=cityCount(MYSIDE);
   const et=$('endTurn');
   et.disabled=(side!==MYSIDE||gameOver);
   $('techBtn').classList.toggle('avail',
@@ -2259,47 +2255,96 @@ function refresh(){
   if($('techPanel').classList.contains('show')) renderTech();
 }
 
-/* ---------------- tech panel ---------------- */
+/* ---------------- tech panel: a radial tree like Polytopia's ----------------
+   The four root techs fan out from the centre; every tech sits one ring further
+   out than the tech it requires, so the rings read as tiers of the tree. */
+const TECH_TAG={DRILLS:'+25%|ATK', ARMOR:'+1|DEF', SPG:'MOVE|+FIRE', MINING:'ORE', DRILL:'OIL', LOGI:'−1★|UNITS',
+  URBAN:'+1★|CITY', TURBO:'+1|MOVE', MEDIC:'HEAL', FORT:'2×|DEF', CAMO:'FOREST|2×', HOSP:'CITY|HEAL',
+  CIVDEF:'½|BLAST', RADIO:'+1|SIGHT', FWDOBS:'+1|RANGE', SAT:'FULL|MAP'};
+const TECH_UNIT={MARKS:'SNP', MECH:'TNK', SIEGE:'ART', AVIA:'HEL', AIRDEF:'AA', NUKE:'NUKE'};
+const BRANCH_COL={Combat:'#e8625a', Industry:'#f0b35c', Support:'#8fd89a', Intel:'#5aa7e8', Strategic:'#b18ae8'};
+let techSel=null, techPos=null;
+function techLayout(){
+  const kids={}, roots=[], RING=[0,60,118,170,222];
+  for(const k in TECHS){ const r=TECHS[k].req; if(r) (kids[r]=kids[r]||[]).push(k); else roots.push(k); }
+  // a leaf's share of the circle grows the nearer it sits to the centre, so inner rings don't crowd
+  const share=(k,d)=>kids[k]?kids[k].reduce((n,c)=>n+share(c,d+1),0):RING[4]/RING[d];
+  const step=2*Math.PI/roots.reduce((n,r)=>n+share(r,1),0);
+  const pos={};
+  const place=(k,depth,start)=>{
+    const r=RING[depth], a=start+step*share(k,depth)/2;
+    pos[k]={x:Math.round(Math.sin(a)*r), y:Math.round(-Math.cos(a)*r), parent:TECHS[k].req};
+    let s=start;
+    for(const c of kids[k]||[]){ place(c,depth+1,s); s+=step*share(c,depth+1); }
+  };
+  let cur=-step*share(roots[0],1)/2;   // first branch (Combat) points straight up
+  for(const r of roots){ place(r,1,cur); cur+=step*share(r,1); }
+  return pos;
+}
+function techState(k){
+  if(hasTech(MYSIDE,k)) return 'owned';
+  const t=TECHS[k];
+  if(t.req&&!hasTech(MYSIDE,t.req)) return 'locked';
+  return 'avail'+(stars[MYSIDE]<techCost(k,MYSIDE)?' cant':'');
+}
 function renderTech(){
+  if(!techPos) techPos=techLayout();
   const nAll=Object.keys(TECHS).length, nOwn=Object.keys(TECHS).filter(k=>hasTech(MYSIDE,k)).length;
-  $('techStars').textContent=stars[MYSIDE]+'★ available · '+nOwn+'/'+nAll+' researched · costs rise as you gain cities';
-  const cols=$('techCols');
-  cols.innerHTML='';
-  for(const br of TECH_BRANCHES){
-    const col=document.createElement('div');
-    col.className='tcol';
-    col.innerHTML=`<h4>${br}</h4>`;
-    for(const k of Object.keys(TECHS)){
-      const t=TECHS[k];
-      if(t.branch!==br) continue;
-      const owned=hasTech(MYSIDE,k);
-      const reqOk=!t.req||hasTech(MYSIDE,t.req);
-      const cost=techCost(k,MYSIDE);
-      const node=document.createElement('div');
-      node.className='tnode'+(owned?' owned':!reqOk?' locked':'');
-      let action;
-      if(owned) action=`<span class="owned-tag">✔ researched</span>`;
-      else if(!reqOk) action=`<span class="lock-tag">🔒 requires ${TECHS[t.req].name}</span>`;
-      else action=`<button class="rbtn" data-tech="${k}" ${stars[MYSIDE]<cost?'disabled':''}>Research · ${cost}★</button>`;
-      node.innerHTML=`<div class="tn">${t.name}<span class="tier">T${t.tier}</span></div><div class="td">${t.unlocks}</div>${action}`;
-      col.appendChild(node);
-    }
-    cols.appendChild(col);
+  $('techStars').textContent=nOwn+'/'+nAll+' researched · costs rise as you gain cities';
+  const fac=meta(MYSIDE).css;
+  // fit the view to the nodes (the tree is lopsided, a full circle wastes space on phones)
+  const xs=Object.values(techPos).map(p=>p.x), ys=Object.values(techPos).map(p=>p.y);
+  const x0=Math.min(-34,...xs)-30, x1=Math.max(34,...xs)+30, y0=Math.min(-34,...ys)-30, y1=Math.max(34,...ys)+36;
+  let edges='', nodes='';
+  for(const k in techPos){
+    const p=techPos[k], q=p.parent?techPos[p.parent]:{x:0,y:0};
+    const on=hasTech(MYSIDE,k);
+    edges+=`<line class="edge${on?' on':''}" x1="${q.x}" y1="${q.y}" x2="${p.x}" y2="${p.y}"/>`;
   }
-  cols.querySelectorAll('.rbtn').forEach(b=>{
-    b.onclick=()=>{
-      if(side!==MYSIDE||gameOver) return;
-      act({t:'research',k:b.dataset.tech});
-    };
+  for(const k in techPos){
+    const p=techPos[k], st=techState(k), t=TECHS[k];
+    let inner;
+    if(TECH_UNIT[k]) inner=`<image href="${unitIcon(TECH_UNIT[k],MYSIDE)}" x="-23" y="-24" width="46" height="46"/>`;
+    else {
+      const lines=TECH_TAG[k].split('|');
+      inner=lines.map((l,i)=>`<text class="tn-t" y="${(i-(lines.length-1)/2)*11.5+(st==='owned'?4:1)}">${l}</text>`).join('');
+    }
+    const cost=st==='owned'?'':`<rect class="tn-pill" x="-17" y="18" width="34" height="14" rx="7"/><text class="tn-cost" y="28.5">${techCost(k,MYSIDE)}★</text>`;
+    nodes+=`<g class="tn ${st}${techSel===k?' sel':''}" data-k="${k}" transform="translate(${p.x},${p.y})" tabindex="0" role="button" aria-label="${t.name}">`+
+      `<circle class="tn-ring" r="29"/><circle class="tn-c" r="25" style="stroke:${st==='owned'?'#f4f7f4':st.startsWith('avail')&&!st.includes('cant')?'':BRANCH_COL[t.branch]}"/>${inner}${cost}</g>`;
+  }
+  const hub=`<circle class="hub" r="30"/><text class="hub-t" y="5">${stars[MYSIDE]}★</text><text class="hub-k" y="17">STARS</text>`;
+  $('techCols').innerHTML=`<svg id="techTree" viewBox="${x0} ${y0} ${x1-x0} ${y1-y0}" style="--fac:${fac}" role="group" aria-label="Tech tree">${edges}${hub}${nodes}</svg>`;
+  $('techCols').querySelectorAll('.tn').forEach(g=>{
+    const pick=()=>{ techSel=g.dataset.k; sfx.select(); renderTech(); };
+    g.onclick=pick;
+    g.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); pick(); } };
   });
+  $('techLegend').innerHTML=TECH_BRANCHES.map(b=>`<span><i style="background:${BRANCH_COL[b]}"></i>${b}</span>`).join('');
+  // detail card for the picked tech
+  const d=$('techDetail');
+  if(!techSel){
+    d.innerHTML='<div class="tdx"><div class="tdn">Pick a tech</div><div class="tdd">Glowing rings are ready to research. Tap one to see what it does.</div></div>';
+    return;
+  }
+  const t=TECHS[techSel], st=techState(techSel), cost=techCost(techSel,MYSIDE);
+  d.innerHTML=`<div class="tdx"><div class="tdm" style="color:${BRANCH_COL[t.branch]}">${t.branch} · tier ${t.tier}</div>`+
+    `<div class="tdn">${t.name}</div><div class="tdd">${t.unlocks}</div>`+
+    (st==='locked'?`<div class="tdq">Requires ${TECHS[t.req].name}</div>`:'')+`</div>`+
+    (st==='owned'?'<span class="done">✔ Researched</span>'
+      :`<button class="rbtn" id="techGo" ${st==='avail'?'':'disabled'}>Research · ${cost}★</button>`);
+  const go=$('techGo');
+  if(go) go.onclick=()=>{ if(side!==MYSIDE||gameOver) return; act({t:'research',k:techSel}); };
 }
 $('techBtn').onclick=()=>{
+  if(!techSel||hasTech(MYSIDE,techSel)) techSel=Object.keys(TECHS).find(k=>techState(k)==='avail')||null;
   $('techPanel').classList.add('show');
   renderTech();
+  coachCheck();
 };
-$('techClose').onclick=()=>$('techPanel').classList.remove('show');
+$('techClose').onclick=()=>{ $('techPanel').classList.remove('show'); coachCheck(); };
 $('techPanel').addEventListener('click',e=>{
-  if(e.target.id==='techPanel') $('techPanel').classList.remove('show');
+  if(e.target.id==='techPanel'||e.target.id==='techCols'){ $('techPanel').classList.remove('show'); coachCheck(); }
 });
 
 
@@ -2366,13 +2411,13 @@ function restoreGame(data, net){
     sun.shadow.camera.top=sb; sun.shadow.camera.bottom=-sb;
     sun.shadow.camera.updateProjectionMatrix();
     camGoal=null;
-    cam.dist=Math.min(22, W+2.5);
+    cam.dist=camera.aspect<1?11:8.5;
     let pc=null;
     for(let y=0;y<H;y++)for(let x=0;x<W;x++){
       const c=tileAt(x,y).city;
       if(c&&c.capital&&c.owner===MYSIDE) pc={x,y};
     }
-    cam.target.set(pc?wx(pc.x)*0.55:0, 0, pc?wz(pc.y)*0.55:0);
+    cam.target.set(pc?wx(pc.x):0, 0, pc?wz(pc.y):0);
     applyCam();
     if($('log')) $('log').innerHTML='';
     log('sys', net?('\u2014 OPERATION LIVE \u00b7 turn '+turn+' \u00b7 '+W+'\u00d7'+H+' \u2014')
@@ -2413,7 +2458,20 @@ function importSave(file){
   r.readAsText(file);
 }
 
-/* ---------------- setup menu ---------------- */
+/* ---------------- title screen + custom game ---------------- */
+const CFG_KEY='foothold-cfg';
+try{
+  const c=JSON.parse(localStorage.getItem(CFG_KEY)||'null');
+  if(c&&FACTIONS[c.faction]) cfg={size:[9,11,13,15].includes(+c.size)?+c.size:11, enemies:Math.min(3,Math.max(1,+c.enemies||1)), faction:c.faction};
+}catch(e){}
+function saveCfg(){ try{ localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }catch(e){} }
+function setupView(v){
+  $('setupInner').classList.toggle('home', v==='home');
+  $('homePane').style.display=v==='home'?'':'none';
+  $('soloPane').style.display=v==='solo'?'':'none';
+  $('mpPane').style.display=v==='mp'?'':'none';
+}
+const SIZE_NAME={9:'small',11:'standard',13:'large',15:'huge'};
 function showSetup(){
   const grid=$('factionGrid');
   grid.innerHTML='';
@@ -2434,25 +2492,66 @@ function showSetup(){
   // sync option buttons to the current config
   document.querySelectorAll('#sizeRow .opt').forEach(o=>o.classList.toggle('sel', +o.dataset.size===cfg.size));
   document.querySelectorAll('#enRow .opt').forEach(o=>o.classList.toggle('sel', +o.dataset.en===cfg.enemies));
-  // continue button if a save exists
+  $('quickInfo').textContent=FACTIONS[cfg.faction].name+' · '+SIZE_NAME[cfg.size]+' map · '+cfg.enemies+' enem'+(cfg.enemies===1?'y':'ies');
+  const running=!!map&&!gameOver;
+  $('resumeBtn').style.display=running?'':'none';
+  // continue button if a save exists and no game is running
   const cb=$('continueBtn');
-  if(hasSave()){
+  if(!running&&hasSave()){
     cb.style.display='';
     try{
       const d=JSON.parse(localStorage.getItem(SAVE_KEY));
-      $('continueInfo').textContent=
-        FACTIONS[d.sides.P].name+' \u00b7 turn '+d.turn+' \u00b7 '+d.W+'\u00d7'+d.W;
+      $('continueInfo').textContent=FACTIONS[d.sides.P].name+' · turn '+d.turn+' · '+d.W+'×'+d.W;
     }catch(e){ $('continueInfo').textContent='saved campaign'; }
   } else cb.style.display='none';
-  if(NET.on) mpTab(true);
+  disarm();
+  setupView(NET.on?'mp':'home');
   $('setup').classList.add('show');
+}
+/* starting over while a game is running takes a second tap (the viewer can't show confirm dialogs) */
+let armedBtn=null, armedT=null;
+function disarm(){
+  if(armedBtn){ armedBtn.classList.remove('armed'); armedBtn.innerHTML=armedBtn.dataset.html; armedBtn=null; }
+  clearTimeout(armedT);
+}
+function confirmAbandon(btn){
+  if(!map||gameOver||armedBtn===btn){ disarm(); return true; }
+  disarm();
+  armedBtn=btn; btn.dataset.html=btn.innerHTML; btn.classList.add('armed');
+  btn.innerHTML='Abandon current game?<span>tap again to start a new one</span>';
+  armedT=setTimeout(disarm,4000);
+  sfx.denied();
+  return false;
+}
+function launchSolo(withTutorial, keepCfg){
+  $('setup').classList.remove('show');
+  sfx.capture();
+  NET.leave();
+  if(!keepCfg) saveCfg();
+  newGame();
+  if(withTutorial||!tutDone()) tutStart(); else tutStop();
 }
 $('continueBtn').onclick=()=>{
   try{
     const data=JSON.parse(localStorage.getItem(SAVE_KEY));
-    if(restoreGame(data)) sfx.capture();
+    if(restoreGame(data)){ tutStop(); sfx.capture(); }
   }catch(e){ log('sys','Save could not be loaded.'); }
 };
+$('resumeBtn').onclick=()=>{ disarm(); $('setup').classList.remove('show'); sfx.select(); };
+$('quickBtn').onclick=()=>{ if(confirmAbandon($('quickBtn'))) launchSolo(false); };
+$('tutBtn').onclick=()=>{
+  if(!confirmAbandon($('tutBtn'))) return;
+  const keep={...cfg};
+  cfg.size=9; cfg.enemies=1;   // the guided game runs on a small map against one rival
+  launchSolo(true,true);
+  cfg=keep;
+};
+$('customBtn').onclick=()=>{ disarm(); setupView('solo'); sfx.select(); };
+$('mpOpenBtn').onclick=()=>{ disarm(); setupView('mp'); sfx.select(); if(!window.Peer) mpMsg('⚠ P2P engine failed to load — re-download the game file.'); };
+document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>{
+  if(NET.on&&!NET.inGame) NET.leave();
+  disarm(); setupView('home'); sfx.select();
+});
 $('exportBtn').onclick=exportSave;
 $('importBtn').onclick=()=>$('importFile').click();
 $('importFile').addEventListener('change',e=>{
@@ -2475,59 +2574,239 @@ document.querySelectorAll('#enRow .opt').forEach(b=>{
     sfx.select();
   };
 });
-$('startBtn').onclick=()=>{
-  if(map && !gameOver){
-    if(!confirm('Start a new operation? Your current campaign will be abandoned.')) return;
-  }
-  $('setup').classList.remove('show');
-  sfx.capture();
-  NET.leave();
-  newGame();
-};
+$('startBtn').onclick=()=>{ if(confirmAbandon($('startBtn'))) launchSolo(false); };
 $('menuBtn').onclick=showSetup;
 
+/* ---------------- toasts: short notices for the moments that matter ---------------- */
+function toast(msg,color){
+  const box=$('toasts');
+  if(!box) return;
+  const t=document.createElement('div');
+  t.className='toast';
+  if(color) t.style.setProperty('--tc',color);
+  t.textContent=msg;
+  box.appendChild(t);
+  while(box.children.length>3) box.firstChild.remove();
+  setTimeout(()=>{ t.classList.add('out'); setTimeout(()=>t.remove(),320); },3200);
+}
+function toastFromLog(who,msg){
+  const big=/ELIMINATED|NUCLEAR/i.test(msg);
+  if(!big && !(who===MYSIDE||who==='sys')) return;
+  if(!big && !/captured|grew to level|research|Satellite/i.test(msg)) return;
+  toast(msg, who===MYSIDE||who==='sys'?'var(--amber)':playerMeta[who]?meta(who).css:'var(--red)');
+}
+
+/* ---------------- first-game coach ---------------- */
+const TUT_KEY='foothold-tutorial-done';
+const coach={on:false, i:0, shown:-1, flags:{}, ping:null};
+function tutDone(){ try{ return localStorage.getItem(TUT_KEY)==='1'; }catch(e){ return true; } }
+const myHQ=()=>{ for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.capital&&c.owner===MYSIDE) return {x,y}; } return null; };
+const myUnit=()=>units.find(u=>u.owner===MYSIDE&&u.type!=='NUKE');
+function nearestVillage(){
+  const u=myUnit();
+  if(!u) return null;
+  let best=null, bd=1e9;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const c=tileAt(x,y).city;
+    if(c&&!c.owner&&explored[y][x]&&cheb(u,{x,y})<bd){ bd=cheb(u,{x,y}); best={x,y}; }
+  }
+  return best;
+}
+const selOwnCity=()=>sel&&sel.kind==='city'&&tileAt(sel.x,sel.y).city&&tileAt(sel.x,sel.y).city.owner===MYSIDE;
+const TUT=[
+  {text:()=>'This is your <b>Infantry</b>. Tap it to give it orders.',
+   at:()=>({tile:myUnit()}), done:()=>sel&&sel.kind==='unit'&&byId(sel.id)&&byId(sel.id).owner===MYSIDE},
+  {text:()=>nearestVillage()?'Blue tiles show where it can move. Head for the <b>grey village</b> — stepping onto it captures it.'
+                            :'Blue tiles show where it can move. Push toward the clouds to explore.',
+   at:()=>({tile:nearestVillage()||myUnit()}), done:()=>coach.flags.moved},
+  {text:()=>'Now tap your <b>HQ</b>. Cities train new units.',
+   at:()=>({tile:myHQ()}), done:selOwnCity, skip:()=>{ const h=myHQ(); return !h||!!unitAt(h.x,h.y); }},
+  {text:()=>'Train an <b>Infantry</b>. Units cost stars ★, and your cities pay you more every turn.',
+   at:()=>({el:document.querySelector('#train .abtn')}), done:()=>coach.flags.trained,
+   skip:()=>!selOwnCity()||stars[MYSIDE]<unitCost(MYSIDE,'INF')},
+  {text:()=>'Open <b>Tech</b> to unlock new units, harvesting and upgrades.',
+   at:()=>({el:$('techBtn')}), done:()=>$('techPanel').classList.contains('show')},
+  {text:()=>'Tap a glowing tech you can afford, then <b>Research</b>. Close the tree when you are done.',
+   at:()=>({el:$('techDetail'), place:'above'}), done:()=>!$('techPanel').classList.contains('show')},
+  {text:()=>'Out of moves? Tap <b>End turn</b>. Capture villages and every enemy HQ to win.',
+   at:()=>({el:$('endTurn')}), done:()=>coach.flags.ended},
+];
+function tutStart(){
+  if(NET.on) return;
+  Object.assign(coach,{on:true, i:0, shown:-1, flags:{}});
+}
+function tutStop(){
+  coach.on=false;
+  $('coach').hidden=true;
+  coachPing(null);
+}
+function tutEnd(skipped){
+  tutStop();
+  try{ localStorage.setItem(TUT_KEY,'1'); }catch(e){}
+  if(!skipped) toast('Tutorial complete. Capture every enemy HQ to win — good luck, Commander!','var(--amber)');
+}
+$('coachSkip').onclick=()=>{ sfx.select(); tutEnd(true); };
+function coachNote(a){
+  if(!coach.on) return;
+  if(a.t==='move') coach.flags.moved=true;
+  if(a.t==='train') coach.flags.trained=true;
+  if(a.t==='endturn') coach.flags.ended=true;
+}
+function coachPing(el){
+  if(coach.ping===el) return;
+  if(coach.ping) coach.ping.classList.remove('coach-ping');
+  coach.ping=el;
+  if(el) el.classList.add('coach-ping');
+}
+function coachCheck(){
+  if(!coach.on) return;
+  for(let g=0; g<TUT.length && coach.i<TUT.length; g++){
+    const s=TUT[coach.i];
+    if(s.done()||(s.skip&&s.skip())) coach.i++; else break;
+  }
+  if(coach.i>=TUT.length){ tutEnd(false); return; }
+  if(coach.shown!==coach.i){
+    coach.shown=coach.i;
+    const s=TUT[coach.i];
+    $('coachText').innerHTML=s.text();
+    $('coachStep').textContent='Tip '+(coach.i+1)+' of '+TUT.length;
+    const a=s.at();
+    if(a.tile) panTo(a.tile.x,a.tile.y);
+  }
+}
+const coachV=new THREE.Vector3();
+function coachTick(){
+  const b=$('coach');
+  if(!coach.on||!map||gameOver||side!==MYSIDE||$('setup').classList.contains('show')||$('overlay').classList.contains('show')){
+    if(!b.hidden){ b.hidden=true; coachPing(null); }
+    return;
+  }
+  coachCheck();
+  if(!coach.on) return;
+  const a=TUT[coach.i].at()||{};
+  let px=innerWidth/2, py=innerHeight*0.3, place='free';
+  if(a.el&&a.el.getClientRects().length){
+    const r=a.el.getBoundingClientRect();
+    px=r.left+r.width/2;
+    place=a.place||(r.top>innerHeight/2?'above':'below');
+    py=place==='above'?r.top:r.bottom;
+    coachPing(a.el.matches('.abtn,.dock')?a.el:null);
+  } else if(a.tile){
+    coachV.set(wx(a.tile.x), TOP+0.6, wz(a.tile.y)).project(camera);
+    const rr=renderer.domElement.getBoundingClientRect();
+    px=rr.left+(coachV.x+1)/2*rr.width; py=rr.top+(1-coachV.y)/2*rr.height;
+    place='above';
+    coachPing(null);
+  } else coachPing(null);
+  b.hidden=false;
+  const bw=b.offsetWidth, bh=b.offsetHeight;
+  let top=place==='below'?py+14:place==='above'?py-bh-14:py;
+  if(place==='above'&&top<80){ top=py+14; place='below'; }
+  const left=Math.min(innerWidth-bw-10, Math.max(10, px-bw/2));
+  b.style.left=left+'px';
+  b.style.top=Math.min(innerHeight-bh-10, Math.max(10, top))+'px';
+  b.className=place;
+  b.style.setProperty('--ax', Math.max(18, Math.min(bw-18, px-left))+'px');
+}
+
+/* ---- line icons for the round buttons ---- */
+const ICON={
+  hold:'<path d="M9 6v12M15 6v12"/>',
+  heal:'<path d="M12 5.5v13M5.5 12h13"/>',
+  crop:'<path d="M12 21V9"/><path d="M12 13c-3 0-5-2-5-5 3 0 5 2 5 5zM12 13c3 0 5-2 5-5-3 0-5 2-5 5zM12 9c-2.2 0-3.5-1.6-3.5-4 2.2 0 3.5 1.6 3.5 4zM12 9c2.2 0 3.5-1.6 3.5-4-2.2 0-3.5 1.6-3.5 4z"/>',
+  ore:'<path d="M12 3l7.5 4.5v9L12 21l-7.5-4.5v-9z"/><path d="M12 3v18M4.5 7.5L19.5 16.5M19.5 7.5L4.5 16.5"/>',
+  oil:'<path d="M12 3.5s6 6.6 6 10.8a6 6 0 0 1-12 0C6 10.1 12 3.5 12 3.5z"/>',
+  city:'<path d="M4 20.5V10l5-3.5 5 3.5v10.5"/><path d="M14 20.5V6.5l6-3v17"/><path d="M2.5 20.5h19M8 14h2M8 17h2M17 9h.01M17 12.5h.01M17 16h.01"/>',
+  lock:'<rect x="6" y="11" width="12" height="9" rx="2"/><path d="M9 11V8.2a3 3 0 0 1 6 0V11"/>',
+  sound:'<path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.8 7.8 0 0 1 0 11"/>',
+  soundOff:'<path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>',
+};
+const RES_ICON={CROP:'crop', ORE:'ore', OIL:'oil'};
+const svgIcon=n=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+ICON[n]+'</svg>';
+
+/* ---- unit portraits: each model rendered once per faction colour into a small image ---- */
+const iconCache={};
+let iconR=null, iconScene=null, iconCam=null;
+function unitIcon(type, s){
+  const f=meta(s), ck=type+'|'+f.body;
+  if(ck in iconCache) return iconCache[ck];
+  try{
+    if(!iconR){
+      iconR=new THREE.WebGLRenderer({antialias:true, alpha:true, preserveDrawingBuffer:true});
+      iconR.setPixelRatio(1); iconR.setSize(128,128);
+      iconScene=new THREE.Scene();
+      iconScene.add(new THREE.AmbientLight(0xc4d2c8,0.72));
+      const key=new THREE.DirectionalLight(0xfff2dd,0.95); key.position.set(3,6,5); iconScene.add(key);
+      iconCam=new THREE.PerspectiveCamera(28,1,0.05,20);
+    }
+    const fm={body:new THREE.MeshLambertMaterial({color:f.body}), trim:new THREE.MeshLambertMaterial({color:f.trim})};
+    const g=makeUnitModel(type,fm);
+    g.rotation.y=0.6;
+    if(g.userData.rotor) g.userData.rotor.scale.setScalar(0.55);   // keep the helicopter body large in its frame
+    iconScene.add(g);
+    const box=new THREE.Box3().setFromObject(g), c=box.getCenter(new THREE.Vector3()), sz=box.getSize(new THREE.Vector3());
+    const r=Math.max(sz.x,sz.y,sz.z)*0.6, d=r/Math.tan(THREE.MathUtils.degToRad(14));
+    iconCam.position.set(c.x, c.y+d*0.45, c.z+d*0.89); iconCam.lookAt(c);
+    iconR.render(iconScene,iconCam);
+    iconCache[ck]=iconR.domElement.toDataURL('image/png');
+    iconScene.remove(g); fm.body.dispose(); fm.trim.dispose();
+  }catch(e){ iconCache[ck]=''; }
+  return iconCache[ck];
+}
+
+/* ---------------- selection card ---------------- */
+function actBtn(o){
+  const b=document.createElement('button');
+  b.type='button';
+  b.className='abtn'+(o.cls?' '+o.cls:'');
+  b.innerHTML=`<span class="disc">${o.img?`<img src="${o.img}" alt="">`:svgIcon(o.icon)}</span>`+
+    `<span class="nm">${o.name}</span>`+(o.cost!=null?`<span class="cost">${o.cost}★</span>`:'');
+  b.disabled=!!o.disabled;
+  if(o.title) b.title=o.title;
+  b.onclick=o.onclick;
+  return b;
+}
+const chip=(k,v,cls)=>`<span class="chip${cls?' '+cls:''}">${k} <b>${v}</b></span>`;
+function hpChip(u){
+  const r=Math.max(0,u.hp/u.maxHp), col=r<0.34?'#e8625a':r<0.67?'#f0b35c':'#7ed87e';
+  return `<span class="chip">HP <b>${u.hp}/${u.maxHp}</b><span class="bar"><i style="width:${Math.round(r*100)}%;background:${col}"></i></span></span>`;
+}
+function ownerName(o){ return o===MYSIDE?'Yours':(o&&playerMeta[o]?meta(o).name:'Neutral'); }
 function renderInfo(){
-  const title=$('infoTitle');
-  const body=$('infoBody');
-  const train=$('train');
-  train.innerHTML='';
-  $('forecast').innerHTML='';
+  const title=$('infoTitle'), sub=$('infoSub'), por=$('infoPor'), chips=$('infoChips'), body=$('infoBody'), train=$('train');
+  train.innerHTML=''; $('forecast').innerHTML=''; chips.innerHTML=''; body.innerHTML=''; sub.textContent=''; por.innerHTML='';
+  por.style.removeProperty('--fc');
   if(sel&&sel.kind==='unit'){
     const u=units.find(x=>x.id===sel.id);
     if(u){
-      const t=UNIT_TYPES[u.type];
-      title.textContent=(u.owner===MYSIDE?'Your ':playerMeta[u.owner]?meta(u.owner).name+"'s ":'Enemy ')+t.name;
-      body.innerHTML=`HP <b>${u.hp}/${u.maxHp}</b> · ATK <b>${fmtStat(uAtk(u))}</b> · DEF <b>${uDef(u)}</b> · MOVE <b>${uMove(u)}</b> · RANGE <b>${uRange(u)}</b>${tileAt(u.x,u.y).terrain==='forest'?` · <b style="color:#8fd89a">🌲 COVER +${hasTech(u.owner,'CAMO')?100:50}% DEF</b>`:''}<br>${t.desc}`+
-        (u.owner===MYSIDE?(u.type==='NUKE'
-          ? `<br>${u.attacked?'Launched.':'<b style="color:var(--red)">\\u2622 Click any tile in range to launch the strike.</b>'}`
-          : `<br>${u.attacked?'No actions left this turn.':u.moved?(siegeLocked(u)?'Artillery cannot fire after moving.':'Can still attack.'):'Ready: blue = move, red ring = attack. Hover an enemy for a battle forecast.'}`):'');
-      if(u.owner===MYSIDE&&!u.attacked){
-        const hb=document.createElement('button');
-        hb.className='tbtn';
-        hb.innerHTML=`<b>Hold</b><span>${hasTech(MYSIDE,'MEDIC')?('skip & heal +'+healAmt(MYSIDE)):'skip turn'}</span>`;
-        hb.title='End this unit\'s turn'+(hasTech(MYSIDE,'MEDIC')?(' — heals '+healAmt(MYSIDE)+' HP next turn'):'');
-        hb.onclick=()=>{ act({t:'hold',uid:u.id}); sel=null; refresh(); };
-        train.appendChild(hb);
+      const t=UNIT_TYPES[u.type], mine=u.owner===MYSIDE;
+      por.innerHTML=`<img src="${unitIcon(u.type,u.owner)}" alt="">`;
+      por.style.setProperty('--fc', meta(u.owner).css);
+      title.textContent=t.name;
+      sub.textContent=!mine?ownerName(u.owner)
+        :u.type==='NUKE'?(u.attacked?'Launched':'Armed — tap any tile in range to launch')
+        :u.attacked?'Done for this turn'
+        :u.moved?(siegeLocked(u)?'Moved — artillery cannot fire after moving':'Moved — can still attack')
+        :'Ready — blue tiles move, red rings attack';
+      const forest=tileAt(u.x,u.y).terrain==='forest';
+      chips.innerHTML=hpChip(u)+chip('ATK',fmtStat(uAtk(u)))+chip('DEF',uDef(u))+chip('MOVE',uMove(u))+chip('RANGE',uRange(u))+
+        (forest?chip('Forest','+'+(hasTech(u.owner,'CAMO')?100:50)+'% DEF','good'):'');
+      body.textContent=t.desc;
+      if(mine&&!u.attacked&&u.type!=='NUKE'){
+        const heal=hasTech(MYSIDE,'MEDIC');
+        train.appendChild(actBtn({icon:heal?'heal':'hold', name:heal?'Heal':'Hold',
+          title:heal?'Skip this unit’s turn — heals '+healAmt(MYSIDE)+' HP next turn':'Skip this unit’s turn',
+          onclick:()=>{ act({t:'hold',uid:u.id}); sel=null; refresh(); }}));
       }
-      // unit standing on a resource: harvest from here (doesn't use the unit's action)
-      if(u.owner===MYSIDE){
-        const rt=tileAt(u.x,u.y);
-        if(rt.resource){
-          const r=RES_TYPES[rt.resource];
-          const hc2=harvestCost(MYSIDE,rt.resource);
-          const unlocked=resUnlocked(MYSIDE,rt.resource);
-          const near=ownCityNear(u.x,u.y,MYSIDE);
-          const rb=document.createElement('button');
-          rb.className='tbtn';
-          rb.innerHTML=`<b>Harvest ${r.name}</b><span class="c">${hc2}★ → +${r.pop} pop</span>`;
-          rb.disabled=!unlocked||!near||stars[MYSIDE]<hc2;
-          rb.title=!unlocked?('Requires '+TECHS[RES_REQ[rt.resource]].name)
-                  :!near?'Outside your territory — capture a nearby city first'
-                  :stars[MYSIDE]<hc2?'Not enough stars'
-                  :'Harvesting is free of unit actions';
-          rb.onclick=()=>{ act({t:'harvest',x:u.x,y:u.y}); };
-          train.appendChild(rb);
-        }
+      // a unit standing on a resource can harvest it (doesn't use the unit's action)
+      const rt=tileAt(u.x,u.y);
+      if(mine&&rt.resource){
+        const r=RES_TYPES[rt.resource], hc=harvestCost(MYSIDE,rt.resource);
+        const unlocked=resUnlocked(MYSIDE,rt.resource), near=ownCityNear(u.x,u.y,MYSIDE);
+        train.appendChild(actBtn({icon:RES_ICON[rt.resource], name:'Harvest', cost:hc,
+          disabled:!unlocked||!near||stars[MYSIDE]<hc,
+          title:!unlocked?'Requires '+TECHS[RES_REQ[rt.resource]].name:!near?'Outside your territory':stars[MYSIDE]<hc?'Not enough stars':'+'+r.pop+' population',
+          onclick:()=>act({t:'harvest',x:u.x,y:u.y})}));
       }
       return;
     }
@@ -2536,81 +2815,62 @@ function renderInfo(){
     const t=tileAt(sel.x,sel.y);
     if(!t.resource){ sel=null; }
     else {
-      const r=RES_TYPES[t.resource];
-      const hc=harvestCost(MYSIDE,t.resource);
-      title.textContent=r.name;
+      const r=RES_TYPES[t.resource], hc=harvestCost(MYSIDE,t.resource);
       const near=ownCityNear(sel.x,sel.y,MYSIDE);
       const claimed=near?null:turnOrder.filter(s2=>s2!==MYSIDE).map(s2=>ownCityNear(sel.x,sel.y,s2)).find(Boolean);
       const unlocked=resUnlocked(MYSIDE,t.resource);
-      body.innerHTML=`${r.desc}<br>Cost <b style="color:var(--amber)">${r.cost}★</b> · Growth <b>+${r.pop} pop</b>`+
-        `<br>${!unlocked?('🔒 Requires <b>'+TECHS[RES_REQ[t.resource]].name+'</b> — open the Tech panel.')
-                  :near?('Grows your '+(near.city.capital?'HQ':'city')+' (LV'+near.city.level+').')
-                  :claimed?'Inside enemy territory.'
-                  :'Outside your territory — capture a nearby city first.'}`;
-      const b=document.createElement('button');
-      b.className='tbtn';
-      b.innerHTML=`<b>Harvest</b><span class="c">${r.cost}★</span>`;
-      b.disabled=!unlocked||!near||stars[MYSIDE]<r.cost;
-      b.onclick=()=>{ act({t:'harvest',x:sel.x,y:sel.y}); sel=null; refresh(); };
-      train.appendChild(b);
+      por.innerHTML=svgIcon(RES_ICON[t.resource]);
+      title.textContent=r.name;
+      sub.textContent=!unlocked?'Locked — research '+TECHS[RES_REQ[t.resource]].name
+        :near?'Grows your '+(near.city.capital?'HQ':'city')+' (level '+near.city.level+')'
+        :claimed?'Inside enemy territory':'Outside your territory — capture a nearby city first';
+      chips.innerHTML=chip('Cost',hc+'★')+chip('Growth','+'+r.pop+' pop');
+      body.textContent=r.desc;
+      train.appendChild(actBtn({icon:RES_ICON[t.resource], name:'Harvest', cost:hc, disabled:!unlocked||!near||stars[MYSIDE]<hc,
+        onclick:()=>{ act({t:'harvest',x:sel.x,y:sel.y}); sel=null; refresh(); }}));
+      if(!unlocked) train.appendChild(actBtn({icon:'lock', name:'Tech', cls:'more', onclick:()=>$('techBtn').click()}));
       return;
     }
   }
   if(sel&&sel.kind==='city'){
-    const c=tileAt(sel.x,sel.y).city;
-    const inc=cityIncome(c);
+    const c=tileAt(sel.x,sel.y).city, inc=cityIncome(c);
+    por.innerHTML=svgIcon('city');
+    if(c.owner) por.style.setProperty('--fc', meta(c.owner).css);
+    title.textContent=(c.capital?'Headquarters':'City')+' · Level '+c.level;
+    chips.innerHTML=chip('Income','+'+inc+'★')+(c.level<MAX_LEVEL?chip('Pop',c.pop+'/'+(c.level+1)):chip('Pop','max'));
     if(c.owner!==MYSIDE){
       const nm=c.owner&&playerMeta[c.owner]?meta(c.owner).name:null;
-      title.textContent=(nm?nm+"'s ":'Neutral ')+(c.capital?'HQ':'city')+' — LV'+c.level+' · income +'+inc;
-      body.innerHTML=(nm?'Rival stronghold.':'Unclaimed settlement — free real estate.')+
-        ' March any of your units onto this tile to capture it'+
+      sub.textContent=nm?nm:'Neutral village';
+      body.textContent=(nm?'Rival stronghold.':'Unclaimed — free to take.')+' Move any unit onto it to capture it'+
         (c.capital&&nm?' and knock '+nm+' out of the fight':'')+'.';
       return;
     }
-    title.textContent=(c.capital?'Headquarters':'City')+' — LV'+c.level+' · income +'+inc;
     let resN=0;
     for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
       const nx=sel.x+dx, ny=sel.y+dy;
       if(inb(nx,ny)&&tileAt(nx,ny).resource) resN++;
     }
-    const growLine=c.level<MAX_LEVEL
-      ? `Population <b>${c.pop}/${c.level+1}</b> to next level. Harvest the ${resN} resource${resN===1?'':'s'} in its glowing territory to grow.`
-      : 'Maximum level reached.';
-    if(unitAt(sel.x,sel.y)){ body.innerHTML=growLine+'<br>Tile occupied — move the unit off to train here.'; return; }
-    body.innerHTML=growLine+'<br>Train a unit ('+stars[MYSIDE]+'★ available):';
+    sub.textContent=c.level<MAX_LEVEL?'Harvest the '+resN+' resource'+(resN===1?'':'s')+' around it to grow':'Fully grown';
+    if(unitAt(sel.x,sel.y)){ body.textContent='A unit is standing here — move it off to train.'; return; }
+    let locked=0;
     for(const k of TRAIN_ORDER){
-      const t=UNIT_TYPES[k];
-      const unlocked=unitUnlocked(MYSIDE,k);
-      const b=document.createElement('button');
-      b.className='tbtn';
-      if(unlocked){
-        const cost=unitCost(MYSIDE,k);
-        b.innerHTML=`<b>${t.name}</b><span class="c">${cost}\u2605</span><span>${t.atk}/${t.def} hp${t.hp}</span>`;
-        b.disabled=stars[MYSIDE]<cost;
-        b.onclick=()=>{ act({t:'train',k,x:sel.x,y:sel.y}); sel=null; refresh(); };
-      } else {
-        b.innerHTML=`<b>${t.name}</b><span>🔒 ${TECHS[UNIT_REQ[k]].name}</span>`;
-        b.disabled=true;
-        b.title='Research '+TECHS[UNIT_REQ[k]].name+' to unlock';
-      }
-      train.appendChild(b);
+      if(!unitUnlocked(MYSIDE,k)){ locked++; continue; }
+      const cost=unitCost(MYSIDE,k), t=UNIT_TYPES[k];
+      train.appendChild(actBtn({img:unitIcon(k,MYSIDE), name:t.name, cost, disabled:stars[MYSIDE]<cost,
+        title:t.name+' — '+t.desc, onclick:()=>{ act({t:'train',k,x:sel.x,y:sel.y}); sel=null; refresh(); }}));
     }
-    // Manhattan Project: build a Nuclear Missile here
     if(hasTech(MYSIDE,'NUKE')){
       const nt=UNIT_TYPES.NUKE;
-      const nb=document.createElement('button');
-      nb.className='tbtn';
-      nb.style.borderColor='var(--amber)';
-      nb.innerHTML=`<b>☢ ${nt.name}</b><span class="c">${nt.cost}★</span><span>range ${nt.range} · blast ${nt.nuke*2+1}×${nt.nuke*2+1}</span>`;
-      nb.disabled=stars[MYSIDE]<nt.cost;
-      nb.title='Build a one-use strategic missile. Fire it at any visible tile within range 6.';
-      nb.onclick=()=>{ act({t:'nukebuild',x:sel.x,y:sel.y}); sel=null; refresh(); };
-      train.appendChild(nb);
+      train.appendChild(actBtn({img:unitIcon('NUKE',MYSIDE), name:'Nuke', cost:nt.cost, cls:'danger', disabled:stars[MYSIDE]<nt.cost,
+        title:'One-use strategic missile: range '+nt.range+', '+(nt.nuke*2+1)+'×'+(nt.nuke*2+1)+' blast',
+        onclick:()=>{ act({t:'nukebuild',x:sel.x,y:sel.y}); sel=null; refresh(); }}));
     }
+    if(locked) train.appendChild(actBtn({icon:'lock', name:'+'+locked+' in tech', cls:'more',
+      title:'Research to unlock more units', onclick:()=>$('techBtn').click()}));
     return;
   }
   title.textContent='No selection';
-  body.textContent='Click one of your units to move it, a friendly city to train, or a resource near your city to harvest it.';
+  body.textContent='Tap a unit to move it, your city to train, or a resource to harvest it.';
 }
 
 $('endTurn').onclick=()=>{
@@ -2639,11 +2899,18 @@ function nextUnit(){
 $('nextBtn').onclick=nextUnit;
 
 /* ---- mute ---- */
+function syncMute(){
+  const b=$('muteBtn');
+  b.innerHTML=svgIcon(muted?'soundOff':'sound');
+  b.classList.toggle('off',muted);
+  b.setAttribute('aria-label',muted?'Sound off':'Sound on');
+}
 $('muteBtn').onclick=()=>{
   muted=!muted;
-  $('muteBtn').textContent=muted?'♪ OFF':'♪ ON';
+  syncMute();
   if(!muted) sfx.select();
 };
+syncMute();
 
 /* ---- keyboard shortcuts ---- */
 window.addEventListener('keydown',e=>{
@@ -2677,6 +2944,7 @@ window.addEventListener('keydown',e=>{
   }
 });
 function log(who,msg){
+  toastFromLog(who,msg);
   const l=$('log');
   if(!l) return; // combat log removed from UI
   const e=document.createElement('span');
@@ -2721,7 +2989,8 @@ $('helpBtn').onclick=()=>{
     ['Tech','Combat: Sniper \u2192 Tank \u2192 Artillery, plus drills, armor and self-propelled guns. Industry: Ore \u2192 Oil \u2192 Helicopter, plus cheaper training, +1\u2605 per city and faster gunships. Support: healing, 2\u00d7 city defense, forest camouflage, field hospitals and blast protection. Intel: +1 vision, the Flak Battery and longer artillery range. Strategic: Satellite Network (reveals the map) and Manhattan Project (the Nuclear Missile — a one-use 5\u00d75 strike). Prices rise with each city you own.'],
     ['Recon','Tap any rival unit or city to inspect it \u2014 stats, income, and the red zone shows where that unit can reach next turn. Your own units dim once they\u2019ve acted.'],
     ['Multiplayer','Host an operation from the menu to get a 5-letter room code \u2014 up to three friends join with it. The host\u2019s device referees the match, so keep it online; if the host drops, guests can Export Save and finish the campaign solo.'],
-    ['Hotkeys','Space/Enter end turn \u00b7 Tab/N next unit \u00b7 C center on HQ \u00b7 T tech \u00b7 M mute \u00b7 Esc deselect.'],
+    ['Tutorial','Replay the guided first game any time: Menu \u2192 How to play.'],
+    ['Hotkeys','Space/Enter end turn \u00b7 Tab/N next unit \u00b7 C center on HQ \u00b7 T tech \u00b7 H manual \u00b7 M mute \u00b7 Esc deselect.'],
   ];
   $('ovTitle').textContent='Field Manual';
   $('ovTitle').className='';
@@ -2753,6 +3022,7 @@ const byId=id=>units.find(u=>u.id===id);
 /* ---- single action gateway: SP + host execute, guests transmit ---- */
 function act(a){
   if(gameOver||!a) return;
+  coachNote(a);
   if(NET.client){
     if(side!==MYSIDE) return;
     NET.sendAction(a);
@@ -3295,12 +3565,7 @@ function netBar(msg, btnLabel, btnFn){
   }
   b.style.display='flex';
 }
-function mpTab(mp){
-  $('tabMp').classList.toggle('sel',mp); $('tabSolo').classList.toggle('sel',!mp);
-  $('mpPane').style.display=mp?'':'none'; $('soloPane').style.display=mp?'none':'';
-}
-$('tabSolo').onclick=()=>{ mpTab(false); sfx.select(); };
-$('tabMp').onclick=()=>{ mpTab(true); sfx.select(); if(!window.Peer) mpMsg('\u26a0 P2P engine failed to load \u2014 re-download the game file.'); };
+function mpTab(mp){ setupView(mp?'mp':'solo'); }
 $('mpHostBtn').onclick=()=>NET.startHost();
 $('mpJoinBtn').onclick=()=>NET.join();
 $('mpCode').addEventListener('keydown',e=>{ if(e.key==='Enter') NET.join(); });
@@ -3352,8 +3617,8 @@ function newGame(){
   sun.shadow.camera.top=sb; sun.shadow.camera.bottom=-sb;
   sun.shadow.camera.updateProjectionMatrix();
   camGoal=null;
-  cam.dist=Math.min(22, W+2.5);
-  cam.target.set(wx(caps[P].x)*0.55, 0, wz(caps[P].y)*0.55);
+  cam.dist=camera.aspect<1?11:8.5;
+  cam.target.set(wx(caps[P].x), 0, wz(caps[P].y));
   applyCam();
   if($('log')) $('log').innerHTML='';
   log('sys','\u2014 OPERATION FOOTHOLD \u00b7 '+W+'\u00d7'+H+' \u00b7 '+(NET.on?cfg.enemies+' rival'+(cfg.enemies===1?'':'s'):cfg.enemies+' enem'+(cfg.enemies===1?'y':'ies'))+' \u2014');
