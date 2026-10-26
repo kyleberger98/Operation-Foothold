@@ -3866,19 +3866,48 @@ openInviteFromUrl();
 requestAnimationFrame(loop);
 </script>
 <script>
-window.addEventListener('error',function(e){
-  try{
+/* Last-resort error notice. Errors from outside the game (browser extensions, in-app browsers)
+   arrive as a bare "Script error." with no file or line: they carry nothing useful and the game is
+   unaffected, so they are only logged. Real game errors get a small notice that can be closed,
+   fades on its own, and is shown once per distinct error. */
+(function(){
+  var seen={}, hideT=null;
+  function notice(){
     var b=document.getElementById('errBar');
-    if(!b){
-      b=document.createElement('div');
-      b.id='errBar';
-      b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:999;background:#5c2a26;'+
-        'color:#ffd9d4;font:12px monospace;padding:8px 14px;border-bottom:1px solid #e8625a';
-      document.body.appendChild(b);
-    }
-    b.textContent='\u26a0 Error: '+(e.message||'unknown')+(e.lineno?(' @ line '+e.lineno):'')+' \u2014 try refreshing; if it persists, report this message.';
-  }catch(_){}
-});
+    if(b) return b;
+    b=document.createElement('div');
+    b.id='errBar'; b.setAttribute('role','alert');
+    b.style.cssText='position:fixed;top:max(8px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:999;'+
+      'width:max-content;max-width:min(560px,calc(100vw - 24px));display:flex;gap:10px;align-items:center;'+
+      'background:#5c2a26;color:#ffd9d4;font:12px/1.45 monospace;padding:8px 8px 8px 14px;'+
+      'border:1px solid #e8625a;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.5)';
+    var t=document.createElement('span'); t.id='errText'; b.appendChild(t);
+    var x=document.createElement('button');
+    x.textContent='\u2715'; x.setAttribute('aria-label','Dismiss');
+    x.style.cssText='flex:none;background:none;border:1px solid #e8625a;color:#ffd9d4;border-radius:6px;padding:2px 8px;cursor:pointer;font:inherit';
+    x.onclick=function(){ b.remove(); };
+    b.appendChild(x);
+    document.body.appendChild(b);
+    return b;
+  }
+  window.addEventListener('error',function(e){
+    try{
+      var msg=e.message||'';
+      if(!e.filename&&!e.lineno&&/^script error\.?$/i.test(msg)){
+        console.warn('Ignored an error raised outside the game (browser extension or in-app browser).');
+        return;
+      }
+      var key=msg+'@'+(e.lineno||0);
+      if(seen[key]) return;
+      seen[key]=1;
+      var b=notice();
+      document.getElementById('errText').textContent='\u26a0 Something went wrong: '+(msg||'unknown error')+
+        (e.lineno?' (line '+e.lineno+')':'')+'. The game keeps running \u2014 refresh if it stops responding.';
+      clearTimeout(hideT);
+      hideT=setTimeout(function(){ if(b.parentNode) b.remove(); },9000);
+    }catch(_){}
+  });
+})();
 </script>
 </body>
 </html>
