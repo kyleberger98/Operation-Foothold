@@ -449,6 +449,13 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
       <button class="opt" data-en="2">2 enemies</button>
       <button class="opt" data-en="3">3 enemies</button>
     </div>
+    <div class="sec">Difficulty</div>
+    <div class="optRow" id="diffRow">
+      <button class="opt" data-diff="easy">Easy<span>relaxed rivals</span></button>
+      <button class="opt sel" data-diff="normal">Normal<span>a fair fight</span></button>
+      <button class="opt" data-diff="hard">Hard<span>the original AI</span></button>
+      <button class="opt" data-diff="crazy">Crazy<span>rivals earn far more</span></button>
+    </div>
     <button id="startBtn" class="bigbtn primary">Begin operation<span>start a new game with these settings</span></button>
     <div class="saveRow">
       <button id="exportBtn" class="opt">⬇ Export Save<span>download file</span></button>
@@ -580,7 +587,20 @@ const FACTIONS={
            perk:'Recon doctrine \u2014 vision range 3, starts with Marksmanship, and Ghost Snipers shoot 3 tiles.',
            startTech:'MARKS', vision:3, snpRange:1},
 };
-let cfg={size:11, enemies:1, faction:'AEGIS'};
+let cfg={size:11, enemies:1, faction:'AEGIS', diff:'normal'};
+/* ---------------- AI DIFFICULTY ----------------
+   inc: share of city income the AI collects · start: opening stars · train: units deployed per turn
+   techs: techs researched per turn · every: researches only every Nth turn · reserve: stars kept before harvesting
+   press: chance an idle unit marches on its targets (otherwise it stays to guard) · sharp: finishes off the weakest target
+   nukes: may build nuclear missiles */
+const DIFFS={
+  easy:  {name:'Easy',   note:'relaxed rivals',       inc:0.6, start:4, train:1,  techs:1, every:2, reserve:5, press:0.5, sharp:false, nukes:false},
+  normal:{name:'Normal', note:'a fair fight',         inc:0.8, start:5, train:2,  techs:1, every:1, reserve:3, press:0.8, sharp:true,  nukes:false},
+  hard:  {name:'Hard',   note:'the original AI',      inc:1,   start:6, train:99, techs:1, every:1, reserve:2, press:1,   sharp:true,  nukes:true},
+  crazy: {name:'Crazy',  note:'rivals earn far more', inc:1.7, start:10, train:99, techs:2, every:1, reserve:1, press:1,   sharp:true,  nukes:true},
+};
+const diff=()=>DIFFS[cfg.diff]||DIFFS.normal;
+const isAI=s=>s!==P && !(NET.on&&NET.humans[s]);   // the host's own side and remote humans are people
 let playerMeta={};      // side id -> {faction, name, body, trim, flag, css}
 let enemySides=[];      // ['A1','A2',...]
 let turnOrder=[];       // [P, ...enemySides]
@@ -843,7 +863,7 @@ function harvest(x,y,owner){
 }
 function startTurn(s, first){
   side=s;
-  stars[s]+=income(s);
+  stars[s]+=isAI(s)?Math.round(income(s)*diff().inc):income(s);
   const medic=hasTech(s,'MEDIC'), hosp=hasTech(s,'HOSP');
   if(!first && (medic||hosp)){
     units.forEach(u=>{
@@ -1171,10 +1191,12 @@ async function aiTurn(me){
   // research: follow a build order, keeping a small reserve
   const AI_TECH_ORDER=['MINING','MARKS','MECH','DRILL','LOGI','MEDIC','DRILLS','SIEGE','RADIO','AVIA','FORT',
                        'URBAN','ARMOR','AIRDEF','CAMO','SPG','TURBO','HOSP','FWDOBS','CIVDEF','NUKE','SAT'];
-  for(const k of AI_TECH_ORDER){
+  const D=diff();
+  let learned=0;
+  if(turn%D.every===0) for(const k of AI_TECH_ORDER){
     if(!hasTech(me,k) && (!TECHS[k].req||hasTech(me,TECHS[k].req)) && stars[me]>=techCost(k,me)+(TECHS[k].tier>=4?2:4)){
       research(me,k);
-      break; // one tech per turn
+      if(++learned>=D.techs) break;
     }
   }
   // economy: harvest best value resources while comfortably affordable
@@ -1188,7 +1210,7 @@ async function aiTurn(me){
     }
     opts.sort((a,b)=>(b.r.pop/b.c)-(a.r.pop/a.c));
     for(const o of opts){
-      if(stars[me]>=o.c+2){ if(harvest(o.x,o.y,me)){ did=true; break; } }
+      if(stars[me]>=o.c+D.reserve){ if(harvest(o.x,o.y,me)){ did=true; break; } }
     }
   }
   refresh();
@@ -1201,9 +1223,11 @@ async function aiTurn(me){
     if(c&&c.owner===me&&!unitAt(x,y)) cities.push({x,y,cap:c.capital});
   }
   cities.sort((a,b)=>b.cap-a.cap);
+  let trained=0;
   for(const c of cities){
+    if(trained>=D.train) break;
     // strategic: build a nuke if affordable and none in flight yet
-    if(hasTech(me,'NUKE') && stars[me]>=UNIT_TYPES.NUKE.cost+6 &&
+    if(D.nukes && hasTech(me,'NUKE') && stars[me]>=UNIT_TYPES.NUKE.cost+6 &&
        !units.some(q=>q.owner===me&&q.type==='NUKE')){
       stars[me]-=UNIT_TYPES.NUKE.cost; spawn(me,'NUKE',c.x,c.y);
       const nu=units[units.length-1]; nu.moved=true; nu.attacked=true;
@@ -1212,9 +1236,12 @@ async function aiTurn(me){
       continue;
     }
     const enemyAir=units.some(q=>q.owner!==me&&q.type==='HEL');
-    const pick=['AA','HEL','ART','TNK','SNP','INF'].find(k=>unitUnlocked(me,k) && unitCost(me,k)<=stars[me] &&
-      (k!=='HEL'||Math.random()<.5) && (k!=='AA'||(enemyAir&&Math.random()<.6)));
-    if(pick){ stars[me]-=unitCost(me,pick); spawn(me,pick,c.x,c.y);
+    const ok=k=>unitUnlocked(me,k) && unitCost(me,k)<=stars[me];
+    // easier AIs pick any affordable unit; sharper ones go for the strongest they can afford
+    const pool=['AA','HEL','ART','TNK','SNP','INF'].filter(ok);
+    const pick=D.sharp ? pool.find(k=>(k!=='HEL'||Math.random()<.5) && (k!=='AA'||(enemyAir&&Math.random()<.6)))
+                       : pool[rnd(pool.length)];
+    if(pick){ stars[me]-=unitCost(me,pick); spawn(me,pick,c.x,c.y); trained++;
       const nu=units[units.length-1]; nu.moved=true; nu.attacked=true;
       log(me,`${meta(me).name} deploys ${UNIT_TYPES[pick].name}.`);
       refresh();
@@ -1251,12 +1278,13 @@ async function aiTurn(me){
     }
     let acted=false;
     let tg=attackTargets(u);
+    const order=list=>D.sharp?list.sort((a,b)=>a.hp-b.hp):list.sort(()=>Math.random()-0.5);
     if(tg.length){
-      tg.sort((a,b)=>a.hp-b.hp);
+      order(tg);
       if(visXY(tg[0].x,tg[0].y)){ aiPan(tg[0].x,tg[0].y); await sleep(280); }
       attack(u,tg[0]);
       acted=visXY(u.x,u.y);
-    } else {
+    } else if(Math.random()<D.press){   // otherwise the unit stays put and guards
       const r=reachable(u);
       if(r.size){
         let best=null,bestScore=1e9;
@@ -1279,7 +1307,7 @@ async function aiTurn(me){
           acted=wasVisible;
           tg=attackTargets(u);
           if(tg.length && units.includes(u)){
-            tg.sort((a,b)=>a.hp-b.hp);
+            order(tg);
             if(visXY(u.x,u.y)){ aiPan(u.x,u.y); await sleep(240); }
             attack(u,tg[0]);
             acted=acted||visXY(u.x,u.y);
@@ -2560,7 +2588,7 @@ function importSave(file){
 const CFG_KEY='foothold-cfg';
 try{
   const c=JSON.parse(localStorage.getItem(CFG_KEY)||'null');
-  if(c&&FACTIONS[c.faction]) cfg={size:[9,11,13,15].includes(+c.size)?+c.size:11, enemies:Math.min(3,Math.max(1,+c.enemies||1)), faction:c.faction};
+  if(c&&FACTIONS[c.faction]) cfg={size:[9,11,13,15].includes(+c.size)?+c.size:11, enemies:Math.min(3,Math.max(1,+c.enemies||1)), faction:c.faction, diff:DIFFS[c.diff]?c.diff:'normal'};
 }catch(e){}
 function saveCfg(){ try{ localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }catch(e){} }
 function setupView(v){
@@ -2590,7 +2618,8 @@ function showSetup(){
   // sync option buttons to the current config
   document.querySelectorAll('#sizeRow .opt').forEach(o=>o.classList.toggle('sel', +o.dataset.size===cfg.size));
   document.querySelectorAll('#enRow .opt').forEach(o=>o.classList.toggle('sel', +o.dataset.en===cfg.enemies));
-  $('quickInfo').textContent=FACTIONS[cfg.faction].name+' · '+SIZE_NAME[cfg.size]+' map · '+cfg.enemies+' enem'+(cfg.enemies===1?'y':'ies');
+  document.querySelectorAll('#diffRow .opt').forEach(o=>o.classList.toggle('sel', o.dataset.diff===(DIFFS[cfg.diff]?cfg.diff:'normal')));
+  $('quickInfo').textContent=FACTIONS[cfg.faction].name+' · '+SIZE_NAME[cfg.size]+' map · '+cfg.enemies+' enem'+(cfg.enemies===1?'y':'ies')+' · '+diff().name;
   const running=!!map&&!gameOver;
   $('resumeBtn').style.display=running?'':'none';
   // continue button if a save exists and no game is running
@@ -2640,7 +2669,7 @@ $('quickBtn').onclick=()=>{ if(confirmAbandon($('quickBtn'))) launchSolo(false);
 $('tutBtn').onclick=()=>{
   if(!confirmAbandon($('tutBtn'))) return;
   const keep={...cfg};
-  cfg.size=9; cfg.enemies=1;   // the guided game runs on a small map against one rival
+  cfg.size=9; cfg.enemies=1; cfg.diff='easy';   // the guided game: small map, one relaxed rival
   launchSolo(true,true);
   cfg=keep;
 };
@@ -2660,6 +2689,14 @@ document.querySelectorAll('#sizeRow .opt').forEach(b=>{
   b.onclick=()=>{
     cfg.size=+b.dataset.size;
     document.querySelectorAll('#sizeRow .opt').forEach(o=>o.classList.remove('sel'));
+    b.classList.add('sel');
+    sfx.select();
+  };
+});
+document.querySelectorAll('#diffRow .opt').forEach(b=>{
+  b.onclick=()=>{
+    cfg.diff=b.dataset.diff;
+    document.querySelectorAll('#diffRow .opt').forEach(o=>o.classList.remove('sel'));
     b.classList.add('sel');
     sfx.select();
   };
@@ -3105,6 +3142,7 @@ $('helpBtn').onclick=()=>{
     ['Tech','Combat: Sniper \u2192 Tank \u2192 Artillery, plus drills, armor and self-propelled guns. Industry: Ore \u2192 Oil \u2192 Helicopter, plus cheaper training, +1\u2605 per city and faster gunships. Support: healing, 2\u00d7 city defense, forest camouflage, field hospitals and blast protection. Intel: +1 vision, the Flak Battery and longer artillery range. Strategic: Satellite Network (reveals the map) and Manhattan Project (the Nuclear Missile — a one-use 5\u00d75 strike). Prices rise with each city you own.'],
     ['Recon','Tap any rival unit or city to inspect it \u2014 stats, income, and the red zone shows where that unit can reach next turn. Your own units dim once they\u2019ve acted.'],
     ['Multiplayer','Host an operation from the menu to get a 5-letter room code \u2014 up to three friends join with it. The host\u2019s device referees the match, so keep it online; if the host drops, guests can Export Save and finish the campaign solo. The host can set a per-turn timer in the lobby.'],
+    ['Difficulty','Menu \u2192 Custom. Easy rivals collect 60% of their income, train one unit a turn, research every other turn and are slow to attack. Normal: 80%, two units a turn. Hard is the full-strength AI. Crazy rivals collect 70% extra, start richer and research twice as fast.'],
     ['Undo','Single player: step back through this turn\u2019s moves, training, harvests and holds. Attacks, captures, research and ending the turn are final.'],
     ['Enemy turns','Tap the speed pill under the banner (or press F) to watch enemy turns at normal speed, fast, or skip straight to your turn.'],
     ['Tutorial','Replay the guided first game any time: Menu \u2192 How to play.'],
@@ -3825,7 +3863,7 @@ function newGame(){
   stats={kills:0,losses:0};
   stars={}; tech={};
   for(const s of turnOrder){
-    stars[s]=6;
+    stars[s]=isAI(s)?diff().start:6;
     tech[s]=new Set(playerMeta[s].faction.startTech?[playerMeta[s].faction.startTech]:[]);
   }
   for(const [,g] of unitMeshes) unitGroup.remove(g);
