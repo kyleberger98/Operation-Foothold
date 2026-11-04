@@ -296,6 +296,26 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 #techDetail .rbtn:disabled{opacity:.4; cursor:default}
 #techDetail .done{flex:none; color:#8fd89a; font-size:12px}
 
+/* ---- city reward choice ---- */
+#rewardBox{position:fixed; inset:0; z-index:42; display:flex; align-items:center; justify-content:center; padding:20px;
+  background:rgba(8,12,10,.55)}
+.rwInner{width:min(480px,100%); background:rgba(22,29,24,.97); border:1px solid var(--amber); border-radius:18px;
+  padding:16px 16px 18px; box-shadow:0 20px 60px rgba(0,0,0,.6); display:flex; flex-direction:column; gap:6px}
+.rwEyebrow{font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--amber)}
+#rwTitle{font-family:'Saira Condensed',sans-serif; font-size:24px; letter-spacing:.12em; text-transform:uppercase; margin-bottom:6px}
+.rwOpts{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+.rwopt{display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; cursor:pointer; padding:14px 10px;
+  border-radius:14px; border:1px solid var(--line); background:var(--panel2); color:var(--text)}
+.rwopt:hover{border-color:var(--amber); transform:translateY(-2px)}
+.rwopt:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
+.rwopt .disc{width:56px; height:56px; border-radius:50%; display:grid; place-items:center; overflow:hidden; color:var(--amber);
+  background:radial-gradient(circle at 50% 35%, #33473a, #18211b); box-shadow:inset 0 0 0 2px rgba(240,179,92,.5)}
+.rwopt .disc svg{width:28px; height:28px; fill:none; stroke:currentColor; stroke-width:2.1; stroke-linecap:round; stroke-linejoin:round}
+.rwopt .disc img{width:116%; height:116%; object-fit:contain; margin-top:6%}
+.rwopt b{font-family:'Saira Condensed',sans-serif; font-size:17px; letter-spacing:.08em; text-transform:uppercase}
+.rwopt span:last-child{font-size:11.5px; color:var(--dim); line-height:1.45}
+@media (max-width:380px){ .rwOpts{grid-template-columns:1fr} }
+
 /* ================= end-of-game + field manual ================= */
 #overlay{position:fixed; inset:0; background:rgba(8,12,10,.88); display:none; backdrop-filter:blur(5px);
   align-items:center; justify-content:center; flex-direction:column; gap:14px; z-index:50; text-align:center; padding:20px; overflow-y:auto}
@@ -412,6 +432,14 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 <div id="coach" hidden role="status">
   <div id="coachText"></div>
   <div class="crow"><span id="coachStep"></span><button class="skip" id="coachSkip">Skip tutorial</button></div>
+</div>
+
+<div id="rewardBox" hidden role="dialog" aria-labelledby="rwTitle">
+  <div class="rwInner">
+    <span class="rwEyebrow" id="rwEyebrow"></span>
+    <h3 id="rwTitle">Choose a reward</h3>
+    <div class="rwOpts" id="rwOpts"></div>
+  </div>
 </div>
 
 <div id="setup">
@@ -628,7 +656,10 @@ function uDef(u){ return UNIT_TYPES[u.type].def + (u.type==='TNK'&&hasTech(u.own
 function uMove(u){ return UNIT_TYPES[u.type].move + (u.type==='HEL'&&hasTech(u.owner,'TURBO')?1:0); }
 /* artillery can't move and fire on the same turn — unless Self-Propelled Guns */
 function siegeLocked(u){ return !!UNIT_TYPES[u.type].siege && u.moved && !(u.type==='ART'&&hasTech(u.owner,'SPG')); }
-function cityIncome(c){ return (c.capital?2:1)+c.level+(c.owner&&hasTech(c.owner,'URBAN')?1:0); }
+function cityIncome(c){ return (c.capital?2:1)+c.level+(c.bonus||0)+(c.owner&&hasTech(c.owner,'URBAN')?1:0); }
+/* cities travel through saves and the network in this compact form */
+const packCity=c=>c?{o:c.owner,cap:!!c.capital,l:c.level,p:c.pop,rw:c.rw&&c.rw.length?c.rw:0,wa:c.walls?1:0,bd:c.border||0,bn:c.bonus||0,sc:c.scout?1:0}:0;
+const unpackCity=o=>o?{owner:o.o,capital:!!o.cap,level:o.l,pop:o.p,rw:o.rw||[],walls:!!o.wa,border:o.bd||1,bonus:o.bn||0,scout:!!o.sc}:null;
 const fmtStat=v=>Math.round(v*10)/10;
 function nextAlive(cur){
   const i=turnOrder.indexOf(cur);
@@ -689,9 +720,12 @@ const RES_REQ={ORE:'MINING', OIL:'DRILL'};
 let tech; // {P:Set, A:Set}
 const hasTech=(s,k)=>tech[s].has(k);
 function cityCount(s){let n=0; map.flat().forEach(t=>{if(t.city&&t.city.owner===s)n++}); return n;}
+let turnCities={};   // cities each side held when its turn began, so a capture doesn't raise prices mid-turn
 function techCost(k,s){
-  const base=[0,4,7,11,26][TECHS[k].tier];
-  return base + 2*Math.max(0,cityCount(s)-1);
+  // Polytopia's formula: tier x cities + 4, so early techs stay cheap as an empire grows;
+  // the two strategic tier-4 techs carry a steeper premium
+  const tier=TECHS[k].tier, c=Math.max(1, turnCities[s]||cityCount(s));
+  return tier>=4 ? 5*c+12 : tier*c+4;
 }
 function canResearch(s,k){
   const t=TECHS[k];
@@ -825,13 +859,14 @@ function income(s){
 }
 /* a resource belongs to the territory (3x3) of an adjacent city */
 function ownCityNear(x,y,owner){
-  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+  let best=null, bd=9;
+  for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
     const nx=x+dx, ny=y+dy;
     if(!inb(nx,ny)) continue;
-    const c=tileAt(nx,ny).city;
-    if(c&&c.owner===owner) return {x:nx,y:ny,city:c};
+    const c=tileAt(nx,ny).city, d=Math.max(Math.abs(dx),Math.abs(dy));
+    if(c&&c.owner===owner&&d<=(c.border||1)&&d<bd){ best={x:nx,y:ny,city:c}; bd=d; }
   }
-  return null;
+  return best;
 }
 function harvest(x,y,owner){
   const t=tileAt(x,y);
@@ -847,9 +882,11 @@ function harvest(x,y,owner){
   removeResourceDecor(x,y);
   const c=rc.city;
   c.pop+=r.pop;
-  let grew=0;
-  while(c.level<MAX_LEVEL && c.pop>=c.level+1){ c.pop-=c.level+1; c.level++; grew++; }
+  const gained=[];
+  while(c.level<MAX_LEVEL && c.pop>=c.level+1){ c.pop-=c.level+1; c.level++; gained.push(c.level); }
   if(c.level>=MAX_LEVEL) c.pop=0;
+  const grew=gained.length;
+  if(grew) c.rw=(c.rw||[]).concat(gained);
   const who=NET.on?meta(owner).name+' harvests':(owner===MYSIDE?'You harvest':'Enemy harvests');
   fx.popup(x,y,'+'+r.pop+' POP','#8fd89a');
   if(owner===MYSIDE) sfx.harvest();
@@ -857,12 +894,13 @@ function harvest(x,y,owner){
   if(grew){
     fx.popup(rc.x,rc.y,'LEVEL '+c.level+'!','#f0b35c');
     if(owner===MYSIDE) sfx.level();
-    log(owner, `${c.capital?'HQ':'City'} grew to level ${c.level} — income up!`);
+    log(owner, `${c.capital?'HQ':'City'} grew to level ${c.level} — income up!${owner===MYSIDE?' Pick a reward.':''}`);
   }
   return true;
 }
 function startTurn(s, first){
   side=s;
+  turnCities[s]=cityCount(s);
   stars[s]+=isAI(s)?Math.round(income(s)*diff().inc):income(s);
   const medic=hasTech(s,'MEDIC'), hosp=hasTech(s,'HOSP');
   if(!first && (medic||hosp)){
@@ -931,6 +969,82 @@ const sfx={
 };
 
 /* ---- shared combat core: one formula, used by attack/forecast/splash ---- */
+/* ---------------- city rewards: every level-up offers a choice of two, as in Polytopia ---------------- */
+const CITY_REWARDS={
+  2:[{k:'workshop', name:'Workshop',        icon:'gear',   desc:'+1\u2605 income every turn'},
+     {k:'scouts',   name:'Scouts',          icon:'eye',    desc:'This city sees 4 tiles, and you gain 2\u2605'}],
+  3:[{k:'walls',    name:'City walls',      icon:'wall',   desc:'Units defending this city get +50% defense'},
+     {k:'chest',    name:'War chest',       icon:'chest',  desc:'Gain 5\u2605 right now'}],
+  4:[{k:'growth',   name:'Population boom', icon:'pop',    desc:'+3 population toward the next level'},
+     {k:'borders',  name:'Wider borders',   icon:'border', desc:'Territory grows to 5\u00d75, bringing more resources in reach'}],
+  5:[{k:'command',  name:'Command post',    icon:'gear',   desc:'+2\u2605 income every turn'},
+     {k:'elite',    name:'Elite tank',      unit:'TNK',    desc:'A free veteran Tank rolls out of the city'}],
+};
+function applyReward(s,x,y,pick){
+  const c=inb(x,y)?tileAt(x,y).city:null;
+  if(!c||c.owner!==s||!c.rw||!c.rw.length) return false;
+  const opt=(CITY_REWARDS[c.rw[0]]||[])[pick];
+  if(!opt) return false;
+  c.rw.shift();
+  if(opt.k==='workshop') c.bonus=(c.bonus||0)+1;
+  else if(opt.k==='command') c.bonus=(c.bonus||0)+2;
+  else if(opt.k==='scouts'){ c.scout=true; stars[s]+=2; }
+  else if(opt.k==='walls') c.walls=true;
+  else if(opt.k==='chest') stars[s]+=5;
+  else if(opt.k==='borders') c.border=2;
+  else if(opt.k==='growth'){
+    c.pop+=3;
+    const gained=[];
+    while(c.level<MAX_LEVEL&&c.pop>=c.level+1){ c.pop-=c.level+1; c.level++; gained.push(c.level); }
+    if(c.level>=MAX_LEVEL) c.pop=0;
+    if(gained.length){ c.rw=c.rw.concat(gained); fx.popup(x,y,'LEVEL '+c.level+'!','#f0b35c'); }
+  } else if(opt.k==='elite'){
+    const spot=[[0,0],[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]].map(([dx,dy])=>({x:x+dx,y:y+dy}))
+      .find(q=>inb(q.x,q.y)&&!unitAt(q.x,q.y)&&tileAt(q.x,q.y).terrain!=='water'&&tileAt(q.x,q.y).terrain!=='mountain');
+    if(spot){
+      spawn(s,'TNK',spot.x,spot.y);
+      const nu=units[units.length-1];
+      nu.vet=true; nu.kills=3; nu.maxHp+=5; nu.hp=nu.maxHp; nu.moved=true; nu.attacked=true;
+    } else stars[s]+=6;   // nowhere to park it: pay out instead
+  }
+  fx.popup(x,y,opt.name.toUpperCase(),'#8fd89a');
+  return true;
+}
+/* the AI's picks: income early, walls on its HQ, wider borders when they reach more resources, elite tanks */
+function aiRewards(s){
+  map.forEach((row,y)=>row.forEach((t,x)=>{
+    const c=t.city;
+    for(let g=0; c&&c.owner===s&&c.rw&&c.rw.length&&g<6; g++){
+      const lvl=c.rw[0];
+      let pick=0;
+      if(lvl===3) pick=c.capital?0:1;
+      else if(lvl===4){
+        let n=0;
+        for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)
+          if(Math.max(Math.abs(dx),Math.abs(dy))===2&&inb(x+dx,y+dy)&&tileAt(x+dx,y+dy).resource) n++;
+        pick=n>=2?1:0;
+      } else if(lvl===5) pick=1;
+      if(!applyReward(s,x,y,pick)) break;
+    }
+  }));
+}
+/* ---- veterans: three kills earn a promotion (+5 max HP and a full heal), taken whenever the owner chooses ---- */
+const canPromote=u=>!!u&&(u.kills||0)>=3&&!u.vet&&u.type!=='NUKE';
+function creditKill(k){
+  if(!k||k.type==='NUKE'||!units.includes(k)) return;
+  k.kills=(k.kills||0)+1;
+  if(k.kills===3&&!k.vet){
+    fx.popup(k.x,k.y,'\u2605 PROMOTION','#f0b35c');
+    log(k.owner, `${UNIT_TYPES[k.type].name} earned a promotion \u2014 select it and tap Promote.`);
+  }
+}
+function promote(u){
+  if(!canPromote(u)) return false;
+  u.vet=true; u.maxHp+=5; u.hp=u.maxHp;
+  fx.popup(u.x,u.y,'\u2605 VETERAN','#f0b35c');
+  if(u.owner===MYSIDE) sfx.level();
+  return true;
+}
 function recKill(victim, by){
   if(by===MYSIDE) stats.kills++;
   if(victim===MYSIDE) stats.losses++;
@@ -1061,7 +1175,7 @@ function nukeStrike(u,tx,ty){
 }
 function defBonus(d){
   const t=tileAt(d.x,d.y);
-  if(t.city&&t.city.owner===d.owner) return hasTech(d.owner,'FORT')?2:1.5;
+  if(t.city&&t.city.owner===d.owner) return (hasTech(d.owner,'FORT')?2:1.5)+(t.city.walls?0.5:0);
   if(t.terrain==='forest') return hasTech(d.owner,'CAMO')?2:1.5;
   return 1;
 }
@@ -1087,6 +1201,7 @@ function splashDamage(u,cx,cy){
       fx.popup(e.x,e.y,'\u2716','#ffb74d');
       if(visXY(e.x,e.y)) sfx.boom();
       recKill(e.owner,u.owner);
+      creditKill(u);
       log(u.owner, `${et.name} caught in the blast.`);
     } else {
       log(u.owner, `Blast hits ${et.name} for ${dmg}.`);
@@ -1108,6 +1223,7 @@ function attack(u,d){
     fx.popup(d.x,d.y,'✖ DESTROYED','#ffb74d');
     if(visXY(d.x,d.y)) sfx.boom();
     recKill(d.owner,u.owner);
+    creditKill(u);
     log(u.owner, `${dt.name} destroyed.`);
     // melee units advance into the conquered tile (and capture any city there)
     if(uRange(u)===1 && !ut.siege && passable(u,d.x,d.y) && !unitAt(d.x,d.y)){
@@ -1119,7 +1235,7 @@ function attack(u,d){
     fx.flash(u.x,u.y,0xff5040);
     fx.popup(u.x,u.y,'-'+rdmg,'#ff7a6a');
     log(d.owner, `${dt.name} returns fire for ${rdmg}.`);
-    if(u.hp<=0){ units=units.filter(x=>x!==u); fx.boom(u.x,u.y); fx.popup(u.x,u.y,'✖ DESTROYED','#ffb74d'); if(visXY(u.x,u.y)) sfx.boom(); recKill(u.owner,d.owner); log(d.owner, `${ut.name} destroyed.`); }
+    if(u.hp<=0){ units=units.filter(x=>x!==u); fx.boom(u.x,u.y); fx.popup(u.x,u.y,'✖ DESTROYED','#ffb74d'); if(visXY(u.x,u.y)) sfx.boom(); recKill(u.owner,d.owner); creditKill(d); log(d.owner, `${ut.name} destroyed.`); }
   }
   u.moved=true; u.attacked=true;
 }
@@ -1131,6 +1247,7 @@ function moveUnit(u,x,y){
   if(c && c.owner!==u.owner){
     const wasCap=c.capital, prev=c.owner;
     c.owner=u.owner;
+    c.rw=[];
     u.attacked=true;
     fx.popup(x,y,'★ CAPTURED','#f0b35c');
     if(visXY(x,y)) sfx.capture();
@@ -1213,6 +1330,7 @@ async function aiTurn(me){
       if(stars[me]>=o.c+D.reserve){ if(harvest(o.x,o.y,me)){ did=true; break; } }
     }
   }
+  aiRewards(me);
   refresh();
   await sleep(240);
   if(stale()) return;
@@ -1256,6 +1374,8 @@ async function aiTurn(me){
   }
   units.filter(u=>u.owner!==me).forEach(u=>objs.push({x:u.x,y:u.y,w:2}));
 
+  const aiPromote=()=>units.filter(q=>q.owner===me&&canPromote(q)&&q.hp<=q.maxHp-3).forEach(promote);
+  aiPromote();
   const roster=units.filter(u=>u.owner===me&&!u.attacked);
   for(const u of roster){
     if(stale()) break;
@@ -1319,6 +1439,7 @@ async function aiTurn(me){
     if(acted) await sleep(280);
   }
   if(stale()){ banner.classList.remove('show'); $('speedBtn').hidden=true; return; }
+  aiPromote();
   refresh();
   banner.classList.remove('show');
   $('speedBtn').hidden=true;
@@ -1580,7 +1701,7 @@ function computeVision(){
   for(const u of units) if(u.owner===MYSIDE) revealAround(u.x,u.y,vr);
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const c=tileAt(x,y).city;
-    if(c&&c.owner===MYSIDE) revealAround(x,y,vr);
+    if(c&&c.owner===MYSIDE) revealAround(x,y,c.scout?Math.max(vr,4):vr);
   }
 }
 function syncFog(){
@@ -1906,7 +2027,7 @@ function makeLabel(){
 }
 function drawLabel(sp,u){
   const t=UNIT_TYPES[u.type];
-  const state=u.type+'|'+u.hp+'|'+u.owner+'|'+(u.owner===side&&u.attacked?1:0);
+  const state=u.type+'|'+u.hp+'|'+u.maxHp+'|'+u.owner+'|'+(u.owner===side&&u.attacked?1:0)+'|'+(u.vet?2:canPromote(u)?1:0);
   if(sp.userData.last===state) return;
   sp.userData.last=state;
   const ctx=sp.userData.c.getContext('2d');
@@ -1920,6 +2041,8 @@ function drawLabel(sp,u){
   ctx.fillRect(24,2,80,30);
   ctx.fillStyle=col;
   ctx.fillText(t.key,64,26);
+  if(u.vet){ ctx.fillStyle='#f0b35c'; ctx.font='700 20px Saira Condensed, sans-serif'; ctx.fillText('\u2605',32,25); }
+  else if(canPromote(u)){ ctx.fillStyle='#f0b35c'; ctx.beginPath(); ctx.arc(99,9,6,0,7); ctx.fill(); }
   // hp bar
   const r=Math.max(0,u.hp/u.maxHp);
   ctx.fillStyle='rgba(0,0,0,.6)'; ctx.fillRect(24,38,80,9);
@@ -1988,7 +2111,8 @@ function syncHighlights(){
       m.userData.pulse=1;
       hlGroup.add(m);
       // territory glow
-      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+      const br=tileAt(sel.x,sel.y).city.border||1;
+      for(let dy=-br;dy<=br;dy++)for(let dx=-br;dx<=br;dx++){
         const nx=sel.x+dx, ny=sel.y+dy;
         if(!inb(nx,ny)||(!dx&&!dy)) continue;
         const t=tileAt(nx,ny);
@@ -2377,6 +2501,7 @@ function refresh(){
   NET.uiTick();
   if($('techPanel').classList.contains('show')) renderTech();
   syncUndo();
+  checkRewards();
 }
 
 /* ---------------- tech panel: a radial tree like Polytopia's ----------------
@@ -2488,7 +2613,7 @@ function serializeGame(){
     explored,
     map:map.map(row=>row.map(t=>({
       t:t.terrain,
-      c:t.city?{o:t.city.owner,cap:!!t.city.capital,l:t.city.level,p:t.city.pop}:0,
+      c:packCity(t.city),
       r:t.resource||0
     })))
   });
@@ -2504,6 +2629,7 @@ function restoreGame(data, net){
   try{
     gen++;
     undoStack.length=0;
+    turnCities={};
     $('endBar').hidden=true;
     if(!net) NET.leave();
     pendingAtk=null;
@@ -2523,7 +2649,7 @@ function restoreGame(data, net){
     units=data.units.map(u=>({...u}));
     map=data.map.map(row=>row.map(o=>({
       terrain:o.t,
-      city:o.c?{owner:o.c.o,capital:o.c.cap,level:o.c.l,pop:o.c.p}:null,
+      city:unpackCity(o.c),
       resource:o.r||null
     })));
     explored=data.explored?data.explored.map(r=>[...r]):Array.from({length:H},()=>Array(W).fill(false));
@@ -2727,7 +2853,7 @@ function toast(msg,color){
 function toastFromLog(who,msg){
   const big=/ELIMINATED|NUCLEAR|ran out of time/i.test(msg);
   if(!big && !(who===MYSIDE||who==='sys')) return;
-  if(!big && !/captured|grew to level|research|Satellite/i.test(msg)) return;
+  if(!big && !/captured|grew to level|research|Satellite|promotion/i.test(msg)) return;
   toast(msg, who===MYSIDE||who==='sys'?'var(--amber)':playerMeta[who]?meta(who).css:'var(--red)');
 }
 
@@ -2857,6 +2983,40 @@ const ICON={
   soundOff:'<path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>',
 };
 const RES_ICON={CROP:'crop', ORE:'ore', OIL:'oil'};
+Object.assign(ICON,{
+  star:'<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>',
+  gear:'<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
+  eye:'<path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+  wall:'<path d="M3 20.5v-11h3v-3h3v3h2v-3h2v3h2v-3h3v3h3v11z"/><path d="M3 15h18M9 20.5v-5.5M15 20.5v-5.5"/>',
+  chest:'<rect x="3.5" y="9" width="17" height="11" rx="1.5"/><path d="M3.5 13h17M12 11.5v3M5 9V7a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v2"/>',
+  pop:'<circle cx="9" cy="8" r="3"/><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.2a4.5 4.5 0 0 1 5.5 4.8"/>',
+  border:'<rect x="3.5" y="3.5" width="17" height="17" rx="1.5" stroke-dasharray="3 2.5"/><rect x="9" y="9" width="6" height="6"/>',
+});
+/* on your turn, any of your cities waiting on a reward asks you to pick one */
+let rwOpen=null;
+function checkRewards(){
+  const box=$('rewardBox');
+  const close=()=>{ if(!box.hidden){ box.hidden=true; } rwOpen=null; };
+  if(!map||gameOver||side!==MYSIDE||$('setup').classList.contains('show')||$('overlay').classList.contains('show')) return close();
+  let f=null;
+  for(let y=0;y<H&&!f;y++)for(let x=0;x<W&&!f;x++){ const c=tileAt(x,y).city; if(c&&c.owner===MYSIDE&&c.rw&&c.rw.length) f={x,y,c}; }
+  if(!f) return close();
+  const key=f.x+','+f.y+':'+f.c.rw.length+':'+f.c.level;
+  if(rwOpen===key) return;
+  rwOpen=key;
+  const lvl=f.c.rw[0];
+  $('rwEyebrow').textContent=(f.c.capital?'Headquarters':'City')+' reached level '+lvl;
+  const opts=$('rwOpts'); opts.innerHTML='';
+  CITY_REWARDS[lvl].forEach((o,i)=>{
+    const b=document.createElement('button');
+    b.type='button'; b.className='rwopt';
+    b.innerHTML=`<span class="disc">${o.unit?`<img src="${unitIcon(o.unit,MYSIDE)}" alt="">`:svgIcon(o.icon)}</span><b>${o.name}</b><span>${o.desc}</span>`;
+    b.onclick=()=>{ act({t:'reward',x:f.x,y:f.y,pick:i}); };
+    opts.appendChild(b);
+  });
+  box.hidden=false;
+  panTo(f.x,f.y);
+}
 const svgIcon=n=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+ICON[n]+'</svg>';
 
 /* ---- unit portraits: each model rendered once per faction colour into a small image ---- */
@@ -2925,8 +3085,12 @@ function renderInfo(){
         :'Ready — blue tiles move, red rings attack';
       const forest=tileAt(u.x,u.y).terrain==='forest';
       chips.innerHTML=hpChip(u)+chip('ATK',fmtStat(uAtk(u)))+chip('DEF',uDef(u))+chip('MOVE',uMove(u))+chip('RANGE',uRange(u))+
-        (forest?chip('Forest','+'+(hasTech(u.owner,'CAMO')?100:50)+'% DEF','good'):'');
+        (forest?chip('Forest','+'+(hasTech(u.owner,'CAMO')?100:50)+'% DEF','good'):'')+
+        (u.vet?chip('\u2605','Veteran','good'):u.kills&&u.type!=='NUKE'?chip('Kills',Math.min(3,u.kills)+'/3'):'');
       body.textContent=t.desc;
+      if(mine&&canPromote(u)) train.appendChild(actBtn({icon:'star', name:'Promote', cls:'more',
+        title:'Veteran: +5 max HP and a full heal. Free \u2014 promote now or save it as an emergency heal.',
+        onclick:()=>act({t:'promote',uid:u.id})}));
       if(mine&&!u.attacked&&u.type!=='NUKE'){
         const heal=hasTech(MYSIDE,'MEDIC');
         train.appendChild(actBtn({icon:heal?'heal':'hold', name:heal?'Heal':'Hold',
@@ -2972,7 +3136,8 @@ function renderInfo(){
     por.innerHTML=svgIcon('city');
     if(c.owner) por.style.setProperty('--fc', meta(c.owner).css);
     title.textContent=(c.capital?'Headquarters':'City')+' · Level '+c.level;
-    chips.innerHTML=chip('Income','+'+inc+'★')+(c.level<MAX_LEVEL?chip('Pop',c.pop+'/'+(c.level+1)):chip('Pop','max'));
+    chips.innerHTML=chip('Income','+'+inc+'★')+(c.level<MAX_LEVEL?chip('Pop',c.pop+'/'+(c.level+1)):chip('Pop','max'))+
+      (c.walls?chip('Walls','+50% DEF','good'):'')+((c.border||1)>1?chip('Borders','5×5','good'):'')+(c.scout?chip('Sight','4','good'):'');
     if(c.owner!==MYSIDE){
       const nm=c.owner&&playerMeta[c.owner]?meta(c.owner).name:null;
       sub.textContent=nm?nm:'Neutral village';
@@ -2981,7 +3146,8 @@ function renderInfo(){
       return;
     }
     let resN=0;
-    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+    const br=c.border||1;
+    for(let dy=-br;dy<=br;dy++)for(let dx=-br;dx<=br;dx++){
       const nx=sel.x+dx, ny=sel.y+dy;
       if(inb(nx,ny)&&tileAt(nx,ny).resource) resN++;
     }
@@ -3139,7 +3305,9 @@ $('helpBtn').onclick=()=>{
     ['Economy','Crops (2\u2605), ore (4\u2605) and oil (6\u2605) sit near cities. Harvest one inside your territory to add population — fill the bar to level the city up for +1\u2605 income, permanently. Capture gray neutral cities to claim their resources.'],
     ['Counters','Snipers +50% vs Infantry \u00b7 Tanks take 50% less from Snipers \u00b7 Helicopters +50% vs Tanks \u00b7 Flak Batteries +75% vs Helicopters and resist their fire. Artillery blasts all enemies around its target for 50%.'],
     ['Factions','Aegis heals 4 HP (free Field Medicine) \u00b7 Crimson trains units 1\u2605 cheaper \u00b7 Solaris mines from the start & harvests cheaper \u00b7 Ghost sees 3 tiles & has range-3 Snipers.'],
-    ['Tech','Combat: Sniper \u2192 Tank \u2192 Artillery, plus drills, armor and self-propelled guns. Industry: Ore \u2192 Oil \u2192 Helicopter, plus cheaper training, +1\u2605 per city and faster gunships. Support: healing, 2\u00d7 city defense, forest camouflage, field hospitals and blast protection. Intel: +1 vision, the Flak Battery and longer artillery range. Strategic: Satellite Network (reveals the map) and Manhattan Project (the Nuclear Missile — a one-use 5\u00d75 strike). Prices rise with each city you own.'],
+    ['Tech','Combat: Sniper \u2192 Tank \u2192 Artillery, plus drills, armor and self-propelled guns. Industry: Ore \u2192 Oil \u2192 Helicopter, plus cheaper training, +1\u2605 per city and faster gunships. Support: healing, 2\u00d7 city defense, forest camouflage, field hospitals and blast protection. Intel: +1 vision, the Flak Battery and longer artillery range. Strategic: Satellite Network (reveals the map) and Manhattan Project (the Nuclear Missile — a one-use 5\u00d75 strike). Each tech costs its tier \u00d7 the cities you held at the start of your turn, +4\u2605; the two strategic techs cost 5\u00d7 cities +12\u2605.'],
+    ['City rewards','Every time a city levels up you pick one of two rewards: Workshop or Scouts, City walls or a War chest, Population boom or Wider borders, Command post or an Elite tank.'],
+    ['Veterans','A unit with three kills can be promoted for +5 max HP and a full heal. It is free, so you can save it as an emergency heal.'],
     ['Recon','Tap any rival unit or city to inspect it \u2014 stats, income, and the red zone shows where that unit can reach next turn. Your own units dim once they\u2019ve acted.'],
     ['Multiplayer','Host an operation from the menu to get a 5-letter room code \u2014 up to three friends join with it. The host\u2019s device referees the match, so keep it online; if the host drops, guests can Export Save and finish the campaign solo. The host can set a per-turn timer in the lobby.'],
     ['Difficulty','Menu \u2192 Custom. Easy rivals collect 60% of their income, train one unit a turn, research every other turn and are slow to attack. Normal: 80%, two units a turn. Hard is the full-strength AI. Crazy rivals collect 70% extra, start richer and research twice as fast.'],
@@ -3184,7 +3352,7 @@ function act(a){
   if(NET.client){
     if(side!==MYSIDE) return;
     NET.sendAction(a);
-    const s={move:'move',harvest:'harvest',research:'research',hold:'select',train:'deploy',nukebuild:'deploy'}[a.t];
+    const s={move:'move',harvest:'harvest',research:'research',hold:'select',train:'deploy',nukebuild:'deploy',promote:'level',reward:'level'}[a.t];
     if(s) sfx[s]();      // optimistic feedback; combat sounds arrive with the effect stream
     return;
   }
@@ -3194,7 +3362,7 @@ function act(a){
 /* ---- undo (single player): step back through this turn's moves, training, harvests and holds.
    Attacks, captures, research, launches and ending the turn can't be taken back and clear the history. ---- */
 const undoStack=[];
-const UNDOABLE={move:1, train:1, harvest:1, hold:1};
+const UNDOABLE={move:1, train:1, harvest:1, hold:1, promote:1, reward:1};
 function undoSnap(){
   return JSON.stringify({units, stars, uid, map:map.map(row=>row.map(t=>[t.city, t.resource]))});
 }
@@ -3233,6 +3401,7 @@ function doAction(s, a){
   if(T==='endturn'){ if(NET.on) log('sys', meta(s).name+' ends the turn.'); startTurn(nextAlive(s)); return; }
   if(T==='research'){ if(research(s,a.k)) refresh(); return; }
   if(T==='harvest'){ if(harvest(a.x,a.y,s)) refresh(); return; }
+  if(T==='reward'){ if(applyReward(s,a.x,a.y,a.pick)) refresh(); return; }
   if(T==='train'||T==='nukebuild'){
     const k=T==='nukebuild'?'NUKE':a.k;
     if(!UNIT_TYPES[k]||!inb(a.x,a.y)) return;
@@ -3253,6 +3422,7 @@ function doAction(s, a){
   const u=byId(a.uid);
   if(!u||u.owner!==s) return;
   if(T==='hold'){ if(!u.attacked){ u.moved=true; u.attacked=true; u.held=true; refresh(); } return; }
+  if(T==='promote'){ if(promote(u)) refresh(); return; }
   if(T==='move'){
     if(u.moved||u.attacked||!inb(a.x,a.y)||unitAt(a.x,a.y)) return;
     if(!reachable(u).has(key(a.x,a.y))) return;
@@ -3473,10 +3643,10 @@ const NET={
       alive:{...alive}, stars:{...stars},
       tech:Object.fromEntries(turnOrder.map(s=>[s,[...tech[s]]])),
       turn, uid, side, over:gameOver, winner:this.winner, stats:{...stats},
-      tm:this.timer, tl:this.turnEnds?Math.max(0,this.turnEnds-Date.now()):0,
+      tm:this.timer, tl:this.turnEnds?Math.max(0,this.turnEnds-Date.now()):0, tc:{...turnCities},
       units:units.map(u=>({...u})),
       explored:null,
-      map:map.map(row=>row.map(t=>({t:t.terrain, c:t.city?{o:t.city.owner,cap:!!t.city.capital,l:t.city.level,p:t.city.pop}:0, r:t.resource||0})))
+      map:map.map(row=>row.map(t=>({t:t.terrain, c:packCity(t.city), r:t.resource||0})))
     };
   },
   flushSoon(now){
@@ -3707,7 +3877,7 @@ function applyNetState(d, evts){
     const t=map[y][x], o=d.map[y][x];
     if(o.t!==t.terrain){ t.terrain=o.t; terr=true; }
     if((o.r||null)!==t.resource){ t.resource=o.r||null; if(!t.resource) removeResourceDecor(x,y); }
-    t.city=o.c?{owner:o.c.o,capital:!!o.c.cap,level:o.c.l,pop:o.c.p}:null;
+    t.city=unpackCity(o.c);
   }
   const wasAlive=alive[MYSIDE];
   units=d.units.map(u=>({...u}));
@@ -3716,6 +3886,7 @@ function applyNetState(d, evts){
   side=d.side;
   NET.humansList=d.humans||[];
   NET.timer=d.tm||0; NET.turnEnds=d.tl?Date.now()+d.tl:0;
+  turnCities=d.tc||{};
   if(terr) buildBoard();
   if(sel){
     if(sel.kind==='unit'){ if(!byId(sel.id)) sel=null; }
@@ -3842,6 +4013,7 @@ if(CAN_STORE){ try{ const n=localStorage.getItem('foothold-callsign'); if(n) $('
 function newGame(){
   gen++;
   undoStack.length=0;
+  turnCities={};
   $('endBar').hidden=true;
   $('speedBtn').hidden=true;
   pendingAtk=null;
