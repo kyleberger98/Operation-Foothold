@@ -844,6 +844,15 @@ function genMap(){
     if(t.city||t.resource||t.terrain==='mountain'||t.terrain==='water') continue;
     t.resource=Math.random()<0.6?'CROP':'ORE'; extra++;
   }
+  // supply drops: like Polytopia's ruins, a reward for whoever reaches them first
+  const dropTarget=Math.max(2, Math.round(W*H/36));
+  let drops=0, g3=0;
+  while(drops<dropTarget && g3++<600){
+    const x=rnd(W), y=rnd(H), t=tileAt(x,y);
+    if(t.city||t.resource||t.ruin||t.terrain==='mountain'||t.terrain==='water') continue;
+    if(cityList.some(c=>cheb({x,y},c)<2)) continue;
+    t.ruin=true; drops++;
+  }
   return caps;
 }
 
@@ -1239,10 +1248,38 @@ function attack(u,d){
   }
   u.moved=true; u.attacked=true;
 }
+/* a unit reaching a supply drop opens it: stars, a free tech, a recruit, a wider view or growth */
+function openDrop(u,x,y){
+  const t=tileAt(x,y), s=u.owner;
+  t.ruin=false; removeDropDecor(x,y);
+  const whose=NET.on?meta(s).name+"'s troops":(s===MYSIDE?'Your troops':'Enemy troops');
+  const nextTech=Object.keys(TECHS).filter(k=>!hasTech(s,k)&&TECHS[k].tier<=3&&(!TECHS[k].req||hasTech(s,TECHS[k].req)));
+  const near=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]].map(([dx,dy])=>({x:x+dx,y:y+dy}))
+    .filter(q=>inb(q.x,q.y)&&!unitAt(q.x,q.y)&&tileAt(q.x,q.y).terrain!=='water'&&tileAt(q.x,q.y).terrain!=='mountain'&&!tileAt(q.x,q.y).city);
+  let home=null, hd=99;
+  map.forEach((row,yy)=>row.forEach((tt,xx)=>{ if(tt.city&&tt.city.owner===s){ const d=cheb({x:xx,y:yy},{x,y}); if(d<hd){ hd=d; home={x:xx,y:yy,c:tt.city}; } } }));
+  const r=Math.random();
+  let msg;
+  if(r<0.3||(r<0.55&&!nextTech.length)){ stars[s]+=10; msg='10\u2605 of supplies'; }
+  else if(r<0.55){ const k=nextTech[rnd(nextTech.length)]; tech[s].add(k); msg='intel files: '+TECHS[k].name+' learned'; }
+  else if(r<0.75&&near.length){ const q=near[rnd(near.length)]; spawn(s,'INF',q.x,q.y); const nu=units[units.length-1]; nu.moved=true; nu.attacked=true; msg='recruits: a free Infantry'; }
+  else if(r<0.88||!home){ stars[s]+=4; if(s===MYSIDE) revealAround(x,y,4); msg='a map of the area and 4\u2605'; }
+  else {
+    const c=home.c; c.pop+=2; const gained=[];
+    while(c.level<MAX_LEVEL&&c.pop>=c.level+1){ c.pop-=c.level+1; c.level++; gained.push(c.level); }
+    if(c.level>=MAX_LEVEL) c.pop=0;
+    if(gained.length) c.rw=(c.rw||[]).concat(gained);
+    msg='settlers: +2 population for the nearest city';
+  }
+  fx.popup(x,y,'SUPPLY DROP','#f0b35c');
+  if(s===MYSIDE) sfx.level();
+  log(s, `${whose} opened a supply drop \u2014 ${msg}.`);
+}
 function moveUnit(u,x,y){
   fx.faceTarget(u,{x,y});
   u.x=x; u.y=y; u.moved=true;
   if(u.owner===MYSIDE) sfx.move();
+  if(tileAt(x,y).ruin) openDrop(u,x,y);
   const c=tileAt(x,y).city;
   if(c && c.owner!==u.owner){
     const wasCap=c.capital, prev=c.owner;
@@ -1373,6 +1410,7 @@ async function aiTurn(me){
     if(c&&c.owner!==me) objs.push({x,y,w:c.capital?0:1});
   }
   units.filter(u=>u.owner!==me).forEach(u=>objs.push({x:u.x,y:u.y,w:2}));
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++) if(tileAt(x,y).ruin) objs.push({x,y,w:0.5});
 
   const aiPromote=()=>units.filter(q=>q.owner===me&&canPromote(q)&&q.hp<=q.maxHp-3).forEach(promote);
   aiPromote();
@@ -1410,7 +1448,7 @@ async function aiTurn(me){
         let best=null,bestScore=1e9;
         for(const p of r.values()){
           const c=tileAt(p.x,p.y).city;
-          if(c&&c.owner!==me){ best=p; bestScore=-1; break; }
+          if((c&&c.owner!==me)||tileAt(p.x,p.y).ruin){ best=p; bestScore=-1; break; }
         }
         if(bestScore>=0){
           for(const p of r.values()){
@@ -1718,6 +1756,7 @@ let cityDecor={}; // key -> {flagMat, sprite}
 let unitMeshes=new Map(); // id -> group
 let tileGroups={}; // key -> THREE.Group for the tile
 let resourceDecor={}; // key -> group
+let dropDecor={};     // key -> supply-drop crate
 let pumpjacks=[]; // animated oil pumpjack beams
 
 function box(w,h,d,mat){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.castShadow=true;m.receiveShadow=true;return m}
@@ -1730,6 +1769,27 @@ const M_crop=new THREE.MeshLambertMaterial({color:0xc8b04a});
 const M_crop2=new THREE.MeshLambertMaterial({color:0xa6993e});
 const M_ore=new THREE.MeshLambertMaterial({color:0x848e96});
 const M_oreVein=new THREE.MeshLambertMaterial({color:0xf0b35c});
+function makeDrop(){
+  const g=new THREE.Group();
+  const crate=box(0.3,0.22,0.3,M.trunk); crate.position.y=TOP+0.11;
+  const band=box(0.32,0.05,0.32,M.dark); band.castShadow=false; band.position.y=TOP+0.15;
+  const lid=box(0.24,0.03,0.24,M_oreVein); lid.castShadow=false; lid.position.y=TOP+0.235;
+  const chute=new THREE.Mesh(new THREE.SphereGeometry(0.22,8,4,0,Math.PI*2,0,Math.PI/2.2),
+    new THREE.MeshLambertMaterial({color:0xe9e4d4, side:THREE.DoubleSide}));
+  chute.scale.y=0.55; chute.position.set(0.18,TOP+0.05,-0.18); chute.rotation.z=1.25; chute.rotation.y=0.6;
+  g.add(crate,band,lid,chute);
+  g.userData.bob=true;
+  return g;
+}
+function addDropDecor(x,y){
+  if(!tileAt(x,y).ruin||dropDecor[key(x,y)]) return;
+  const d=makeDrop(); tileGroups[key(x,y)].add(d); dropDecor[key(x,y)]=d;
+}
+function removeDropDecor(x,y){
+  const k=key(x,y), d=dropDecor[k];
+  if(!d) return;
+  tileGroups[k].remove(d); delete dropDecor[k];
+}
 function makeCrop(){
   const g=new THREE.Group();
   for(let i=0;i<3;i++){
@@ -1833,7 +1893,7 @@ function drawCityLabel(sp,city){
 
 /* ---- static board ---- */
 function buildBoard(){
-  boardGroup.clear(); pickTiles=[]; cityDecor={}; tileGroups={}; resourceDecor={}; pumpjacks=[];
+  boardGroup.clear(); pickTiles=[]; cityDecor={}; tileGroups={}; resourceDecor={}; dropDecor={}; pumpjacks=[];
   fogGroup.clear(); fogClouds={}; dissolving=[];
   // layered earth strata under the board
   const base=box(W+0.6, 0.34, H+0.6, M.dirt);
@@ -1955,6 +2015,7 @@ function buildBoard(){
     }
     boardGroup.add(g);
     if(t.resource) addResourceDecor(x,y);
+    if(t.ruin) addDropDecor(x,y);
     if(!explored[y][x]){
       g.visible=false;
       const fc=makeFogCloud(x,y);
@@ -2465,6 +2526,7 @@ function onTileClick(x,y){
   if(u){ sel={kind:'unit',id:u.id}; sfx.select(); refresh(); return; }
   const c=tileAt(x,y).city;
   if(c&&!u){ sel={kind:'city',x,y}; sfx.select(); refresh(); return; }
+  if(tileAt(x,y).ruin){ sel={kind:'drop',x,y}; sfx.select(); refresh(); return; }
   if(tileAt(x,y).resource){ sel={kind:'res',x,y}; sfx.select(); refresh(); return; }
   sel=null; refresh();
 }
@@ -2614,7 +2676,7 @@ function serializeGame(){
     map:map.map(row=>row.map(t=>({
       t:t.terrain,
       c:packCity(t.city),
-      r:t.resource||0
+      r:t.resource||0, ru:t.ruin?1:0
     })))
   });
 }
@@ -2650,7 +2712,7 @@ function restoreGame(data, net){
     map=data.map.map(row=>row.map(o=>({
       terrain:o.t,
       city:unpackCity(o.c),
-      resource:o.r||null
+      resource:o.r||null, ruin:!!o.ru
     })));
     explored=data.explored?data.explored.map(r=>[...r]):Array.from({length:H},()=>Array(W).fill(false));
     if(net) computeVision();
@@ -2853,7 +2915,7 @@ function toast(msg,color){
 function toastFromLog(who,msg){
   const big=/ELIMINATED|NUCLEAR|ran out of time/i.test(msg);
   if(!big && !(who===MYSIDE||who==='sys')) return;
-  if(!big && !/captured|grew to level|research|Satellite|promotion/i.test(msg)) return;
+  if(!big && !/captured|grew to level|research|Satellite|promotion|supply drop/i.test(msg)) return;
   toast(msg, who===MYSIDE||who==='sys'?'var(--amber)':playerMeta[who]?meta(who).css:'var(--red)');
 }
 
@@ -3131,6 +3193,16 @@ function renderInfo(){
       return;
     }
   }
+  if(sel&&sel.kind==='drop'){
+    if(!tileAt(sel.x,sel.y).ruin) sel=null;
+    else {
+      por.innerHTML=svgIcon('chest');
+      title.textContent='Supply drop';
+      sub.textContent='Unclaimed — first unit to arrive opens it';
+      body.textContent='Move any unit onto it for stars, a free tech, a free Infantry, a map of the area, or settlers for your nearest city.';
+      return;
+    }
+  }
   if(sel&&sel.kind==='city'){
     const c=tileAt(sel.x,sel.y).city, inc=cityIncome(c);
     por.innerHTML=svgIcon('city');
@@ -3307,6 +3379,7 @@ $('helpBtn').onclick=()=>{
     ['Factions','Aegis heals 4 HP (free Field Medicine) \u00b7 Crimson trains units 1\u2605 cheaper \u00b7 Solaris mines from the start & harvests cheaper \u00b7 Ghost sees 3 tiles & has range-3 Snipers.'],
     ['Tech','Combat: Sniper \u2192 Tank \u2192 Artillery, plus drills, armor and self-propelled guns. Industry: Ore \u2192 Oil \u2192 Helicopter, plus cheaper training, +1\u2605 per city and faster gunships. Support: healing, 2\u00d7 city defense, forest camouflage, field hospitals and blast protection. Intel: +1 vision, the Flak Battery and longer artillery range. Strategic: Satellite Network (reveals the map) and Manhattan Project (the Nuclear Missile — a one-use 5\u00d75 strike). Each tech costs its tier \u00d7 the cities you held at the start of your turn, +4\u2605; the two strategic techs cost 5\u00d7 cities +12\u2605.'],
     ['City rewards','Every time a city levels up you pick one of two rewards: Workshop or Scouts, City walls or a War chest, Population boom or Wider borders, Command post or an Elite tank.'],
+    ['Supply drops','Parachuted crates hide in the fog. The first unit to step on one opens it: stars, a free tech, a free Infantry, a map of the area, or settlers for your nearest city.'],
     ['Veterans','A unit with three kills can be promoted for +5 max HP and a full heal. It is free, so you can save it as an emergency heal.'],
     ['Recon','Tap any rival unit or city to inspect it \u2014 stats, income, and the red zone shows where that unit can reach next turn. Your own units dim once they\u2019ve acted.'],
     ['Multiplayer','Host an operation from the menu to get a 5-letter room code \u2014 up to three friends join with it. The host\u2019s device referees the match, so keep it online; if the host drops, guests can Export Save and finish the campaign solo. The host can set a per-turn timer in the lobby.'],
@@ -3368,7 +3441,7 @@ function undoSnap(){
 }
 function undoableAct(a){
   const u=a.t==='move'?byId(a.uid):null, c=u&&inb(a.x,a.y)?tileAt(a.x,a.y).city:null;
-  const can=UNDOABLE[a.t] && !(c&&c.owner!==u.owner);   // stepping onto a rival city captures it: final
+  const can=UNDOABLE[a.t] && !(c&&c.owner!==u.owner) && !(u&&inb(a.x,a.y)&&tileAt(a.x,a.y).ruin);   // captures and supply drops are final
   const before=can?undoSnap():null;
   doAction(MYSIDE, a);
   if(!can) undoStack.length=0;
@@ -3646,7 +3719,7 @@ const NET={
       tm:this.timer, tl:this.turnEnds?Math.max(0,this.turnEnds-Date.now()):0, tc:{...turnCities},
       units:units.map(u=>({...u})),
       explored:null,
-      map:map.map(row=>row.map(t=>({t:t.terrain, c:packCity(t.city), r:t.resource||0})))
+      map:map.map(row=>row.map(t=>({t:t.terrain, c:packCity(t.city), r:t.resource||0, ru:t.ruin?1:0})))
     };
   },
   flushSoon(now){
@@ -3877,6 +3950,7 @@ function applyNetState(d, evts){
     const t=map[y][x], o=d.map[y][x];
     if(o.t!==t.terrain){ t.terrain=o.t; terr=true; }
     if((o.r||null)!==t.resource){ t.resource=o.r||null; if(!t.resource) removeResourceDecor(x,y); }
+    if(!!o.ru!==!!t.ruin){ t.ruin=!!o.ru; if(t.ruin) addDropDecor(x,y); else removeDropDecor(x,y); }
     t.city=unpackCity(o.c);
   }
   const wasAlive=alive[MYSIDE];
