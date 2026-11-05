@@ -53,11 +53,14 @@ button{font:inherit; transition:background .15s ease, color .15s ease, border-co
 .rb:active{transform:scale(.94)}
 .rb:focus-visible,.dock:focus-visible .disc,.abtn:focus-visible .disc,.bigbtn:focus-visible{outline:2px solid var(--amber); outline-offset:3px}
 .rb.off{color:var(--dim)}
+#fitBtn{position:fixed; z-index:11; right:calc(env(safe-area-inset-right,0px) + 12px); top:calc(env(safe-area-inset-top,0px) + 62px)}
+#fitBtn.on{border-color:var(--amber); color:var(--amber)}
 #menuBtn{position:fixed; z-index:11; top:calc(env(safe-area-inset-top,0px) + 12px); left:calc(env(safe-area-inset-left,0px) + 12px)}
 #topRight{position:fixed; z-index:11; top:calc(env(safe-area-inset-top,0px) + 12px); right:calc(env(safe-area-inset-right,0px) + 12px);
   display:flex; gap:8px}
 
 /* ---- bottom dock: Tech on the left, Next unit + End turn on the right ---- */
+body.nogame #hud, body.nogame .dock, body.nogame #topRight, body.nogame #fitBtn, body.nogame #menuBtn{visibility:hidden}
 .dock{position:fixed; z-index:12; bottom:calc(env(safe-area-inset-bottom,0px) + 12px);
   display:flex; flex-direction:column; align-items:center; gap:5px;
   padding:0; background:none; border:none; cursor:pointer; color:var(--text)}
@@ -122,7 +125,7 @@ button{font:inherit; transition:background .15s ease, color .15s ease, border-co
   box-shadow:0 6px 18px rgba(0,0,0,.45)}
 #toasts{position:fixed; z-index:13; top:calc(env(safe-area-inset-top,0px) + 146px); left:50%; transform:translateX(-50%);
   width:min(420px, calc(100vw - 32px)); display:flex; flex-direction:column; align-items:center; gap:6px; pointer-events:none}
-.toast{max-width:100%; background:rgba(14,20,16,.92); border:1px solid rgba(255,255,255,.08); border-left:4px solid var(--tc,var(--amber));
+.toast{white-space:pre-line; pointer-events:auto; cursor:pointer; max-width:100%; background:rgba(14,20,16,.92); border:1px solid rgba(255,255,255,.08); border-left:4px solid var(--tc,var(--amber));
   border-radius:12px; padding:7px 14px; font-size:12px; line-height:1.45; box-shadow:0 8px 22px rgba(0,0,0,.45);
   animation:toastIn .25s ease both}
 .toast.out{animation:toastOut .3s ease both}
@@ -160,6 +163,24 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 #forecast{color:var(--amber)}
 #forecast b{color:#ffd9a8}
 #train{display:flex; gap:8px; overflow-x:auto; padding:12px 2px 2px; scrollbar-width:none}
+@media (max-width:520px){
+  #info{padding:9px 11px 10px}
+  .ihead{gap:9px}
+  .por{width:42px; height:42px}
+  #info .title{font-size:17px}
+  .chips{margin-top:6px; gap:4px}
+  .chip{font-size:10.5px; padding:2px 7px}
+  #infoBody{font-size:11px; line-height:1.45; margin-top:5px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+  #train{flex-wrap:wrap; overflow-x:visible; padding-top:8px; gap:4px 4px}
+  .abtn{width:58px}
+  .abtn .disc{width:46px; height:46px}
+  .abtn .nm{font-size:11.5px}
+}
+@media (min-width:1100px){
+  #command{left:24px; transform:translate(0,18px); width:480px}
+  body.dockR #command{left:auto; right:24px}
+  body.selOpen #command{transform:translate(0,0)}
+}
 #train:empty{display:none}
 #train::-webkit-scrollbar{display:none}
 .abtn{flex:none; width:68px; display:flex; flex-direction:column; align-items:center; gap:3px;
@@ -169,6 +190,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
   transition:transform .12s ease, box-shadow .15s ease, filter .15s ease}
 .abtn .disc img{width:116%; height:116%; object-fit:contain; margin-top:6%}
 .abtn .disc svg{width:26px; height:26px}
+.abtn.atk .disc{background:radial-gradient(circle at 50% 35%, #a8443c, #5a1d19); box-shadow:inset 0 0 0 2px rgba(255,150,140,.5), 0 4px 12px rgba(0,0,0,.45)}
 .abtn .nm{font-family:'Saira Condensed',sans-serif; font-size:12.5px; letter-spacing:.05em; text-transform:uppercase; text-align:center; line-height:1.05}
 .abtn .cost{font-size:11px; font-weight:600; color:var(--amber); font-variant-numeric:tabular-nums}
 .abtn:hover:not(:disabled) .disc{box-shadow:inset 0 0 0 2px var(--amber), 0 6px 14px rgba(0,0,0,.45); transform:translateY(-2px)}
@@ -198,12 +220,13 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 /* ================= title screen + custom game ================= */
 #setup{position:fixed; inset:0; z-index:60; display:none; align-items:flex-start; justify-content:center; overflow-y:auto;
   padding:max(30px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 30px max(12px, env(safe-area-inset-left));
-  background:radial-gradient(ellipse at 50% 30%, rgba(30,44,34,.92), rgba(8,12,10,.97) 70%); backdrop-filter:blur(5px)}
+  background:radial-gradient(ellipse at 50% 30%, rgba(16,34,38,.5), rgba(6,12,14,.84) 75%); backdrop-filter:blur(3px)}
 #setup.show{display:flex}
 #setupInner{background:var(--panel); border:1px solid var(--line); max-width:860px; width:100%; margin:auto 0;
   padding:22px 24px 26px; border-radius:18px; box-shadow:0 24px 70px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04)}
 #setupInner.home{max-width:440px; background:rgba(22,29,24,.9)}
-.speedMenu{display:block; margin:10px auto 0; background:none; border:1px solid var(--line); color:var(--dim); border-radius:999px;
+.setRow{display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:10px}
+.speedMenu{display:block; margin:0; background:none; border:1px solid var(--line); color:var(--dim); border-radius:999px;
   padding:6px 14px; font:inherit; font-size:12px; cursor:pointer}
 .speedMenu b{color:var(--text); font-weight:600}
 #homePane{display:flex; flex-direction:column; align-items:center; text-align:center; gap:6px}
@@ -416,6 +439,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
   <div class="hud-box hb-timer" id="hudTimerBox" hidden><span class="v" id="hudTimer">0:00</span><span class="k">Time</span></div>
   <div class="hud-box hb-side"><span class="v" id="hudSide">YOU</span></div>
 </div>
+<button id="fitBtn" class="rb" title="Whole map (V)" aria-label="Whole map"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
 <button id="menuBtn" class="rb" title="Menu" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h14"/></svg></button>
 <div id="topRight">
   <button id="helpBtn" class="rb" title="How to play (H)" aria-label="How to play"><svg viewBox="0 0 24 24"><path d="M9.2 9.2a2.9 2.9 0 1 1 4 2.7c-.8.4-1.2 1-1.2 1.8v.6"/><path d="M12 17.6v.2"/></svg></button>
@@ -474,7 +498,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
         <button id="tutBtn" class="bigbtn">How to play<span>a guided first game</span></button>
       </div>
       <div class="saveNote">Your campaign auto-saves every move on this device.</div>
-      <button id="speedMenuBtn" class="speedMenu"></button>
+      <div class="setRow"><button id="speedMenuBtn" class="speedMenu"></button><button id="soundMenuBtn" class="speedMenu"></button><button id="gfxMenuBtn" class="speedMenu"></button></div>
     </div>
     <div id="soloPane" style="display:none">
     <button class="backBtn" data-back>◂ Back</button>
@@ -699,7 +723,7 @@ const UNIT_TYPES={
   INF:{key:'INF', name:'Infantry',   cost:2, hp:10, atk:2, def:2, move:1, range:1, fly:false, desc:'Cheap, dependable riflemen.'},
   SNP:{key:'SNP', name:'Sniper',     cost:5, hp:8,  atk:3, def:1, move:1, range:2, fly:false, desc:'Strikes from 2 tiles. +25% damage vs Infantry; armor shrugs it off.'},
   TNK:{key:'TNK', name:'Tank',       cost:7, hp:16, atk:4, def:3, move:2, range:1, fly:false, desc:'Heavy armor. Fast, and takes far less damage from Snipers.'},
-  ART:{key:'ART', name:'Artillery',  cost:9, hp:10,  atk:5, def:1, move:1, range:3, fly:false, siege:true, splash:0.5, desc:'Devastating at range 3. Blasts all enemies around the target for 50% damage. Cannot move and fire on the same turn.'},
+  ART:{key:'ART', name:'Artillery',  cost:9, hp:10,  atk:5, def:1, move:1, range:3, fly:false, siege:true, splash:0.25, desc:'Devastating at range 3. Its blast also hits enemies next to the target for 25% damage. Cannot move and fire on the same turn.'},
   AA: {key:'AA',  name:'Flak Battery', cost:4, hp:12, atk:2, def:2, move:1, range:2, fly:false, desc:'Anti-air guns that strike from 2 tiles. +75% damage vs Helicopters, and shrugs off their return fire.'},
   HEL:{key:'HEL', name:'Helicopter', cost:8, hp:14, atk:3, def:2, move:3, range:1, fly:true, desc:'Flies over water and mountains. +50% damage vs Tanks, and their guns can barely track it.'},
   NUKE:{key:'NUKE', name:'Nuclear Missile', cost:15, hp:1, atk:10, def:0, move:0, range:6, fly:false, siege:true, splash:1.0, nuke:2, oneShot:true, desc:'Strategic strike: fires once at range 6 and hits every enemy unit within 2 tiles of the target. Consumed on use.'},
@@ -955,11 +979,14 @@ function harvest(x,y,owner){
   log(owner, `${who} ${r.name} (+${r.pop} pop).`);
   if(grew){
     fx.popup(rc.x,rc.y,'LEVEL '+c.level+'!','#f0b35c');
+    fx.shock(rc.x,rc.y,0x8fd89a);
     if(owner===MYSIDE) sfx.level();
     log(owner, `${c.capital?'HQ':'City'} grew to level ${c.level} — income up!${owner===MYSIDE?' Pick a reward.':''}`);
   }
   return true;
 }
+const turnNotes=[];
+let recapAt=null;   // hints gathered at the start of your turn, shown in one notice
 function startTurn(s, first){
   side=s;
   if(s===MYSIDE&&!first&&myCam&&alive[MYSIDE]){ camGoal=myCam; myCam=null; }
@@ -984,19 +1011,35 @@ function startTurn(s, first){
   if(s===turnOrder.find(x=>alive[x]) && !first) turn++;   // counts on even after the player is knocked out
   undoStack.length=0;   // undo never reaches back past the start of a turn
   if(NET.host&&NET.inGame) NET.turnEnds=(NET.timer&&(s===P||NET.humans[s]))?Date.now()+NET.timer*1000:0;
+  if(s===MYSIDE && !first && !gameOver && turnSnap){
+    let hits=0, dmg=0, lost=0; recapAt=null;
+    for(const [id,hp] of turnSnap.hp){
+      const q=units.find(z=>z.id===id);
+      if(!q) lost++;
+      else if(q.hp<hp){ hits++; dmg+=hp-q.hp; fx.shock(q.x,q.y,0xe8625a); if(!recapAt) recapAt={x:q.x,y:q.y}; }
+    }
+    const cl=turnSnap.cities-cityCount(s);
+    const parts=[];
+    if(hits) parts.push(hits+' unit'+(hits>1?'s':'')+' hit (\u2212'+dmg+' HP)');
+    if(lost) parts.push(lost+' unit'+(lost>1?'s':'')+' lost');
+    if(cl>0) parts.push(cl+' cit'+(cl>1?'ies':'y')+' lost');
+    if(parts.length) turnNotes.push('\u26a0 Enemy turn: '+parts.join(', ')+'.'+(recapAt?' Tap to look.':''));
+    turnSnap=null;
+  }
   if(s===MYSIDE && !first && !gameOver){
     const cap=units.filter(u=>u.owner===s&&canCapture(u)).length;
-    if(cap) toast(cap===1?'A unit is standing on a rival city \u2014 select it and tap Capture.':cap+' units can capture cities this turn.','var(--amber)');
+    if(cap) turnNotes.push(cap===1?'\u2691 A unit can capture a city \u2014 select it and tap Capture.':'\u2691 '+cap+' units can capture cities this turn.');
   }
   if(s===MYSIDE && !first && !gameOver && !blockedHint){
     let own=0, blocked=0;
     map.flat().forEach((t,i)=>{ if(t.city&&t.city.owner===s){ own++; const q=unitAt(i%W,Math.floor(i/W)); if(q&&q.owner===s) blocked++; } });
     if(own&&blocked===own&&stars[s]>=unitCost(s,'INF')&&armySize(s)<armyCap(s)){
       blockedHint=true;
-      toast('Units standing on your cities block training \u2014 move one off to recruit.','var(--amber)');
+      turnNotes.push('Units standing on your cities block training \u2014 move one off to recruit.');
     }
   }
-  if(s===MYSIDE && !first && !gameOver) toast('Your turn \u00b7 turn '+turn+' \u00b7 +'+income(s)+'\u2605 income', meta(s).css);
+  if(s===MYSIDE && !first && !gameOver){ const at=recapAt; toast(['Your turn \u00b7 turn '+turn+' \u00b7 +'+income(s)+'\u2605 income',...turnNotes].join('\n'), turnNotes.length?'var(--amber)':meta(s).css, at?()=>panTo(at.x,at.y):null); }
+  turnNotes.length=0;
   sel=null;
   refresh();
   if(!gameOver){
@@ -1157,7 +1200,7 @@ function defMult(a,d){ return (DEF_BONUS[d.type]&&DEF_BONUS[d.type][a.type])||1;
 /* ---------------- COMBAT FORECAST ---------------- */
 function fcText(f,tu){
   return `\u25b8 ATTACK ${UNIT_TYPES[tu.type].name}: deal <b>${f.dmg}</b>`+
-    (f.cAtk?' <b style="color:var(--amber)">\u25b2 counter!</b>':'')+
+    (f.cAtk?` <b style="color:var(--amber)">\u25b2 strong vs ${UNIT_TYPES[tu.type].name}</b>`:'')+
     (f.cDef?' <b style="color:#8aa08c">\u25bc armored target</b>':'')+
     (f.splashN?` <b style="color:var(--amber)">\u25c9 blast hits ${f.splashN} more</b>`:'')+
     (f.kills?(' \u2014 <b>destroys it'+(f.advances?' & advances!':'!')+'</b>')
@@ -1301,15 +1344,19 @@ function attack(u,d){
   const {dmg, AF, DF}=calcDamage(u,d);
   const dist=cheb(u,d);
   d.hp-=dmg;
-  fx.flash(d.x,d.y,0xffa040); fx.faceTarget(u,d);
-  fx.popup(d.x,d.y,'-'+dmg,'#ff7a6a');
+  fx.faceTarget(u,d);
+  fx.strike(u.x,u.y,d.x,d.y,u.id,d.id, ut.siege?'shell':dist>1?'shot':'melee');
+  const late=ut.siege?320:0, g0=gen;   // shells are in the air for a moment
+  const impact=fn=>{ if(late) setTimeout(()=>{ if(gen===g0) fn(); }, late); else fn(); };
+  { const dx=d.x, dy=d.y, kill=d.hp<=0;
+    impact(()=>{ fx.flash(dx,dy,0xffa040); fx.popup(dx,dy,'-'+dmg,'#ff7a6a');
+      if(kill){ fx.boom(dx,dy); fx.popup(dx,dy,'\u2716 DESTROYED','#ffb74d'); if(visXY(dx,dy)) sfx.boom(); } });
+    if(kill&&late) deathDelay[d.id]=late/1000; }
+  if(ut.splash) splashDamage(u,d.x,d.y);
   if(visXY(d.x,d.y)||visXY(u.x,u.y)) sfx.shoot();
   log(u.owner, `${ut.name} hits ${dt.name} for ${dmg}.`);
   if(d.hp<=0){
     units=units.filter(x=>x!==d);
-    fx.boom(d.x,d.y);
-    fx.popup(d.x,d.y,'✖ DESTROYED','#ffb74d');
-    if(visXY(d.x,d.y)) sfx.boom();
     recKill(d.owner,u.owner);
     creditKill(u);
     log(u.owner, `${dt.name} destroyed.`);
@@ -1321,6 +1368,7 @@ function attack(u,d){
     const rdmg=Math.max(1,Math.round(DF/(AF+DF)*uDef(d)*4.5));
     u.hp-=rdmg;
     fx.flash(u.x,u.y,0xff5040);
+    fx.strike(d.x,d.y,u.x,u.y,d.id,u.id, dist>1?'shot':'melee');
     fx.popup(u.x,u.y,'-'+rdmg,'#ff7a6a');
     log(d.owner, `${dt.name} returns fire for ${rdmg}.`);
     if(u.hp<=0){ units=units.filter(x=>x!==u); fx.boom(u.x,u.y); fx.popup(u.x,u.y,'✖ DESTROYED','#ffb74d'); if(visXY(u.x,u.y)) sfx.boom(); recKill(u.owner,d.owner); creditKill(d); log(d.owner, `${ut.name} destroyed.`); }
@@ -1375,6 +1423,7 @@ function captureCity(u){
     if(wasCap) c.capital=false;   // a taken HQ becomes an ordinary city for its new owner
     u.moved=true; u.attacked=true;
     fx.popup(x,y,'★ CAPTURED','#f0b35c');
+    fx.shock(x,y,meta(u.owner).flag);
     if(visXY(x,y)) sfx.capture();
     const capWho=NET.on?meta(u.owner).name+' captured':(u.owner===MYSIDE?'You captured':'Enemy captured');
     log(u.owner, wasCap?`${capWho} the HQ!`:`${capWho} a city.`);
@@ -1412,7 +1461,7 @@ function syncSpeed(){
   const s=SPEEDS.find(x=>x.v===aiSpeed)||SPEEDS[0];
   $('speedBtn').innerHTML=`<i>${s.i}</i>${s.l}<span>enemy turns \u00b7 tap to change</span>`;
   $('speedBtn').title='Enemy turn speed (F)';
-  const m=$('speedMenuBtn'); if(m) m.innerHTML='Enemy turns: <b>'+s.l+'</b> \u00b7 change';
+  const m=$('speedMenuBtn'); if(m) m.innerHTML='Enemy turns: <b>'+s.l+'</b>';
 }
 function cycleSpeed(){
   const i=SPEEDS.findIndex(x=>x.v===aiSpeed);
@@ -1637,9 +1686,17 @@ async function aiTurn(me){
    THREE.JS SCENE
 ================================================================ */
 const wrap=$('wrap');
+let gfxLow=false;   // graphics quality (Settings): Low drops shadows, sea swell and high-DPI rendering
+try{ gfxLow=localStorage.getItem('foothold-gfx')==='low'; }catch(e){}
 const scene=new THREE.Scene();
-scene.background=new THREE.Color(0x0c1310);
-scene.fog=new THREE.Fog(0x0c1310, 18, 34);
+scene.background=(()=>{   // dusk sky: deep teal overhead fading to the sea haze at the horizon
+  const c=document.createElement('canvas'); c.width=4; c.height=256;
+  const g=c.getContext('2d'), gr=g.createLinearGradient(0,0,0,256);
+  gr.addColorStop(0,'#0b1d27'); gr.addColorStop(0.5,'#173a48'); gr.addColorStop(0.72,'#1f4a57'); gr.addColorStop(1,'#133240');
+  g.fillStyle=gr; g.fillRect(0,0,4,256);
+  return new THREE.CanvasTexture(c);
+})();
+scene.fog=new THREE.Fog(0x1d4553, 20, 50);
 
 const camera=new THREE.PerspectiveCamera(46, 1, 0.1, 100);
 let renderer;
@@ -1660,14 +1717,15 @@ wrap.insertBefore(renderer.domElement, wrap.firstChild);
 function sizeRenderer(){
   const w=window.innerWidth, h=window.innerHeight;
   renderer.setSize(w,h);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setPixelRatio(gfxLow?1:Math.min(window.devicePixelRatio,2));
   camera.aspect=w/h; camera.updateProjectionMatrix();
 }
 window.addEventListener('orientationchange',()=>setTimeout(sizeRenderer,250));
 window.addEventListener('resize', sizeRenderer);
 
-scene.add(new THREE.AmbientLight(0x8fa597, 0.55));
-const sun=new THREE.DirectionalLight(0xfff2dd, 0.95);
+const hemi=new THREE.HemisphereLight(0xd6e8ee, 0x3f5232, 0.62);
+scene.add(hemi, new THREE.AmbientLight(0x8fa597, 0.12));
+const sun=new THREE.DirectionalLight(0xffeed4, 0.95);
 sun.position.set(8,14,6);
 sun.castShadow=true;
 sun.shadow.mapSize.set(1024,1024);
@@ -1677,11 +1735,32 @@ scene.add(sun);
 const fill=new THREE.DirectionalLight(0x6fa0c8, 0.25);
 fill.position.set(-6,8,-8); scene.add(fill);
 
+/* ---- the sea: a low-poly swell around the island ---- */
+const oceanGeo=new THREE.PlaneGeometry(110,110,56,56); oceanGeo.rotateX(-Math.PI/2);
+const oceanBase=Float32Array.from(oceanGeo.attributes.position.array);
+const ocean=new THREE.Mesh(oceanGeo, new THREE.MeshPhongMaterial({color:0x174a5c, specular:0x3d7383, shininess:24, flatShading:true}));
+ocean.position.y=-0.34; ocean.receiveShadow=true;
+scene.add(ocean);
+function waveOcean(now){
+  const a=oceanGeo.attributes.position.array;
+  for(let i=0;i<a.length;i+=3){
+    const x=oceanBase[i], z=oceanBase[i+2];
+    a[i+1]=Math.sin(x*0.52+now*0.0011)*0.055+Math.cos(z*0.67+now*0.0009+x*0.2)*0.045;
+  }
+  oceanGeo.attributes.position.needsUpdate=true;
+}
+/* ---- graphics quality: Low turns off shadows, sea swell and high-DPI rendering ---- */
+function applyGfx(){
+  sun.castShadow=!gfxLow;
+  renderer.setPixelRatio(gfxLow?1:Math.min(window.devicePixelRatio,2));
+}
+
 /* ---- camera orbit (custom, no OrbitControls in r128 build) ---- */
 const cam={theta:Math.PI*0.0, phi:0.96, dist:12.5, target:new THREE.Vector3(0,0,0.6)};
 function applyCam(){
   cam.phi=Math.min(1.35, Math.max(0.35, cam.phi));
-  cam.dist=Math.min(22, Math.max(6, cam.dist));
+  cam.dist=Math.min(60, Math.max(6, cam.dist));
+  if(scene.fog){ scene.fog.near=cam.dist+7; scene.fog.far=cam.dist+38; }   // haze stays on the horizon at any zoom
   camera.position.set(
     cam.target.x + cam.dist*Math.sin(cam.phi)*Math.sin(cam.theta),
     cam.target.y + cam.dist*Math.cos(cam.phi),
@@ -1690,7 +1769,35 @@ function applyCam(){
   camera.lookAt(cam.target);
 }
 let pdown=false, pmoved=0, px=0, py=0, pinchD=0;
-let camGoal=null;
+let camGoal=null, camDistGoal=null, fitSaved=null;
+let camPhiGoal=null;
+function fitDistance(phi){
+  // the closest view that shows the whole island between the HUD and the dock
+  const keep={t:cam.target.clone(), d:cam.dist, p:cam.phi};
+  cam.target.set(0,0,0); cam.phi=phi;
+  const pad=0.6, cs=[[-W/2-pad,-H/2-pad],[W/2+pad,-H/2-pad],[-W/2-pad,H/2+pad],[W/2+pad,H/2+pad]];
+  const v=new THREE.Vector3();
+  let d=6;
+  for(;d<60;d+=0.5){
+    cam.dist=d; applyCam(); camera.updateMatrixWorld();
+    if(cs.every(([x,z])=>{ v.set(x,TOP,z).project(camera); return Math.abs(v.x)<0.95&&v.y<0.8&&v.y>-0.64; })) break;
+  }
+  cam.target.copy(keep.t); cam.dist=keep.d; cam.phi=keep.p; applyCam();
+  return d;
+}
+function toggleFit(at){
+  if(!map) return;
+  if(fitSaved){
+    camGoal=at?new THREE.Vector3(wx(at.x),0,wz(at.y)):fitSaved.t.clone();
+    camDistGoal=fitSaved.d; camPhiGoal=fitSaved.p; fitSaved=null;
+  } else {
+    fitSaved={t:cam.target.clone(), d:cam.dist, p:cam.phi};
+    const phi=innerWidth/innerHeight<0.8?0.62:0.82;
+    camGoal=new THREE.Vector3(0,0,0); camPhiGoal=phi; camDistGoal=fitDistance(phi);
+  }
+  $('fitBtn').classList.toggle('on',!!fitSaved);
+  sfx.select();
+}
 function panTo(x,y){ camGoal=new THREE.Vector3(wx(x),0,wz(y)+(innerWidth<700?Math.min(1.6,cam.dist*0.11):0)); }
 const cvs=renderer.domElement;
 cvs.addEventListener('pointerdown',e=>{if(e.button===2) return; pdown=true;pmoved=0;px=e.clientX;py=e.clientY;cvs.setPointerCapture(e.pointerId);cvs.style.cursor='grabbing'});
@@ -1712,12 +1819,12 @@ cvs.addEventListener('pointerup',e=>{
   if(pmoved<6) handleClick(e);
 });
 cvs.addEventListener('pointerleave',e=>{ if(e.pointerType==='mouse') setHover(null); });
-cvs.addEventListener('wheel',e=>{e.preventDefault(); cam.dist+=e.deltaY*0.012; applyCam();},{passive:false});
+cvs.addEventListener('wheel',e=>{e.preventDefault(); camDistGoal=null; cam.dist+=e.deltaY*0.012; applyCam();},{passive:false});
 cvs.addEventListener('touchmove',e=>{
   if(e.touches.length===2){
     const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
     if(pinchD) cam.dist-=(d-pinchD)*0.03;
-    pinchD=d; applyCam();
+    pinchD=d; camDistGoal=null; applyCam();
   }
 },{passive:true});
 cvs.addEventListener('touchend',()=>pinchD=0);
@@ -1761,7 +1868,7 @@ function setHover(h){
     const su=units.find(q=>q.id===sel.id);
     const tu=unitAt(h.x,h.y);
     if(su&&su.owner===MYSIDE&&tu&&tu.owner!==MYSIDE&&attackTargets(su).includes(tu)){
-      txt=fcText(forecast(su,tu),tu)+(COARSE?'':' <span style="color:var(--dim)">\u00b7 right-click to fire</span>');
+      txt=fcText(forecast(su,tu),tu)+(COARSE?'':' <span style="color:var(--dim)">\u00b7 click to fire</span>');
       cvs.style.cursor='crosshair';
     } else if(su&&!tu&&reachable(su).has(key(h.x,h.y))){
       const c=tileAt(h.x,h.y).city;
@@ -1790,6 +1897,8 @@ const M={
   snow:new THREE.MeshLambertMaterial({color:0xc9d4da}),
   water:new THREE.MeshLambertMaterial({color:0x2b5c7c, transparent:true, opacity:0.92}),
   dirt:new THREE.MeshLambertMaterial({color:0x3a3f33}),
+  sand:new THREE.MeshLambertMaterial({color:0xb3a273}),
+  seam:new THREE.MeshLambertMaterial({color:0x26351f}),
   dirt2:new THREE.MeshLambertMaterial({color:0x2c3128}),
   trunk:new THREE.MeshLambertMaterial({color:0x4a3a28}),
   leaf:new THREE.MeshLambertMaterial({color:0x2e5e33}),
@@ -1829,8 +1938,9 @@ scene.add(boardGroup, unitGroup, hlGroup, fxGroup, fogGroup, cloudGroup);
 let explored=[];           // [y][x] -> bool (permanent once seen)
 let fogClouds={};          // key -> cloud group covering an unexplored tile
 let dissolving=[];         // clouds currently puffing away
-const cloudMat=new THREE.MeshLambertMaterial({color:0xb8c2ba});
-const cloudMatSoft=new THREE.MeshLambertMaterial({color:0x9daaa1});
+const cloudMat=new THREE.MeshLambertMaterial({color:0xdfe6ea});
+const cloudMatSoft=new THREE.MeshLambertMaterial({color:0xbcc7cf});
+const skyCloudMat=new THREE.MeshLambertMaterial({color:0xf1f4f6, transparent:true, opacity:0.82});
 // shared puff geometries (3 sizes) to keep the blanket cheap
 const puffGeo=[new THREE.SphereGeometry(0.30,9,9),
                new THREE.SphereGeometry(0.38,9,9),
@@ -1858,6 +1968,7 @@ function makeFogCloud(x,y){
   return g;
 }
 let decoClouds=[];
+let surf=null;
 function buildSkyClouds(){
   cloudGroup.clear();
   decoClouds=[];
@@ -1866,16 +1977,16 @@ function buildSkyClouds(){
     const g=new THREE.Group();
     const n=3+rnd(3), big=0.4+Math.random()*0.5;
     for(let j=0;j<n;j++){
-      const p=cloudPuff(rnd(3), j%2?cloudMat:cloudMatSoft);
+      const p=cloudPuff(rnd(3), skyCloudMat);
       p.scale.setScalar(big*(0.8+Math.random()*0.7)); p.scale.y*=0.5;
       p.position.set((j-(n-1)/2)*big*0.85, (Math.random()-0.5)*big*0.3, (Math.random()-0.5)*big*0.7);
       g.add(p);
     }
     // drift in bands in front of and behind the island, never over it
     const xr=W/2+7;
-    const front=Math.random()<0.5;   // clouds between the camera and the board sit low so they never hide tiles
+    const front=false;   // the sea is in view in front of the island: clouds drift behind it
     g.position.set(-xr+Math.random()*xr*2,
-                   front?-1+Math.random()*0.5:-0.3+Math.random()*2.2,
+                   1.4+Math.random()*2.2,
                    front?H/2+2.8+Math.random()*3:-(H/2+1.4+Math.random()*3.4));
     g.userData={v:0.1+Math.random()*0.18, bobP:Math.random()*6.28};
     cloudGroup.add(g);
@@ -1915,6 +2026,7 @@ let cityDecor={}; // key -> {flagMat, sprite}
 let unitMeshes=new Map(); // id -> group
 let tileGroups={}; // key -> THREE.Group for the tile
 let resourceDecor={}; // key -> group
+let forestTrees={};   // key -> pine groups, shrunk while a unit stands among them
 let dropDecor={};     // key -> supply-drop crate
 let pumpjacks=[]; // animated oil pumpjack beams
 
@@ -1924,8 +2036,8 @@ function cone(r,h,mat,seg=7){const m=new THREE.Mesh(new THREE.ConeGeometry(r,h,s
 function sph(r,mat,seg=10){const m=new THREE.Mesh(new THREE.SphereGeometry(r,seg,seg),mat);m.castShadow=true;return m}
 
 /* ---- resource models ---- */
-const M_crop=new THREE.MeshLambertMaterial({color:0xc8b04a});
-const M_crop2=new THREE.MeshLambertMaterial({color:0xa6993e});
+const M_crop=new THREE.MeshLambertMaterial({color:0xb49a55});
+const M_crop2=new THREE.MeshLambertMaterial({color:0x8c7a40});
 const M_ore=new THREE.MeshLambertMaterial({color:0x848e96});
 const M_oreVein=new THREE.MeshLambertMaterial({color:0xf0b35c});
 function makeDrop(){
@@ -2052,13 +2164,32 @@ function drawCityLabel(sp,city){
 
 /* ---- static board ---- */
 function buildBoard(){
-  boardGroup.clear(); pickTiles=[]; cityDecor={}; tileGroups={}; resourceDecor={}; dropDecor={}; pumpjacks=[];
+  boardGroup.clear(); terrGroup.clear(); terrSig=''; pickTiles=[]; cityDecor={}; tileGroups={}; resourceDecor={}; dropDecor={}; pumpjacks=[]; forestTrees={};
   fogGroup.clear(); fogClouds={}; dissolving=[];
   // layered earth strata under the board
-  const base=box(W+0.6, 0.34, H+0.6, M.dirt);
+  const base=box(W+0.6, 0.34, H+0.6, M.sand);
   base.position.y=-0.42; boardGroup.add(base);
   const sub=box(W+0.44, 0.3, H+0.44, M.dirt2);
   sub.position.y=-0.72; boardGroup.add(sub);
+  // surf: a pale band where the sea meets the cliffs
+  {
+    const sh=new THREE.Shape(), ow=W/2+0.62, oh=H/2+0.62, iw=W/2+0.3, ih=H/2+0.3;
+    sh.moveTo(-ow,-oh); sh.lineTo(ow,-oh); sh.lineTo(ow,oh); sh.lineTo(-ow,oh); sh.lineTo(-ow,-oh);
+    const hole=new THREE.Path(); hole.moveTo(-iw,-ih); hole.lineTo(-iw,ih); hole.lineTo(iw,ih); hole.lineTo(iw,-ih); hole.lineTo(-iw,-ih);
+    sh.holes.push(hole);
+    const shallow=new THREE.Mesh(new THREE.ShapeGeometry(sh), new THREE.MeshBasicMaterial({color:0x46b0b6, transparent:true, opacity:0.34, depthWrite:false}));
+    shallow.rotation.x=-Math.PI/2; shallow.position.y=-0.27;
+    boardGroup.add(shallow);
+    const fs=new THREE.Shape(), fw=W/2+0.4, fh=H/2+0.4;
+    fs.moveTo(-fw,-fh); fs.lineTo(fw,-fh); fs.lineTo(fw,fh); fs.lineTo(-fw,fh); fs.lineTo(-fw,-fh);
+    const fhole=new THREE.Path(); fhole.moveTo(-iw,-ih); fhole.lineTo(-iw,ih); fhole.lineTo(iw,ih); fhole.lineTo(iw,-ih); fhole.lineTo(-iw,-ih);
+    fs.holes.push(fhole);
+    surf=new THREE.Mesh(new THREE.ShapeGeometry(fs), new THREE.MeshBasicMaterial({color:0xeef8f8, transparent:true, opacity:0.5, depthWrite:false}));
+    surf.rotation.x=-Math.PI/2; surf.position.y=-0.245;
+    boardGroup.add(surf);
+    const floor=box(W,0.004,H,M.seam); floor.receiveShadow=true; floor.castShadow=false; floor.position.y=0.003;
+    boardGroup.add(floor);
+  }
 
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const t=tileAt(x,y);
@@ -2075,7 +2206,7 @@ function buildBoard(){
     else if(t.terrain==='mountain') topMat=M.mountain;
     else topMat=M.water;
     const sideMat=Mside[t.terrain];
-    const tileBox=new THREE.Mesh(new THREE.BoxGeometry(0.96,h,0.96),
+    const tileBox=new THREE.Mesh(new THREE.BoxGeometry(0.976,h,0.976),
       [sideMat,sideMat,topMat,sideMat,sideMat,sideMat]);
     tileBox.castShadow=true; tileBox.receiveShadow=true;
     tileBox.position.y=h/2;
@@ -2105,13 +2236,15 @@ function buildBoard(){
         const tx=[-0.26,0.27,-0.05,0.18][i]+(Math.random()*0.1-0.05);
         const tz=[-0.2,-0.24,0.24,0.05][i]+(Math.random()*0.1-0.05);
         const sc=0.8+Math.random()*0.45;
+        const tg=new THREE.Group(); tg.position.set(tx,TOP,tz);
         const trunk=cyl(0.028,0.038,0.12*sc,M.trunk);
-        trunk.position.set(tx,TOP+0.06*sc,tz);
+        trunk.position.set(0,0.06*sc,0);
         const lf1=cone(0.14*sc,0.22*sc,(i%2)?M.leaf:M.leaf2,7);
-        lf1.position.set(tx,TOP+(0.12+0.1)*sc,tz);
+        lf1.position.set(0,(0.12+0.1)*sc,0);
         const lf2=cone(0.10*sc,0.18*sc,(i%2)?M.leaf2:M.leaf,7);
-        lf2.position.set(tx,TOP+(0.12+0.24)*sc,tz);
-        g.add(trunk,lf1,lf2);
+        lf2.position.set(0,(0.12+0.24)*sc,0);
+        tg.add(trunk,lf1,lf2); g.add(tg);
+        (forestTrees[key(x,y)]=forestTrees[key(x,y)]||[]).push(tg);
       }
       const bush=sph(0.07,M.leaf2,7); bush.scale.y=0.7; bush.castShadow=false;
       bush.position.set(0.3*(Math.random()<0.5?-1:1),TOP+0.05,0.3*(Math.random()<0.5?-1:1));
@@ -2168,7 +2301,8 @@ function buildBoard(){
       const flag=new THREE.Mesh(new THREE.PlaneGeometry(0.22,0.13), cd.flagMat);
       flag.position.set(0.3+0.12,TOP+0.43,-0.3);
       cd.sprite=makeCityLabel();
-      cd.sprite.position.set(0,TOP+0.95,0);
+      cd.sprite.position.set(0,TOP+0.62,0.3); cd.sprite.scale.set(0.95*labelF,0.38*labelF,1);
+      cd.g=g; cd.roof=new THREE.MeshLambertMaterial({color:0x9aa3a0});
       g.add(b1,b2,pole,flag,cd.sprite);
       cityDecor[key(x,y)]=cd;
     }
@@ -2184,13 +2318,68 @@ function buildBoard(){
   }
 }
 
+const terrGroup=new THREE.Group();
+scene.add(terrGroup);
+let terrSig='';
+const terrMats={};
+function terrMat(o,edge){
+  const k=o+(edge?'e':'f');
+  return terrMats[k]||(terrMats[k]=new THREE.MeshBasicMaterial({color:meta(o).flag, transparent:true, opacity:edge?0.8:0.13, depthWrite:false}));
+}
+function syncTerritory(){
+  // every city claims the tiles within its border; the nearer city wins a contested tile
+  const own=Array.from({length:H},()=>Array(W).fill(null)), dist=Array.from({length:H},()=>Array(W).fill(99));
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const c=tileAt(x,y).city; if(!c||!c.owner) continue;
+    const r=c.border||1;
+    for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
+      const nx=x+dx, ny=y+dy; if(!inb(nx,ny)) continue;
+      const d=Math.max(Math.abs(dx),Math.abs(dy));
+      if(d<dist[ny][nx]){ dist[ny][nx]=d; own[ny][nx]=c.owner; }
+    }
+  }
+  const vis=(x,y)=>explored[y]&&explored[y][x];
+  let sig='';
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++) sig+=(vis(x,y)&&own[y][x])||'.';
+  if(sig===terrSig) return;
+  terrSig=sig;
+  terrGroup.clear();
+  const ft=new THREE.PlaneGeometry(0.976,0.976);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const o=vis(x,y)&&own[y][x]; if(!o) continue;
+    const top=(tileAt(x,y).terrain==='water'?TOP-0.14:TOP)+0.008;
+    const m=new THREE.Mesh(ft, terrMat(o,false)); m.rotation.x=-Math.PI/2; m.position.set(wx(x),top,wz(y)); terrGroup.add(m);
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const nx=x+dx, ny=y+dy;
+      if(inb(nx,ny)&&own[ny][nx]===o) continue;
+      const e=new THREE.Mesh(new THREE.BoxGeometry(dx?0.05:0.976,0.012,dx?0.976:0.05), terrMat(o,true));
+      e.position.set(wx(x)+dx*0.464,top+0.004,wz(y)+dy*0.464); terrGroup.add(e);
+    }
+  }
+}
 function syncCities(){
+  syncTerritory();
   for(const k in cityDecor){
     const [x,y]=k.split(',').map(Number);
     const city=tileAt(x,y).city;
-    cityDecor[k].flagMat.color.setHex(city.owner?meta(city.owner).flag:NEUTRAL_FLAG);
-    drawCityLabel(cityDecor[k].sprite, city);
-    cityDecor[k].sprite.position.y=TOP+(unitAt(x,y)?1.45:0.95);
+    const cd=cityDecor[k];
+    cd.flagMat.color.setHex(city.owner?meta(city.owner).flag:NEUTRAL_FLAG);
+    drawCityLabel(cd.sprite, city);
+    { const occ=!!unitAt(x,y); cd.sprite.position.set(0, TOP+(occ?0.26:0.62), occ?0.46:0.3); }   // under a unit's own label when occupied
+    if(cd.roof) cd.roof.color.setHex(city.owner?meta(city.owner).flag:0x9aa3a0);
+    if(cd.g&&cd.lvl!==city.level){
+      cd.lvl=city.level;
+      if(cd.extra) cd.g.remove(cd.extra);
+      cd.extra=new THREE.Group();
+      const spots=[[0.27,-0.24],[-0.3,0.24],[0.02,0.3],[0.32,0.05]];
+      for(let i=0;i<Math.min(4,city.level-1);i++){
+        const [bx,bz]=spots[i], h=0.1+0.03*((i+x+y)%3);
+        const hb=box(0.15,h,0.15,i%2?M.bldgDark:M.bldg); hb.position.set(bx,TOP+h/2,bz);
+        const rf=new THREE.Mesh(new THREE.ConeGeometry(0.13,0.09,4), cd.roof); rf.rotation.y=Math.PI/4; rf.position.set(bx,TOP+h+0.045,bz); rf.castShadow=true;
+        cd.extra.add(hb,rf);
+      }
+      cd.g.add(cd.extra);
+    }
   }
 }
 
@@ -2269,15 +2458,21 @@ function drawLabel(sp,u){
   else if(canPromote(u)){ ctx.fillStyle='#f0b35c'; ctx.beginPath(); ctx.arc(99,9,6,0,7); ctx.fill(); }
   // hp bar
   const r=Math.max(0,u.hp/u.maxHp);
-  ctx.fillStyle='rgba(0,0,0,.6)'; ctx.fillRect(24,38,80,9);
+  ctx.fillStyle='rgba(0,0,0,.6)'; ctx.fillRect(18,38,70,9);
   ctx.fillStyle=r<0.34?'#e8625a':r<0.67?'#f0b35c':'#7ed87e';
-  ctx.fillRect(25,39,78*r,7);
+  ctx.fillRect(19,39,68*r,7);
+  ctx.font='700 17px Saira Condensed, sans-serif'; ctx.textAlign='left';
+  ctx.lineWidth=4; ctx.strokeStyle='rgba(0,0,0,.75)'; ctx.strokeText(String(Math.max(0,u.hp)),92,48);
+  ctx.fillStyle='#f1f5f1'; ctx.fillText(String(Math.max(0,u.hp)),92,48);
   ctx.globalAlpha=1;
   sp.userData.tex.needsUpdate=true;
 }
 
 /* ---- unit mesh sync ---- */
 function unitBaseY(u){ return UNIT_TYPES[u.type].fly ? TOP+0.55 : TOP; }
+const dyingUnits=[], deathDelay={};
+let labelF=1, labelShow=true;
+let fullResync=false;   // set while a whole game is being rebuilt (new game, load, undo): no death animations
 function syncUnits(){
   const live=new Set();
   for(const u of units){
@@ -2290,6 +2485,7 @@ function syncUnits(){
       g.userData.mats=[fm.body,fm.trim];
       g.rotation.y=(u.owner===MYSIDE)?Math.PI:0; // face the enemy side
       const lbl=makeLabel(); lbl.position.y=(UNIT_TYPES[u.type].fly?0.95:Math.max(0.72,(UNIT_TOP[u.type]||0)+0.12));
+      lbl.scale.set(0.78*labelF,0.39*labelF,1); lbl.visible=labelShow;
       g.add(lbl); g.userData.label=lbl;
       g.position.set(wx(u.x), unitBaseY(u), wz(u.y));
       unitGroup.add(g);
@@ -2302,16 +2498,17 @@ function syncUnits(){
       (u.attacked || (UNIT_TYPES[u.type].siege && u.moved && attackTargets(u).length===0));
     if(g.userData.spent!==spent){
       g.userData.spent=spent;
-      for(const mm of g.userData.mats){ mm.transparent=spent; mm.opacity=spent?0.5:1; }
+      for(const mm of g.userData.mats){ mm.userData.base=mm.userData.base||mm.color.clone(); mm.color.copy(mm.userData.base).multiplyScalar(spent?0.45:1); }
     }
     drawLabel(g.userData.label,u);
   }
   for(const [id,g] of unitMeshes){
     if(!live.has(id)){
       const lbl=g.userData.label;
-      if(lbl){ lbl.material.map.dispose(); lbl.material.dispose(); }
-      unitGroup.remove(g);
+      if(lbl){ lbl.material.map.dispose(); lbl.material.dispose(); g.remove(lbl); }
       unitMeshes.delete(id);
+      if(g.visible&&!fullResync) dyingUnits.push({g,t:-(deathDelay[id]||0)}); else unitGroup.remove(g);   // a destroyed unit sinks and fades
+      delete deathDelay[id];
     }
   }
 }
@@ -2319,7 +2516,7 @@ function syncUnits(){
 /* ---- highlights ---- */
 const hlGeoPlane=new THREE.PlaneGeometry(0.92,0.92);
 const hlGeoRing=new THREE.RingGeometry(0.3,0.45,24);
-const hlMatMove=new THREE.MeshBasicMaterial({color:0x73beff, transparent:true, opacity:0.35, side:THREE.DoubleSide});
+const hlMatMove=new THREE.MeshBasicMaterial({color:0x9edcff, transparent:true, opacity:0.6, side:THREE.DoubleSide});
 const hlMatAtk=new THREE.MeshBasicMaterial({color:0xe8625a, transparent:true, opacity:0.85, side:THREE.DoubleSide});
 const hlMatSel=new THREE.MeshBasicMaterial({color:0xf0b35c, transparent:true, opacity:0.9, side:THREE.DoubleSide});
 const hlMatCap=new THREE.MeshBasicMaterial({color:0xf0b35c, transparent:true, opacity:0.4, side:THREE.DoubleSide});
@@ -2430,6 +2627,7 @@ const fx={
   },
   boom(x,y){
     if(!visXY(x,y)) return;
+    this.smoke(x,y);
     const m=new THREE.Mesh(new THREE.SphereGeometry(0.12,8,8),
       new THREE.MeshBasicMaterial({color:0xffc24d, transparent:true, opacity:1}));
     m.position.set(wx(x),TOP+0.3,wz(y));
@@ -2448,9 +2646,42 @@ const fx={
     ctx.fillText(text,128,42);
     const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c), depthTest:false, transparent:true}));
     sp.scale.set(1.5,0.38,1);
-    sp.position.set(wx(x),TOP+0.85,wz(y));
+    sp.position.set(wx(x),TOP+1.12,wz(y));
     fxGroup.add(sp);
     this.pops.push({sp,t:0});
+  },
+  // one attack's motion: the attacker lunges (melee) or recoils (ranged), a tracer or shell flies, the target shakes
+  strike(ax,ay,tx,ty,aid,tid,kind){
+    if(!visXY(ax,ay)&&!visXY(tx,ty)) return;
+    const ga=unitMeshes.get(aid), gt=unitMeshes.get(tid);
+    const dx=wx(tx)-wx(ax), dz=wz(ty)-wz(ay), L=Math.hypot(dx,dz)||1;
+    if(ga) ga.userData.lunge={x:dx/L, z:dz/L, t:0, amp:kind==='melee'?0.3:-0.08};
+    if(gt) gt.userData.shake=0.38;
+    const a=new THREE.Vector3(wx(ax),TOP+0.34,wz(ay)), b=new THREE.Vector3(wx(tx),TOP+0.3,wz(ty));
+    if(kind==='shot'){
+      const len=a.distanceTo(b);
+      const m=new THREE.Mesh(new THREE.CylinderGeometry(0.014,0.014,len,5), new THREE.MeshBasicMaterial({color:0xfff0b0, transparent:true, opacity:0.95}));
+      m.position.copy(a).add(b).multiplyScalar(0.5);
+      m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), b.clone().sub(a).normalize());
+      fxGroup.add(m); this.pops.push({sp:m,t:0,tracer:true});
+    }
+    if(kind==='shell'){
+      const m=new THREE.Mesh(new THREE.SphereGeometry(0.06,8,6), new THREE.MeshBasicMaterial({color:0x2a2e2a}));
+      m.position.copy(a); fxGroup.add(m); this.pops.push({sp:m,t:0,shell:true,a,b});
+    }
+    if(kind!=='melee'){   // muzzle flash
+      const f=new THREE.Mesh(new THREE.SphereGeometry(0.07,8,6), new THREE.MeshBasicMaterial({color:0xffd27a, transparent:true, opacity:1}));
+      f.position.copy(a).add(b.clone().sub(a).normalize().multiplyScalar(0.22)); fxGroup.add(f);
+      this.flashes.push({m:f,t:0,boom:false});
+    }
+  },
+  smoke(x,y){
+    if(!visXY(x,y)) return;
+    for(let i=0;i<5;i++){
+      const m=new THREE.Mesh(new THREE.SphereGeometry(0.09+Math.random()*0.05,7,5), new THREE.MeshLambertMaterial({color:0x6b6f6a, transparent:true, opacity:0.75}));
+      m.position.set(wx(x)+(Math.random()-0.5)*0.3, TOP+0.2+Math.random()*0.1, wz(y)+(Math.random()-0.5)*0.3);
+      fxGroup.add(m); this.pops.push({sp:m,t:-i*0.05,smoke:true,v:0.35+Math.random()*0.25});
+    }
   },
   faceTarget(u,tgt){
     const g=unitMeshes.get(u.id);
@@ -2458,10 +2689,10 @@ const fx={
     const dx=tgt.x-u.x, dz=tgt.y-u.y;
     if(dx||dz) g.rotation.y=Math.atan2(dx,dz);
   },
-  shock(x,y){
+  shock(x,y,color){
     if(!visXY(x,y)) return;
     const m=new THREE.Mesh(new THREE.RingGeometry(0.2,0.4,28),
-      new THREE.MeshBasicMaterial({color:0xffc24d, transparent:true, opacity:0.85, side:THREE.DoubleSide}));
+      new THREE.MeshBasicMaterial({color:color||0xffc24d, transparent:true, opacity:0.85, side:THREE.DoubleSide}));
     m.rotation.x=-Math.PI/2; m.position.set(wx(x),TOP+0.05,wz(y));
     fxGroup.add(m);
     this.pops.push({sp:m,t:0,shock:true});
@@ -2502,6 +2733,24 @@ const fx={
     }
     for(let i=this.pops.length-1;i>=0;i--){
       const p=this.pops[i]; p.t+=dt;
+      if(p.tracer){
+        const k=p.t/0.16; p.sp.material.opacity=Math.max(0,0.95*(1-k));
+        if(p.t>0.16){ fxGroup.remove(p.sp); this.pops.splice(i,1); }
+        continue;
+      }
+      if(p.shell){
+        const k=Math.min(1,p.t/0.32);
+        p.sp.position.lerpVectors(p.a,p.b,k); p.sp.position.y+=Math.sin(Math.PI*k)*0.9;
+        if(k>=1){ fxGroup.remove(p.sp); this.pops.splice(i,1); }
+        continue;
+      }
+      if(p.smoke){
+        if(p.t<0) continue;
+        const k=p.t/1.1;
+        p.sp.position.y+=p.v*dt; p.sp.scale.setScalar(1+k*1.6); p.sp.material.opacity=Math.max(0,0.75*(1-k));
+        if(k>=1){ fxGroup.remove(p.sp); this.pops.splice(i,1); }
+        continue;
+      }
       if(p.shock){
         const life=0.5, k=p.t/life;
         const s=1+k*4.2; p.sp.scale.set(s,s,s);
@@ -2549,19 +2798,62 @@ function loop(now){
   const dt=Math.min(0.05,(now-lastT)/1000); lastT=now;
   // unit motion + idle animation
   for(const [id,g] of unitMeshes){
-    if(g.userData.target){
-      g.position.lerp(g.userData.target, Math.min(1, dt*9));
+    const ud=g.userData;
+    if(!ud.base) ud.base=g.position.clone();
+    if(ud.target) ud.base.lerp(ud.target, Math.min(1, dt*9));
+    g.position.copy(ud.base);
+    if(ud.lunge){
+      ud.lunge.t+=dt; const k=ud.lunge.t/0.3;
+      if(k>=1) ud.lunge=null;
+      else { const s=Math.sin(Math.PI*k)*ud.lunge.amp; g.position.x+=ud.lunge.x*s; g.position.z+=ud.lunge.z*s; }
     }
-    if(g.userData.rotor){
-      g.userData.rotor.rotation.y+=dt*16;
-      g.userData.tailRotor.rotation.x+=dt*22;
-      g.position.y+=Math.sin(now*0.003+id)*0.0009; // hover bob
+    if(ud.shake>0){ ud.shake-=dt; g.position.x+=Math.sin(ud.shake*75)*0.04*(ud.shake/0.38); }
+    if(ud.rotor){
+      ud.rotor.rotation.y+=dt*16;
+      ud.tailRotor.rotation.x+=dt*22;
+      g.position.y+=Math.sin(now*0.003+id)*0.04; // hover bob
     }
     if(g.userData.radar) g.userData.radar.rotation.y+=dt*2.4;
+  }
+  for(let i=dyingUnits.length-1;i>=0;i--){
+    const d=dyingUnits[i]; d.t+=dt;
+    if(d.t<0) continue;
+    const k=d.t/0.7;
+    if(k>=1){ unitGroup.remove(d.g); dyingUnits.splice(i,1); continue; }
+    d.g.position.y-=dt*0.35; d.g.scale.setScalar(1-0.6*k);
+    for(const mm of d.g.userData.mats){ mm.transparent=true; mm.opacity=1-k; }
+  }
+  // pines shrink back while a unit stands among them, so it is never hidden
+  {
+    const occ=new Set((units||[]).filter(u=>!UNIT_TYPES[u.type].fly).map(u=>key(u.x,u.y)));
+    for(const k in forestTrees){
+      const want=occ.has(k)?0.5:1;
+      for(const tg of forestTrees[k]){ const s=tg.scale.x+(want-tg.scale.x)*Math.min(1,dt*8); tg.scale.setScalar(s); }
+    }
+  }
+  if(!gfxLow) waveOcean(now);
+  if(!map&&$('setup').classList.contains('show')){ cam.theta+=dt*0.04; applyCam(); }   // the title screen drifts slowly over the sea
+  if(surf) surf.material.opacity=0.42+Math.sin(now*0.0016)*0.18;
+  // labels: a touch smaller up close, larger when zoomed out, hidden in the whole-map view
+  {
+    const lf=Math.min(1.5,Math.max(0.75,0.55+cam.dist*0.045)), show=cam.dist<=26;
+    if(Math.abs(lf-labelF)>0.01||show!==labelShow){
+      labelF=lf; labelShow=show;
+      for(const [,g] of unitMeshes){ const l=g.userData.label; if(l){ l.scale.set(0.78*lf,0.39*lf,1); l.visible=show; } }
+      for(const k in cityDecor) cityDecor[k].sprite.scale.set(0.95*lf,0.38*lf,1);
+    }
   }
   fx.step(dt);
   coachTick();
   NET.timerTick();
+  if(camDistGoal!=null){
+    cam.dist+=(camDistGoal-cam.dist)*Math.min(1,dt*5); applyCam();
+    if(Math.abs(cam.dist-camDistGoal)<0.05) camDistGoal=null;
+  }
+  if(camPhiGoal!=null){
+    cam.phi+=(camPhiGoal-cam.phi)*Math.min(1,dt*5); applyCam();
+    if(Math.abs(cam.phi-camPhiGoal)<0.004) camPhiGoal=null;
+  }
   if(camGoal){
     cam.target.lerp(camGoal, Math.min(1, dt*5));
     applyCam();
@@ -2615,6 +2907,7 @@ function handleClick(e){
   const hit=ray.intersectObjects(pickTiles)[0];
   if(!hit) { sel=null; refresh(); return; }
   const {x,y}=hit.object.userData;
+  if(fitSaved){ toggleFit({x,y}); return; }   // in the whole-map view a tap zooms in on that spot
   if(watching){   // look, don't touch
     const u=explored[y][x]?unitAt(x,y):null, c=explored[y][x]?tileAt(x,y).city:null;
     sel=u?{kind:'unit',id:u.id}:c?{kind:'city',x,y}:null;
@@ -2679,7 +2972,7 @@ function onTileClick(x,y){
           const f=forecast(su,u);
           refresh();
           $('forecast').innerHTML=
-            fcText(f,u)+'<br><b style="color:var(--red)">\u25b8 TAP AGAIN TO CONFIRM ATTACK</b>';
+            fcText(f,u)+'<br><b style="color:var(--red)">\u25b8 Tap Attack (or the enemy again) to strike</b>';
           sfx.select();
           return;
         }
@@ -2730,6 +3023,12 @@ function refresh(){
   computeVision(); syncFog();
   autoSave();
   document.body.classList.toggle('selOpen', !!sel);
+  $('hoverTip').hidden=true;
+  // wide screens: the card docks on the side away from the selected tile
+  if(sel&&innerWidth>=1100){
+    const v=new THREE.Vector3(wx(sel.x!=null?sel.x:(byId(sel.id)||{x:0}).x),TOP,wz(sel.y!=null?sel.y:(byId(sel.id)||{y:0}).y)).project(camera);
+    document.body.classList.toggle('dockR', v.x<0);
+  }
   syncUnits(); syncCities(); syncHighlights(); renderInfo();
   NET.uiTick();
   if($('techPanel').classList.contains('show')) renderTech();
@@ -2859,6 +3158,7 @@ function autoSave(){
 function clearSave(){ if(CAN_STORE){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} } }
 function hasSave(){ if(!CAN_STORE) return false; try{ return !!localStorage.getItem(SAVE_KEY); }catch(e){ return false; } }
 function restoreGame(data, net){
+  document.body.classList.remove('nogame');
   try{
     gen++;
     undoStack.length=0;
@@ -2888,6 +3188,7 @@ function restoreGame(data, net){
     explored=data.explored?data.explored.map(r=>[...r]):Array.from({length:H},()=>Array(W).fill(false));
     if(net) computeVision();
     for(const [,g] of unitMeshes) unitGroup.remove(g);
+    dyingUnits.forEach(d=>unitGroup.remove(d.g)); dyingUnits.length=0;
     unitMeshes.clear(); hlGroup.clear(); fxGroup.clear(); fx.flashes.length=0; fx.pops.length=0;
     buildBoard();
     buildSkyClouds();
@@ -2896,7 +3197,7 @@ function restoreGame(data, net){
     sun.shadow.camera.top=sb; sun.shadow.camera.bottom=-sb;
     sun.shadow.camera.updateProjectionMatrix();
     camGoal=null;
-    cam.dist=camera.aspect<1?11:8.5;
+    cam.dist=camera.aspect<0.75?13.5:camera.aspect<1?12:9;
     let pc=null;
     for(let y=0;y<H;y++)for(let x=0;x<W;x++){
       const c=tileAt(x,y).city;
@@ -3072,7 +3373,7 @@ $('startBtn').onclick=()=>{ if(confirmAbandon($('startBtn'))) launchSolo(false);
 $('menuBtn').onclick=showSetup;
 
 /* ---------------- toasts: short notices for the moments that matter ---------------- */
-function toast(msg,color){
+function toast(msg,color,onTap){
   const box=$('toasts');
   if(!box) return;
   const t=document.createElement('div');
@@ -3080,8 +3381,9 @@ function toast(msg,color){
   if(color) t.style.setProperty('--tc',color);
   t.textContent=msg;
   box.appendChild(t);
-  while(box.children.length>3) box.firstChild.remove();
-  setTimeout(()=>{ t.classList.add('out'); setTimeout(()=>t.remove(),320); },3200);
+  while(box.children.length>(innerWidth<700?2:3)) box.firstChild.remove();
+  t.onclick=()=>{ if(onTap) onTap(); t.remove(); };   // tap a notice to dismiss it (some also jump to the spot)
+  setTimeout(()=>{ t.classList.add('out'); setTimeout(()=>t.remove(),320); },3200+1200*(msg.split('\n').length-1));
 }
 function toastFromLog(who,msg){
   const big=/ELIMINATED|NUCLEAR|ran out of time/i.test(msg);
@@ -3119,14 +3421,14 @@ const tutRes=()=>{
 const TUT=[
   {text:()=>'This is your <b>Infantry</b>. '+TAP()+' it to give it orders.',
    at:()=>({tile:myUnit()}), done:()=>sel&&sel.kind==='unit'&&byId(sel.id)&&byId(sel.id).owner===MYSIDE},
-  {text:()=>nearestVillage()?'Blue tiles show where it can move. Head for the <b>grey village</b> \u2014 stand on it, and next turn tap <b>Capture</b>.'
+  {text:()=>nearestVillage()?'Blue tiles show where it can move. Head for the <b>grey village</b> \u2014 stand on it, and next turn tap <b>Capture</b>. (Drag to look around; '+(COARSE?'pinch':'scroll')+' to zoom.)'
                             :'Blue tiles show where it can move. Push toward the clouds to explore.',
    at:()=>({tile:nearestVillage()||myUnit()}), done:()=>coach.flags.moved},
   {text:()=>'Now '+TAP().toLowerCase()+' your <b>HQ</b>. Cities train new units.',
    at:()=>({tile:myHQ()}), done:selOwnCity, skip:()=>{ const h=myHQ(); return !h||!!unitAt(h.x,h.y); }},
   {text:()=>'Train an <b>Infantry</b>. Units cost stars ★, and your cities pay you more every turn.',
-   at:()=>({el:document.querySelector('#train .abtn'), place:innerWidth<700?'top':undefined}), done:()=>coach.flags.trained,
-   skip:()=>!selOwnCity()||stars[MYSIDE]<unitCost(MYSIDE,'INF')},
+   at:()=>({el:document.querySelector('#train .abtn[data-k="INF"]'), place:innerWidth<700?'top':undefined}), done:()=>coach.flags.trained,
+   skip:()=>!selOwnCity()||stars[MYSIDE]<unitCost(MYSIDE,'INF')||!document.querySelector('#train .abtn[data-k="INF"]')},
   {text:()=>'Open <b>Tech</b> to unlock new units, harvesting and upgrades.',
    at:()=>({el:$('techBtn')}), done:()=>$('techPanel').classList.contains('show')},
   {text:()=>TAP()+' a glowing tech you can afford, then <b>Research</b>. Close the tree when you are done.',
@@ -3245,6 +3547,7 @@ function coachTick(){
 
 /* ---- line icons for the round buttons ---- */
 const ICON={
+  atk:'<circle cx="12" cy="12" r="6.5"/><path d="M12 2.5v5M12 16.5v5M2.5 12h5M16.5 12h5"/>',
   hold:'<path d="M9 6v12M15 6v12"/>',
   heal:'<path d="M12 5.5v13M5.5 12h13"/>',
   crop:'<path d="M12 21V9"/><path d="M12 13c-3 0-5-2-5-5 3 0 5 2 5 5zM12 13c3 0 5-2 5-5-3 0-5 2-5 5zM12 9c-2.2 0-3.5-1.6-3.5-4 2.2 0 3.5 1.6 3.5 4zM12 9c2.2 0 3.5-1.6 3.5-4-2.2 0-3.5 1.6-3.5 4z"/>',
@@ -3269,6 +3572,7 @@ Object.assign(ICON,{
 });
 /* on your turn, any of your cities waiting on a reward asks you to pick one */
 let rwOpen=null;
+let rwWait=null, rwAt=0;
 function checkRewards(){
   const box=$('rewardBox');
   const close=()=>{ if(!box.hidden){ box.hidden=true; } rwOpen=null; };
@@ -3278,6 +3582,8 @@ function checkRewards(){
   if(!f) return close();
   const key=f.x+','+f.y+':'+f.c.rw.length+':'+f.c.level;
   if(rwOpen===key) return;
+  if(rwWait!==key){ rwWait=key; rwAt=performance.now()+700; setTimeout(checkRewards,720); return; }
+  if(performance.now()<rwAt) return;
   rwOpen=key;
   const lvl=f.c.rw[0];
   $('rwEyebrow').textContent=(f.c.capital?'Headquarters':'City')+' reached level '+lvl;
@@ -3334,6 +3640,7 @@ function actBtn(o){
   b.disabled=!!o.disabled;
   if(o.title) b.title=o.title;
   b.onclick=o.onclick;
+  if(o.k) b.dataset.k=o.k;
   return b;
 }
 const chip=(k,v,cls)=>`<span class="chip${cls?' '+cls:''}">${k} <b>${v}</b></span>`;
@@ -3358,11 +3665,18 @@ function renderInfo(){
         :u.attacked?'Done for this turn'
         :u.moved?(siegeLocked(u)?'Moved — artillery cannot fire after moving':attackTargets(u).length?'Moved — can still attack':'Moved — nothing in range')
         :'Ready — blue tiles move, red rings attack';
+      if(mine&&tileAt(u.x,u.y).city&&tileAt(u.x,u.y).city.owner===MYSIDE) sub.textContent+=' \u00b7 tap again for the city';
       const forest=tileAt(u.x,u.y).terrain==='forest';
       chips.innerHTML=hpChip(u)+chip('ATK',fmtStat(uAtk(u)))+chip('DEF',uDef(u))+chip('MOVE',uMove(u))+chip('RANGE',uRange(u))+
         (forest?chip('Forest','+'+(hasTech(u.owner,'CAMO')?100:50)+'% DEF','good'):'')+
         (u.vet?chip('\u2605','Veteran','good'):u.kills&&u.type!=='NUKE'?chip('Kills',Math.min(3,u.kills)+'/3'):'');
       body.textContent=t.desc;
+      if(mine&&pendingAtk&&pendingAtk.uid===u.id){
+        const pa=pendingAtk, tu=pa.tid!=null?byId(pa.tid):null;
+        train.appendChild(actBtn({icon:'atk', name:tu?'Attack':'Launch', cls:'atk',
+          title:tu?'Attack the '+UNIT_TYPES[tu.type].name:'Launch the missile here',
+          onclick:()=>{ pendingAtk=null; if(tu) act({t:'atk',uid:u.id,tid:tu.id}); else act({t:'nuke',uid:u.id,x:pa.tx,y:pa.ty}); sel=null; refresh(); }}));
+      }
       if(mine&&canCapture(u)) train.appendChild(actBtn({icon:'flag', name:'Capture', cls:'more',
         title:'Take this city: uses the unit\u2019s action', onclick:()=>{ act({t:'capture',uid:u.id}); sel=null; refresh(); }}));
       else if(mine&&!u.attacked&&tileAt(u.x,u.y).city&&tileAt(u.x,u.y).city.owner!==MYSIDE)
@@ -3459,7 +3773,7 @@ function renderInfo(){
     for(const k of TRAIN_ORDER){
       if(!unitUnlocked(MYSIDE,k)){ locked++; continue; }
       const cost=unitCost(MYSIDE,k), t=UNIT_TYPES[k];
-      train.appendChild(actBtn({img:unitIcon(k,MYSIDE), name:t.name, cost, disabled:stars[MYSIDE]<cost||full,
+      train.appendChild(actBtn({k, img:unitIcon(k,MYSIDE), name:t.name, cost, disabled:stars[MYSIDE]<cost||full,
         title:t.name+' — '+t.desc, onclick:()=>{ act({t:'train',k,x:sel.x,y:sel.y}); sel=null; refresh(); }}));
     }
     if(hasTech(MYSIDE,'NUKE')){
@@ -3478,10 +3792,12 @@ function renderInfo(){
 
 let myCam=null;   // where the player left the camera, restored after enemy turns
 let endGuard=0;   // ignore End turn taps right after a tap or the start of your turn (double taps skipped turns)
+let turnSnap=null;   // your units and cities when you ended the turn, for the recap
 $('endTurn').onclick=()=>{
   if(side!==MYSIDE||gameOver) return;
   if(performance.now()<endGuard) return;
   endGuard=performance.now()+700;
+  turnSnap={hp:new Map(units.filter(q=>q.owner===MYSIDE).map(q=>[q.id,q.hp])), cities:cityCount(MYSIDE)};
   myCam=cam.target.clone();
   sfx.endturn();
   if(!NET.on) log(P,'You end your turn.');
@@ -3505,9 +3821,11 @@ function nextUnit(){
   refresh();
 }
 $('nextBtn').onclick=nextUnit;
+$('fitBtn').onclick=toggleFit;
 
 /* ---- mute ---- */
 function syncMute(){
+  const sm=$('soundMenuBtn'); if(sm) sm.innerHTML='Sound: <b>'+(muted?'Off':'On')+'</b>';
   const b=$('muteBtn');
   b.innerHTML=svgIcon(muted?'soundOff':'sound');
   b.classList.toggle('off',muted);
@@ -3518,7 +3836,14 @@ $('muteBtn').onclick=()=>{
   syncMute();
   if(!muted) sfx.select();
 };
-syncMute();
+$('soundMenuBtn').onclick=()=>$('muteBtn').click();
+function syncGfx(){ $('gfxMenuBtn').innerHTML='Graphics: <b>'+(gfxLow?'Low':'High')+'</b>'; $('gfxMenuBtn').title=gfxLow?'Low: no shadows or waves, lighter on battery':'High: shadows, waves, sharp rendering'; }
+$('gfxMenuBtn').onclick=()=>{
+  gfxLow=!gfxLow;
+  try{ localStorage.setItem('foothold-gfx', gfxLow?'low':'high'); }catch(e){}
+  applyGfx(); syncGfx(); sfx.select();
+};
+syncMute(); syncGfx();
 
 /* ---- keyboard shortcuts ---- */
 window.addEventListener('keydown',e=>{
@@ -3543,6 +3868,7 @@ window.addEventListener('keydown',e=>{
     return;
   }
   if(e.key==='h'||e.key==='H'){ $('helpBtn').click(); return; }
+  if(e.key==='v'||e.key==='V'){ toggleFit(); return; }
   if(e.key==='f'||e.key==='F'){ cycleSpeed(); return; }
   if(side!==MYSIDE) return;
   if(e.key===' '||e.key==='Enter'){ e.preventDefault(); $('endTurn').click(); return; }
@@ -3616,7 +3942,7 @@ $('helpBtn').onclick=()=>{
     ['Move & Attack','Click a unit: blue tiles = move, red rings = attack. One move + one attack each per turn. On a computer, right-click a tile to move or fire with the selected unit straight away. Melee units (range 1) advance into a tile when they destroy its defender — advance onto a city and it can capture next turn.'],
     ['Fog','Cloud cover hides undiscovered land. Units and cities see 2 tiles around them; explored ground stays visible.'],
     ['Economy','Crops (2\u2605), ore (4\u2605) and oil (6\u2605) sit near cities. Harvest one inside your territory to add population — fill the bar to level the city up for +1\u2605 income, permanently. Capture gray neutral cities to claim their resources.'],
-    ['Counters','Snipers +25% vs Infantry \u00b7 Tanks resist Sniper fire \u00b7 Helicopters +50% vs Tanks and resist their guns \u00b7 Flak Batteries +75% vs Helicopters and resist their fire. Artillery blasts all enemies around its target for 50%.'],
+    ['Counters','Snipers +25% vs Infantry \u00b7 Tanks resist Sniper fire \u00b7 Helicopters +50% vs Tanks and resist their guns \u00b7 Flak Batteries +75% vs Helicopters and resist their fire. Artillery blasts also hit enemies next to the target for 25%.'],
     ['Factions','Aegis: +1 HP and heals while resting or on the march (free Field Medicine) \u00b7 Crimson: every unit 1\u2605 cheaper \u00b7 Solaris mines from the start & harvests cheaper \u00b7 Ghost sees 3 tiles, and Snipers that hold still shoot 3 tiles.'],
     ['Tech','Combat: Sniper \u2192 Tank \u2192 Artillery, plus drills, armor and self-propelled guns. Industry: Ore \u2192 Oil \u2192 Helicopter, plus cheaper training, +1\u2605 per city and faster gunships. Support: healing, 2\u00d7 city defense, forest camouflage, field hospitals and blast protection. Intel: +1 vision, the Flak Battery and longer artillery range. Strategic: Satellite Network (reveals the map) and Manhattan Project (the Nuclear Missile — a one-use 5\u00d75 strike). A tech costs 4/6/12/18\u2605 by tier, plus its tier for every city beyond your first (counted at the start of your turn).'],
     ['City rewards','Every time a city levels up you pick one of two rewards: Workshop or Scouts, City walls or a War chest, Population boom or Wider borders, Command post or an Elite tank.'],
@@ -3628,7 +3954,7 @@ $('helpBtn').onclick=()=>{
     ['Undo','Single player: step back through this turn\u2019s moves, training, harvests and holds. Attacks, captures, supply drops, research and ending the turn are final.'],
     ['Enemy turns','Tap the speed pill under the banner (or press F) to watch enemy turns at normal speed, fast, or skip straight to your turn.'],
     ['Tutorial','Replay the guided first game any time: Menu \u2192 How to play.'],
-    ['Hotkeys','Space/Enter end turn \u00b7 Tab/N next unit \u00b7 U or Ctrl+Z undo \u00b7 F enemy speed \u00b7 C center on HQ \u00b7 T tech \u00b7 H manual \u00b7 M mute \u00b7 Esc deselect.'],
+    ['Hotkeys','Space/Enter end turn \u00b7 Tab/N next unit \u00b7 U or Ctrl+Z undo \u00b7 F enemy speed \u00b7 C center on HQ \u00b7 V whole map \u00b7 T tech \u00b7 H manual \u00b7 M mute \u00b7 Esc deselect.'],
   ];
   $('ovTitle').textContent='Field Manual';
   $('ovTitle').className='';
@@ -3706,7 +4032,7 @@ function undo(){
   }));
   sel=null; pendingAtk=null;
   sfx.select();
-  refresh();
+  fullResync=true; refresh(); fullResync=false;
 }
 function syncUndo(){
   const b=$('undoBtn');
@@ -4178,6 +4504,9 @@ const NET={
   fx.popup=(x,y,t,c)=>{ NET.evt({t:'fx',k:'popup',a:[x,y,t,c]}); _pop(x,y,t,c); };
   fx.flash=(x,y,c)=>{ NET.evt({t:'fx',k:'flash',a:[x,y,c]}); _fl(x,y,c); };
   fx.boom=(x,y)=>{ NET.evt({t:'fx',k:'boom',a:[x,y]}); _bm(x,y); };
+  const _st=fx.strike.bind(fx), _sh=fx.shock.bind(fx);
+  fx.strike=(...a)=>{ NET.evt({t:'fx',k:'strike',a}); _st(...a); };
+  fx.shock=(...a)=>{ NET.evt({t:'fx',k:'shock',a}); _sh(...a); };
   fx.nukeBlast=(x,y,R)=>{ NET.evt({t:'fx',k:'nuke',a:[x,y,R]}); _nk(x,y,R); };
   const _log=log;
   log=function(w,m){ NET.evt({t:'log',w,m}); _log(w,m); };
@@ -4232,6 +4561,8 @@ function replayEvts(list){
         else if(e.k==='flash'){ fx.flash(a[0],a[1],a[2]); if(a[2]===0xffa040&&visXY(a[0],a[1])) sfx.shoot(); }
         else if(e.k==='boom'){ fx.boom(a[0],a[1]); if(visXY(a[0],a[1])) sfx.boom(); }
         else if(e.k==='nuke'){ fx.nukeBlast(a[0],a[1],a[2]); sfx.nuke(); }
+        else if(e.k==='strike') fx.strike(...a);
+        else if(e.k==='shock') fx.shock(...a);
       }
     }catch(err){}
   }
@@ -4335,6 +4666,8 @@ if(CAN_STORE){ try{ const n=localStorage.getItem('foothold-callsign'); if(n) $('
 ================================================================ */
 function newGame(){
   gen++;
+  document.body.classList.remove('nogame');
+  fitSaved=null; camDistGoal=null; camPhiGoal=null; cam.phi=0.96; $('fitBtn').classList.remove('on');
   $('turnBanner').classList.remove('show');
   gcfg={...cfg}; blockedHint=false; lastNuke={}; nukeWarned={};
   undoStack.length=0;
@@ -4364,6 +4697,7 @@ function newGame(){
     tech[s]=new Set(playerMeta[s].faction.startTech?[playerMeta[s].faction.startTech]:[]);
   }
   for(const [,g] of unitMeshes) unitGroup.remove(g);
+  dyingUnits.forEach(d=>unitGroup.remove(d.g)); dyingUnits.length=0;
   unitMeshes.clear(); hlGroup.clear(); fxGroup.clear(); fx.flashes.length=0; fx.pops.length=0;
   const caps=genMap();
   explored=Array.from({length:H},()=>Array(W).fill(false));
@@ -4377,8 +4711,8 @@ function newGame(){
   sun.shadow.camera.top=sb; sun.shadow.camera.bottom=-sb;
   sun.shadow.camera.updateProjectionMatrix();
   camGoal=null;
-  cam.dist=camera.aspect<1?11:8.5;
-  cam.target.set(wx(caps[P].x)*0.65, 0, wz(caps[P].y)*0.65);
+  cam.dist=camera.aspect<0.75?13.5:camera.aspect<1?12:9;
+  { const k=innerWidth<700?0.72:0.65; cam.target.set(wx(caps[P].x)*k, 0, wz(caps[P].y)*k); }
   applyCam();
   if($('log')) $('log').innerHTML='';
   log('sys','\u2014 OPERATION FOOTHOLD \u00b7 '+W+'\u00d7'+H+' \u00b7 '+(NET.on?cfg.enemies+' rival'+(cfg.enemies===1?'':'s'):cfg.enemies+' enem'+(cfg.enemies===1?'y':'ies'))+' \u2014');
@@ -4393,7 +4727,8 @@ function newGame(){
 }
 function mkMeta(f){ return {faction:f, name:f.name, body:f.color, trim:f.trim, flag:f.color, css:f.css}; }
 
-sizeRenderer();
+sizeRenderer(); applyGfx();
+if(!map) document.body.classList.add('nogame');   // nothing to show in the HUD until a game starts
 applyCam();
 buildSkyClouds();
 showSetup();
