@@ -117,6 +117,9 @@ button{font:inherit; transition:background .15s ease, color .15s ease, border-co
   font-family:'Saira Condensed',sans-serif; font-size:15px; letter-spacing:.2em; white-space:nowrap;
   padding:4px 18px; pointer-events:none; display:none; text-transform:uppercase; box-shadow:0 6px 20px rgba(0,0,0,.4)}
 #turnBanner.show{display:block}
+#hoverTip{position:fixed; z-index:15; pointer-events:none; max-width:300px; padding:7px 11px; border-radius:10px;
+  background:rgba(14,19,16,.94); border:1px solid var(--line); color:var(--text); font-size:12.5px; line-height:1.45;
+  box-shadow:0 6px 18px rgba(0,0,0,.45)}
 #toasts{position:fixed; z-index:13; top:calc(env(safe-area-inset-top,0px) + 146px); left:50%; transform:translateX(-50%);
   width:min(420px, calc(100vw - 32px)); display:flex; flex-direction:column; align-items:center; gap:6px; pointer-events:none}
 .toast{max-width:100%; background:rgba(14,20,16,.92); border:1px solid rgba(255,255,255,.08); border-left:4px solid var(--tc,var(--amber));
@@ -422,6 +425,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 <button id="speedBtn" hidden></button>
 <div id="endBar" hidden><span id="endText"></span><button id="endNew">New game</button></div>
 <div id="toasts" aria-live="polite"></div>
+<div id="hoverTip" hidden></div>
 
 <button id="techBtn" class="dock" title="Tech tree (T)"><span class="disc"><svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v6.2L4.8 18.3A1.8 1.8 0 0 0 6.4 21h11.2a1.8 1.8 0 0 0 1.6-2.7L14 9.2V3"/><path d="M7.2 14.5h9.6"/></svg></span><span class="lb">Tech</span></button>
 <button id="undoBtn" class="dock" title="Undo (U or Ctrl+Z)" hidden><span class="disc"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></span><span class="lb">Undo</span></button>
@@ -640,7 +644,7 @@ const DIFFS={
   hard:  {name:'Hard',   note:'a tough fight',        inc:1,   start:6, train:3,  techs:1, every:1, reserve:2, press:1,   sharp:true,  nukes:true},
   crazy: {name:'Crazy',  note:'rivals earn far more', inc:1.7, start:10, train:99, techs:2, every:1, reserve:1, press:1,   sharp:true,  nukes:true},
 };
-let gcfg=null;   // settings of the game being played (the menu's cfg can change underneath it)
+let gcfg=null, blockedHint=false;   // settings of the game being played (the menu's cfg can change underneath it)
 const diff=()=>DIFFS[(gcfg||cfg).diff]||DIFFS.normal;
 const isAI=s=>s!==P && !(NET.on&&NET.humans[s]);   // the host's own side and remote humans are people
 let playerMeta={};      // side id -> {faction, name, body, trim, flag, css}
@@ -955,6 +959,14 @@ function startTurn(s, first){
   if(s===MYSIDE && !first && !gameOver){
     const cap=units.filter(u=>u.owner===s&&canCapture(u)).length;
     if(cap) toast(cap===1?'A unit is standing on a rival city \u2014 select it and tap Capture.':cap+' units can capture cities this turn.','var(--amber)');
+  }
+  if(s===MYSIDE && !first && !gameOver && !blockedHint){
+    let own=0, blocked=0;
+    map.flat().forEach((t,i)=>{ if(t.city&&t.city.owner===s){ own++; const q=unitAt(i%W,Math.floor(i/W)); if(q&&q.owner===s) blocked++; } });
+    if(own&&blocked===own&&stars[s]>=unitCost(s,'INF')&&armySize(s)<armyCap(s)){
+      blockedHint=true;
+      toast('Units standing on your cities block training \u2014 move one off to recruit.','var(--amber)');
+    }
   }
   if(s===MYSIDE && !first && !gameOver) toast('Your turn \u00b7 turn '+turn+' \u00b7 +'+income(s)+'\u2605 income', meta(s).css);
   sel=null;
@@ -1673,7 +1685,9 @@ hoverRing.rotation.x=-Math.PI/2; hoverRing.visible=false;
 hoverRing.userData.target=0;
 scene.add(hoverRing);
 const rayH=new THREE.Raycaster(), ndcH=new THREE.Vector2();
+let mouseXY=null;
 function hoverMove(e){
+  if(e.pointerType==='mouse') mouseXY={x:e.clientX, y:e.clientY};
   const now=performance.now();
   if(now-lastHoverT<60) return;
   lastHoverT=now;
@@ -1688,7 +1702,7 @@ function setHover(h){
   if(h && (!explored[h.y]||!explored[h.y][h.x])) h=null;
   hover=h;
   const fEl=$('forecast');
-  if(!h){ hoverRing.userData.target=0; cvs.style.cursor='grab'; if(fEl) fEl.innerHTML=''; return; }
+  if(!h){ hoverRing.userData.target=0; cvs.style.cursor='grab'; if(fEl) fEl.innerHTML=''; $('hoverTip').hidden=true; return; }
   const t=tileAt(h.x,h.y);
   const yy=(t.terrain==='water'?TOP-0.14:TOP)+0.025;
   hoverRing.position.set(wx(h.x),yy,wz(h.y));
@@ -1708,6 +1722,13 @@ function setHover(h){
     } else cvs.style.cursor='grab';
   } else cvs.style.cursor='grab';
   if(fEl) fEl.innerHTML=txt;
+  const tip=$('hoverTip');
+  if(txt&&!COARSE&&mouseXY){
+    tip.innerHTML=txt; tip.hidden=false;
+    const w=tip.offsetWidth, hh=tip.offsetHeight;
+    tip.style.left=Math.min(innerWidth-w-8, mouseXY.x+18)+'px';
+    tip.style.top=Math.max(8, Math.min(innerHeight-hh-8, mouseXY.y+18))+'px';
+  } else tip.hidden=true;
 }
 
 /* ---- materials ---- */
@@ -2169,6 +2190,7 @@ const UNIT_TOP={"INF":0.455,"SNP":0.435,"TNK":0.59,"ART":0.666,"AA":0.571,"HEL":
 const BUILDERS=Object.fromEntries(Object.keys(UNIT_MODELS).map(k=>[k,fm=>makeUnitModel(k,fm)]));
 
 /* ---- HP/label sprite ---- */
+const UNIT_LABEL={INF:'INF', SNP:'SNIPER', TNK:'TANK', ART:'ARTY', AA:'FLAK', HEL:'HELI', NUKE:'NUKE'};
 function makeLabel(){
   const c=document.createElement('canvas'); c.width=128; c.height=64;
   const tex=new THREE.CanvasTexture(c);
@@ -2192,8 +2214,10 @@ function drawLabel(sp,u){
   ctx.fillStyle='rgba(0,0,0,.55)';
   ctx.fillRect(24,2,80,30);
   ctx.fillStyle=col;
-  ctx.fillText(t.key,64,26);
-  if(u.vet){ ctx.fillStyle='#f0b35c'; ctx.font='700 20px Saira Condensed, sans-serif'; ctx.fillText('\u2605',32,25); }
+  const nm=UNIT_LABEL[u.type]||t.key;
+  let fs=26; while(fs>16){ ctx.font='700 '+fs+'px Saira Condensed, sans-serif'; if(ctx.measureText(nm).width<=(u.vet?52:72)) break; fs-=2; }
+  ctx.fillText(nm,u.vet?70:64,26);
+  if(u.vet){ ctx.fillStyle='#f0b35c'; ctx.font='700 20px Saira Condensed, sans-serif'; ctx.fillText('\u2605',34,25); }
   else if(canPromote(u)){ ctx.fillStyle='#f0b35c'; ctx.beginPath(); ctx.arc(99,9,6,0,7); ctx.fill(); }
   // hp bar
   const r=Math.max(0,u.hp/u.maxHp);
@@ -4229,7 +4253,7 @@ if(CAN_STORE){ try{ const n=localStorage.getItem('foothold-callsign'); if(n) $('
 ================================================================ */
 function newGame(){
   gen++;
-  gcfg={...cfg};
+  gcfg={...cfg}; blockedHint=false;
   undoStack.length=0;
   turnCities={};
   $('endBar').hidden=true;
