@@ -172,11 +172,13 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
   .chip{font-size:10.5px; padding:2px 7px}
   #infoBody{font-size:11px; line-height:1.45; margin-top:5px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
   #train{flex-wrap:wrap; overflow-x:visible; padding-top:8px; gap:4px 4px}
-  .abtn{width:62px}
-  .abtn .disc{width:48px; height:48px}
+  .abtn{width:58px}
+  .abtn .disc{width:46px; height:46px}
+  .abtn .nm{font-size:11.5px}
 }
 @media (min-width:1100px){
-  #command{left:104px; transform:translate(0,18px); width:480px}
+  #command{left:24px; transform:translate(0,18px); width:480px}
+  body.dockR #command{left:auto; right:24px}
   body.selOpen #command{transform:translate(0,0)}
 }
 #train:empty{display:none}
@@ -188,6 +190,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
   transition:transform .12s ease, box-shadow .15s ease, filter .15s ease}
 .abtn .disc img{width:116%; height:116%; object-fit:contain; margin-top:6%}
 .abtn .disc svg{width:26px; height:26px}
+.abtn.atk .disc{background:radial-gradient(circle at 50% 35%, #a8443c, #5a1d19); box-shadow:inset 0 0 0 2px rgba(255,150,140,.5), 0 4px 12px rgba(0,0,0,.45)}
 .abtn .nm{font-family:'Saira Condensed',sans-serif; font-size:12.5px; letter-spacing:.05em; text-transform:uppercase; text-align:center; line-height:1.05}
 .abtn .cost{font-size:11px; font-weight:600; color:var(--amber); font-variant-numeric:tabular-nums}
 .abtn:hover:not(:disabled) .disc{box-shadow:inset 0 0 0 2px var(--amber), 0 6px 14px rgba(0,0,0,.45); transform:translateY(-2px)}
@@ -982,7 +985,8 @@ function harvest(x,y,owner){
   }
   return true;
 }
-const turnNotes=[];   // hints gathered at the start of your turn, shown in one notice
+const turnNotes=[];
+let recapAt=null;   // hints gathered at the start of your turn, shown in one notice
 function startTurn(s, first){
   side=s;
   if(s===MYSIDE&&!first&&myCam&&alive[MYSIDE]){ camGoal=myCam; myCam=null; }
@@ -1008,18 +1012,18 @@ function startTurn(s, first){
   undoStack.length=0;   // undo never reaches back past the start of a turn
   if(NET.host&&NET.inGame) NET.turnEnds=(NET.timer&&(s===P||NET.humans[s]))?Date.now()+NET.timer*1000:0;
   if(s===MYSIDE && !first && !gameOver && turnSnap){
-    let hits=0, dmg=0, lost=0;
+    let hits=0, dmg=0, lost=0; recapAt=null;
     for(const [id,hp] of turnSnap.hp){
       const q=units.find(z=>z.id===id);
       if(!q) lost++;
-      else if(q.hp<hp){ hits++; dmg+=hp-q.hp; fx.shock(q.x,q.y,0xe8625a); }
+      else if(q.hp<hp){ hits++; dmg+=hp-q.hp; fx.shock(q.x,q.y,0xe8625a); if(!recapAt) recapAt={x:q.x,y:q.y}; }
     }
     const cl=turnSnap.cities-cityCount(s);
     const parts=[];
     if(hits) parts.push(hits+' unit'+(hits>1?'s':'')+' hit (\u2212'+dmg+' HP)');
     if(lost) parts.push(lost+' unit'+(lost>1?'s':'')+' lost');
     if(cl>0) parts.push(cl+' cit'+(cl>1?'ies':'y')+' lost');
-    if(parts.length) turnNotes.push('\u26a0 Enemy turn: '+parts.join(', ')+'.');
+    if(parts.length) turnNotes.push('\u26a0 Enemy turn: '+parts.join(', ')+'.'+(recapAt?' Tap to look.':''));
     turnSnap=null;
   }
   if(s===MYSIDE && !first && !gameOver){
@@ -1034,7 +1038,7 @@ function startTurn(s, first){
       turnNotes.push('Units standing on your cities block training \u2014 move one off to recruit.');
     }
   }
-  if(s===MYSIDE && !first && !gameOver) toast(['Your turn \u00b7 turn '+turn+' \u00b7 +'+income(s)+'\u2605 income',...turnNotes].join('\n'), turnNotes.length?'var(--amber)':meta(s).css);
+  if(s===MYSIDE && !first && !gameOver){ const at=recapAt; toast(['Your turn \u00b7 turn '+turn+' \u00b7 +'+income(s)+'\u2605 income',...turnNotes].join('\n'), turnNotes.length?'var(--amber)':meta(s).css, at?()=>panTo(at.x,at.y):null); }
   turnNotes.length=0;
   sel=null;
   refresh();
@@ -1196,7 +1200,7 @@ function defMult(a,d){ return (DEF_BONUS[d.type]&&DEF_BONUS[d.type][a.type])||1;
 /* ---------------- COMBAT FORECAST ---------------- */
 function fcText(f,tu){
   return `\u25b8 ATTACK ${UNIT_TYPES[tu.type].name}: deal <b>${f.dmg}</b>`+
-    (f.cAtk?' <b style="color:var(--amber)">\u25b2 strong vs</b>':'')+
+    (f.cAtk?` <b style="color:var(--amber)">\u25b2 strong vs ${UNIT_TYPES[tu.type].name}</b>`:'')+
     (f.cDef?' <b style="color:#8aa08c">\u25bc armored target</b>':'')+
     (f.splashN?` <b style="color:var(--amber)">\u25c9 blast hits ${f.splashN} more</b>`:'')+
     (f.kills?(' \u2014 <b>destroys it'+(f.advances?' & advances!':'!')+'</b>')
@@ -2454,9 +2458,12 @@ function drawLabel(sp,u){
   else if(canPromote(u)){ ctx.fillStyle='#f0b35c'; ctx.beginPath(); ctx.arc(99,9,6,0,7); ctx.fill(); }
   // hp bar
   const r=Math.max(0,u.hp/u.maxHp);
-  ctx.fillStyle='rgba(0,0,0,.6)'; ctx.fillRect(24,38,80,9);
+  ctx.fillStyle='rgba(0,0,0,.6)'; ctx.fillRect(18,38,70,9);
   ctx.fillStyle=r<0.34?'#e8625a':r<0.67?'#f0b35c':'#7ed87e';
-  ctx.fillRect(25,39,78*r,7);
+  ctx.fillRect(19,39,68*r,7);
+  ctx.font='700 17px Saira Condensed, sans-serif'; ctx.textAlign='left';
+  ctx.lineWidth=4; ctx.strokeStyle='rgba(0,0,0,.75)'; ctx.strokeText(String(Math.max(0,u.hp)),92,48);
+  ctx.fillStyle='#f1f5f1'; ctx.fillText(String(Math.max(0,u.hp)),92,48);
   ctx.globalAlpha=1;
   sp.userData.tex.needsUpdate=true;
 }
@@ -2509,7 +2516,7 @@ function syncUnits(){
 /* ---- highlights ---- */
 const hlGeoPlane=new THREE.PlaneGeometry(0.92,0.92);
 const hlGeoRing=new THREE.RingGeometry(0.3,0.45,24);
-const hlMatMove=new THREE.MeshBasicMaterial({color:0x8fd3ff, transparent:true, opacity:0.5, side:THREE.DoubleSide});
+const hlMatMove=new THREE.MeshBasicMaterial({color:0x9edcff, transparent:true, opacity:0.6, side:THREE.DoubleSide});
 const hlMatAtk=new THREE.MeshBasicMaterial({color:0xe8625a, transparent:true, opacity:0.85, side:THREE.DoubleSide});
 const hlMatSel=new THREE.MeshBasicMaterial({color:0xf0b35c, transparent:true, opacity:0.9, side:THREE.DoubleSide});
 const hlMatCap=new THREE.MeshBasicMaterial({color:0xf0b35c, transparent:true, opacity:0.4, side:THREE.DoubleSide});
@@ -2639,7 +2646,7 @@ const fx={
     ctx.fillText(text,128,42);
     const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c), depthTest:false, transparent:true}));
     sp.scale.set(1.5,0.38,1);
-    sp.position.set(wx(x),TOP+0.85,wz(y));
+    sp.position.set(wx(x),TOP+1.12,wz(y));
     fxGroup.add(sp);
     this.pops.push({sp,t:0});
   },
@@ -2965,7 +2972,7 @@ function onTileClick(x,y){
           const f=forecast(su,u);
           refresh();
           $('forecast').innerHTML=
-            fcText(f,u)+'<br><b style="color:var(--red)">\u25b8 TAP AGAIN TO CONFIRM ATTACK</b>';
+            fcText(f,u)+'<br><b style="color:var(--red)">\u25b8 Tap Attack (or the enemy again) to strike</b>';
           sfx.select();
           return;
         }
@@ -3016,6 +3023,12 @@ function refresh(){
   computeVision(); syncFog();
   autoSave();
   document.body.classList.toggle('selOpen', !!sel);
+  $('hoverTip').hidden=true;
+  // wide screens: the card docks on the side away from the selected tile
+  if(sel&&innerWidth>=1100){
+    const v=new THREE.Vector3(wx(sel.x!=null?sel.x:(byId(sel.id)||{x:0}).x),TOP,wz(sel.y!=null?sel.y:(byId(sel.id)||{y:0}).y)).project(camera);
+    document.body.classList.toggle('dockR', v.x<0);
+  }
   syncUnits(); syncCities(); syncHighlights(); renderInfo();
   NET.uiTick();
   if($('techPanel').classList.contains('show')) renderTech();
@@ -3360,7 +3373,7 @@ $('startBtn').onclick=()=>{ if(confirmAbandon($('startBtn'))) launchSolo(false);
 $('menuBtn').onclick=showSetup;
 
 /* ---------------- toasts: short notices for the moments that matter ---------------- */
-function toast(msg,color){
+function toast(msg,color,onTap){
   const box=$('toasts');
   if(!box) return;
   const t=document.createElement('div');
@@ -3369,7 +3382,7 @@ function toast(msg,color){
   t.textContent=msg;
   box.appendChild(t);
   while(box.children.length>(innerWidth<700?2:3)) box.firstChild.remove();
-  t.onclick=()=>t.remove();   // tap a notice to dismiss it
+  t.onclick=()=>{ if(onTap) onTap(); t.remove(); };   // tap a notice to dismiss it (some also jump to the spot)
   setTimeout(()=>{ t.classList.add('out'); setTimeout(()=>t.remove(),320); },3200+1200*(msg.split('\n').length-1));
 }
 function toastFromLog(who,msg){
@@ -3534,6 +3547,7 @@ function coachTick(){
 
 /* ---- line icons for the round buttons ---- */
 const ICON={
+  atk:'<circle cx="12" cy="12" r="6.5"/><path d="M12 2.5v5M12 16.5v5M2.5 12h5M16.5 12h5"/>',
   hold:'<path d="M9 6v12M15 6v12"/>',
   heal:'<path d="M12 5.5v13M5.5 12h13"/>',
   crop:'<path d="M12 21V9"/><path d="M12 13c-3 0-5-2-5-5 3 0 5 2 5 5zM12 13c3 0 5-2 5-5-3 0-5 2-5 5zM12 9c-2.2 0-3.5-1.6-3.5-4 2.2 0 3.5 1.6 3.5 4zM12 9c2.2 0 3.5-1.6 3.5-4-2.2 0-3.5 1.6-3.5 4z"/>',
@@ -3657,6 +3671,12 @@ function renderInfo(){
         (forest?chip('Forest','+'+(hasTech(u.owner,'CAMO')?100:50)+'% DEF','good'):'')+
         (u.vet?chip('\u2605','Veteran','good'):u.kills&&u.type!=='NUKE'?chip('Kills',Math.min(3,u.kills)+'/3'):'');
       body.textContent=t.desc;
+      if(mine&&pendingAtk&&pendingAtk.uid===u.id){
+        const pa=pendingAtk, tu=pa.tid!=null?byId(pa.tid):null;
+        train.appendChild(actBtn({icon:'atk', name:tu?'Attack':'Launch', cls:'atk',
+          title:tu?'Attack the '+UNIT_TYPES[tu.type].name:'Launch the missile here',
+          onclick:()=>{ pendingAtk=null; if(tu) act({t:'atk',uid:u.id,tid:tu.id}); else act({t:'nuke',uid:u.id,x:pa.tx,y:pa.ty}); sel=null; refresh(); }}));
+      }
       if(mine&&canCapture(u)) train.appendChild(actBtn({icon:'flag', name:'Capture', cls:'more',
         title:'Take this city: uses the unit\u2019s action', onclick:()=>{ act({t:'capture',uid:u.id}); sel=null; refresh(); }}));
       else if(mine&&!u.attacked&&tileAt(u.x,u.y).city&&tileAt(u.x,u.y).city.owner!==MYSIDE)
@@ -4692,7 +4712,7 @@ function newGame(){
   sun.shadow.camera.updateProjectionMatrix();
   camGoal=null;
   cam.dist=camera.aspect<0.75?13.5:camera.aspect<1?12:9;
-  { const k=innerWidth<700?0.88:0.65; cam.target.set(wx(caps[P].x)*k, 0, wz(caps[P].y)*k); }
+  { const k=innerWidth<700?0.72:0.65; cam.target.set(wx(caps[P].x)*k, 0, wz(caps[P].y)*k); }
   applyCam();
   if($('log')) $('log').innerHTML='';
   log('sys','\u2014 OPERATION FOOTHOLD \u00b7 '+W+'\u00d7'+H+' \u00b7 '+(NET.on?cfg.enemies+' rival'+(cfg.enemies===1?'':'s'):cfg.enemies+' enem'+(cfg.enemies===1?'y':'ies'))+' \u2014');
