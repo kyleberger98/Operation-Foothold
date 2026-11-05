@@ -1756,6 +1756,7 @@ const cam={theta:Math.PI*0.0, phi:0.96, dist:12.5, target:new THREE.Vector3(0,0,
 function applyCam(){
   cam.phi=Math.min(1.35, Math.max(0.35, cam.phi));
   cam.dist=Math.min(60, Math.max(6, cam.dist));
+  if(scene.fog){ scene.fog.near=cam.dist+7; scene.fog.far=cam.dist+38; }   // haze stays on the horizon at any zoom
   camera.position.set(
     cam.target.x + cam.dist*Math.sin(cam.phi)*Math.sin(cam.theta),
     cam.target.y + cam.dist*Math.cos(cam.phi),
