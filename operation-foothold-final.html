@@ -2297,7 +2297,7 @@ function buildBoard(){
       const flag=new THREE.Mesh(new THREE.PlaneGeometry(0.22,0.13), cd.flagMat);
       flag.position.set(0.3+0.12,TOP+0.43,-0.3);
       cd.sprite=makeCityLabel();
-      cd.sprite.position.set(0,TOP+0.62,0.3);
+      cd.sprite.position.set(0,TOP+0.62,0.3); cd.sprite.scale.set(0.95*labelF,0.38*labelF,1);
       cd.g=g; cd.roof=new THREE.MeshLambertMaterial({color:0x9aa3a0});
       g.add(b1,b2,pole,flag,cd.sprite);
       cityDecor[key(x,y)]=cd;
@@ -2361,7 +2361,7 @@ function syncCities(){
     const cd=cityDecor[k];
     cd.flagMat.color.setHex(city.owner?meta(city.owner).flag:NEUTRAL_FLAG);
     drawCityLabel(cd.sprite, city);
-    cd.sprite.position.y=TOP+(unitAt(x,y)?0.95:0.62);
+    { const occ=!!unitAt(x,y); cd.sprite.position.set(0, TOP+(occ?0.26:0.62), occ?0.46:0.3); }   // under a unit's own label when occupied
     if(cd.roof) cd.roof.color.setHex(city.owner?meta(city.owner).flag:0x9aa3a0);
     if(cd.g&&cd.lvl!==city.level){
       cd.lvl=city.level;
@@ -2464,6 +2464,7 @@ function drawLabel(sp,u){
 /* ---- unit mesh sync ---- */
 function unitBaseY(u){ return UNIT_TYPES[u.type].fly ? TOP+0.55 : TOP; }
 const dyingUnits=[], deathDelay={};
+let labelF=1, labelShow=true;
 let fullResync=false;   // set while a whole game is being rebuilt (new game, load, undo): no death animations
 function syncUnits(){
   const live=new Set();
@@ -2477,6 +2478,7 @@ function syncUnits(){
       g.userData.mats=[fm.body,fm.trim];
       g.rotation.y=(u.owner===MYSIDE)?Math.PI:0; // face the enemy side
       const lbl=makeLabel(); lbl.position.y=(UNIT_TYPES[u.type].fly?0.95:Math.max(0.72,(UNIT_TOP[u.type]||0)+0.12));
+      lbl.scale.set(0.78*labelF,0.39*labelF,1); lbl.visible=labelShow;
       g.add(lbl); g.userData.label=lbl;
       g.position.set(wx(u.x), unitBaseY(u), wz(u.y));
       unitGroup.add(g);
@@ -2825,6 +2827,15 @@ function loop(now){
   if(!gfxLow) waveOcean(now);
   if(!map&&$('setup').classList.contains('show')){ cam.theta+=dt*0.04; applyCam(); }   // the title screen drifts slowly over the sea
   if(surf) surf.material.opacity=0.42+Math.sin(now*0.0016)*0.18;
+  // labels: a touch smaller up close, larger when zoomed out, hidden in the whole-map view
+  {
+    const lf=Math.min(1.5,Math.max(0.75,0.55+cam.dist*0.045)), show=cam.dist<=26;
+    if(Math.abs(lf-labelF)>0.01||show!==labelShow){
+      labelF=lf; labelShow=show;
+      for(const [,g] of unitMeshes){ const l=g.userData.label; if(l){ l.scale.set(0.78*lf,0.39*lf,1); l.visible=show; } }
+      for(const k in cityDecor) cityDecor[k].sprite.scale.set(0.95*lf,0.38*lf,1);
+    }
+  }
   fx.step(dt);
   coachTick();
   NET.timerTick();
