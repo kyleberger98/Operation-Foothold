@@ -200,6 +200,9 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 #setupInner{background:var(--panel); border:1px solid var(--line); max-width:860px; width:100%; margin:auto 0;
   padding:22px 24px 26px; border-radius:18px; box-shadow:0 24px 70px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04)}
 #setupInner.home{max-width:440px; background:rgba(22,29,24,.9)}
+.speedMenu{display:block; margin:10px auto 0; background:none; border:1px solid var(--line); color:var(--dim); border-radius:999px;
+  padding:6px 14px; font:inherit; font-size:12px; cursor:pointer}
+.speedMenu b{color:var(--text); font-weight:600}
 #homePane{display:flex; flex-direction:column; align-items:center; text-align:center; gap:6px}
 #homePane h1{font-size:clamp(34px, 9vw, 48px)}
 #homePane h1 .three{display:block; font-size:.36em; letter-spacing:.5em; color:var(--dim); margin-top:6px}
@@ -268,7 +271,10 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 #techTree .tn-cost{font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:10.5px; fill:var(--amber); text-anchor:middle}
 #techTree .tn.owned .tn-c{fill:var(--fac); stroke:#f4f7f4}
 #techTree .tn.owned .tn-t{fill:#0f1412}
-#techTree .tn.avail .tn-c{stroke:var(--amber); stroke-width:3}
+#techTree .tn.avail .tn-c{stroke-width:3}
+#techTree .tn.avail:not(.cant) .tn-ring{stroke:#f4f0e3; stroke-width:2; fill:none; animation:tnGlow 1.6s ease-in-out infinite}
+#techTree .tn.avail:not(.cant) .tn-c{filter:drop-shadow(0 0 5px rgba(244,240,227,.55))}
+@keyframes tnGlow{0%,100%{stroke-opacity:.2}50%{stroke-opacity:.95}}
 #techTree .tn.avail.cant .tn-c{stroke:#8a7a5c; stroke-width:2}
 #techTree .tn.locked{opacity:.42}
 #techTree .tn.locked .tn-cost{fill:var(--dim)}
@@ -318,8 +324,10 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 
 /* ================= end-of-game + field manual ================= */
 #overlay{position:fixed; inset:0; background:rgba(8,12,10,.88); display:none; backdrop-filter:blur(5px);
-  align-items:center; justify-content:center; flex-direction:column; gap:14px; z-index:50; text-align:center; padding:20px; overflow-y:auto}
+  align-items:center; justify-content:flex-start; flex-direction:column; gap:14px; z-index:50; text-align:center; padding:20px; overflow-y:auto}
 #overlay.show{display:flex}
+#overlay>:first-child{margin-top:auto} #overlay>:last-child{margin-bottom:auto}
+#overlay.manual .ovBtns{position:sticky; bottom:-20px; padding:12px 0 18px; width:100%; background:linear-gradient(rgba(8,12,10,0),rgba(8,12,10,.96) 45%)}
 #overlay h2{font-family:'Saira Condensed',sans-serif; font-size:42px; letter-spacing:.18em; text-transform:uppercase; text-shadow:0 0 36px currentColor}
 #overlay h2.win{color:var(--blue)} #overlay h2.lose{color:var(--red)}
 #overlay p{color:var(--dim); max-width:420px; line-height:1.6}
@@ -335,7 +343,11 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
   #hud{top:calc(env(safe-area-inset-top,0px) + 12px)}
   #setupInner{padding:18px 16px 22px}
 }
-@media (max-width:380px){
+@media (max-width:440px){
+  .hb-side{display:none}
+  .hud-box{min-width:52px; padding:5px 8px 4px}
+}
+@media (max-width:340px){
   .hb-cities{display:none}
 }
 @media (prefers-reduced-motion:reduce){
@@ -458,6 +470,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
         <button id="tutBtn" class="bigbtn">How to play<span>a guided first game</span></button>
       </div>
       <div class="saveNote">Your campaign auto-saves every move on this device.</div>
+      <button id="speedMenuBtn" class="speedMenu"></button>
     </div>
     <div id="soloPane" style="display:none">
     <button class="backBtn" data-back>◂ Back</button>
@@ -624,10 +637,11 @@ let cfg={size:11, enemies:1, faction:'AEGIS', diff:'normal'};
 const DIFFS={
   easy:  {name:'Easy',   note:'relaxed rivals',       inc:0.6, start:4, train:1,  techs:1, every:2, reserve:5, press:0.5, sharp:false, nukes:false},
   normal:{name:'Normal', note:'a fair fight',         inc:0.8, start:5, train:2,  techs:1, every:1, reserve:3, press:0.8, sharp:true,  nukes:false},
-  hard:  {name:'Hard',   note:'the original AI',      inc:1,   start:6, train:99, techs:1, every:1, reserve:2, press:1,   sharp:true,  nukes:true},
+  hard:  {name:'Hard',   note:'a tough fight',        inc:1,   start:6, train:3,  techs:1, every:1, reserve:2, press:1,   sharp:true,  nukes:true},
   crazy: {name:'Crazy',  note:'rivals earn far more', inc:1.7, start:10, train:99, techs:2, every:1, reserve:1, press:1,   sharp:true,  nukes:true},
 };
-const diff=()=>DIFFS[cfg.diff]||DIFFS.normal;
+let gcfg=null;   // settings of the game being played (the menu's cfg can change underneath it)
+const diff=()=>DIFFS[(gcfg||cfg).diff]||DIFFS.normal;
 const isAI=s=>s!==P && !(NET.on&&NET.humans[s]);   // the host's own side and remote humans are people
 let playerMeta={};      // side id -> {faction, name, body, trim, flag, css}
 let enemySides=[];      // ['A1','A2',...]
@@ -918,6 +932,7 @@ function harvest(x,y,owner){
 }
 function startTurn(s, first){
   side=s;
+  if(s===MYSIDE&&!first&&myCam&&alive[MYSIDE]){ camGoal=myCam; myCam=null; }
   turnCities[s]=cityCount(s);
   stars[s]+=isAI(s)?Math.round(income(s)*diff().inc):income(s);
   const medic=hasTech(s,'MEDIC'), hosp=hasTech(s,'HOSP');
@@ -1252,7 +1267,7 @@ function attack(u,d){
     recKill(d.owner,u.owner);
     creditKill(u);
     log(u.owner, `${dt.name} destroyed.`);
-    // melee units advance into the conquered tile (and capture any city there)
+    // melee units advance into the conquered tile (a city there can be captured next turn)
     if(uRange(u)===1 && !ut.siege && passable(u,d.x,d.y) && !unitAt(d.x,d.y)){
       moveUnit(u,d.x,d.y);
     }
@@ -1351,6 +1366,7 @@ function syncSpeed(){
   const s=SPEEDS.find(x=>x.v===aiSpeed)||SPEEDS[0];
   $('speedBtn').innerHTML=`<i>${s.i}</i>${s.l}<span>enemy turns \u00b7 tap to change</span>`;
   $('speedBtn').title='Enemy turn speed (F)';
+  const m=$('speedMenuBtn'); if(m) m.innerHTML='Enemy turns: <b>'+s.l+'</b> \u00b7 change';
 }
 function cycleSpeed(){
   const i=SPEEDS.findIndex(x=>x.v===aiSpeed);
@@ -1359,6 +1375,7 @@ function cycleSpeed(){
   syncSpeed(); sfx.select();
 }
 $('speedBtn').onclick=cycleSpeed;
+$('speedMenuBtn').onclick=cycleSpeed;
 syncSpeed();
 const sleep=ms=>new Promise(r=>setTimeout(r,aiDelay(ms)));
 async function aiTurn(me){
@@ -1614,7 +1631,7 @@ function applyCam(){
 }
 let pdown=false, pmoved=0, px=0, py=0, pinchD=0;
 let camGoal=null;
-function panTo(x,y){ camGoal=new THREE.Vector3(wx(x),0,wz(y)); }
+function panTo(x,y){ camGoal=new THREE.Vector3(wx(x),0,wz(y)+(innerWidth<700?Math.min(1.6,cam.dist*0.11):0)); }
 const cvs=renderer.domElement;
 cvs.addEventListener('pointerdown',e=>{if(e.button===2) return; pdown=true;pmoved=0;px=e.clientX;py=e.clientY;cvs.setPointerCapture(e.pointerId);cvs.style.cursor='grabbing'});
 cvs.addEventListener('pointermove',e=>{
@@ -1634,7 +1651,7 @@ cvs.addEventListener('pointerup',e=>{
   pdown=false; cvs.style.cursor='grab';
   if(pmoved<6) handleClick(e);
 });
-cvs.addEventListener('pointerleave',()=>setHover(null));
+cvs.addEventListener('pointerleave',e=>{ if(e.pointerType==='mouse') setHover(null); });
 cvs.addEventListener('wheel',e=>{e.preventDefault(); cam.dist+=e.deltaY*0.012; applyCam();},{passive:false});
 cvs.addEventListener('touchmove',e=>{
   if(e.touches.length===2){
@@ -1787,9 +1804,10 @@ function buildSkyClouds(){
     }
     // drift in bands in front of and behind the island, never over it
     const xr=W/2+7;
+    const front=Math.random()<0.5;   // clouds between the camera and the board sit low so they never hide tiles
     g.position.set(-xr+Math.random()*xr*2,
-                   -0.3+Math.random()*2.2,
-                   (Math.random()<0.5?-1:1)*(H/2+1.4+Math.random()*3.4));
+                   front?-1+Math.random()*0.5:-0.3+Math.random()*2.2,
+                   front?H/2+2.8+Math.random()*3:-(H/2+1.4+Math.random()*3.4));
     g.userData={v:0.1+Math.random()*0.18, bobP:Math.random()*6.28};
     cloudGroup.add(g);
     decoClouds.push(g);
@@ -2103,6 +2121,7 @@ function syncCities(){
     const city=tileAt(x,y).city;
     cityDecor[k].flagMat.color.setHex(city.owner?meta(city.owner).flag:NEUTRAL_FLAG);
     drawCityLabel(cityDecor[k].sprite, city);
+    cityDecor[k].sprite.position.y=TOP+(unitAt(x,y)?1.45:0.95);
   }
 }
 
@@ -2515,7 +2534,8 @@ function loop(now){
 /* ---- picking ---- */
 const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
 function handleClick(e){
-  if(side!==MYSIDE||gameOver) return;
+  const watching=gameOver||(map&&!alive[MYSIDE]);
+  if(side!==MYSIDE&&!watching) return;
   const r=cvs.getBoundingClientRect();
   ndc.x=((e.clientX-r.left)/r.width)*2-1;
   ndc.y=-((e.clientY-r.top)/r.height)*2+1;
@@ -2523,6 +2543,11 @@ function handleClick(e){
   const hit=ray.intersectObjects(pickTiles)[0];
   if(!hit) { sel=null; refresh(); return; }
   const {x,y}=hit.object.userData;
+  if(watching){   // look, don't touch
+    const u=explored[y][x]?unitAt(x,y):null, c=explored[y][x]?tileAt(x,y).city:null;
+    sel=u?{kind:'unit',id:u.id}:c?{kind:'city',x,y}:null;
+    sfx.select(); refresh(); return;
+  }
   onTileClick(x,y);
 }
 /* right-click: the selected unit moves to / fires at the tile straight away (no confirm tap) */
@@ -2569,7 +2594,7 @@ function onTileClick(x,y){
           const n=units.filter(e=>e.owner!==MYSIDE && Math.max(Math.abs(e.x-x),Math.abs(e.y-y))<=blastR(su)).length;
           refresh();
           $('forecast').innerHTML=
-            '\\u2622 NUCLEAR STRIKE here \\u2014 hits <b>'+n+'</b> in blast<br><b style="color:var(--red)">\\u25b8 TAP AGAIN TO CONFIRM LAUNCH</b>';
+            '\u2622 NUCLEAR STRIKE here \u2014 hits <b>'+n+'</b> in blast<br><b style="color:var(--red)">\u25b8 TAP AGAIN TO CONFIRM LAUNCH</b>';
           sfx.select();
           return;
         }
@@ -2595,6 +2620,9 @@ function onTileClick(x,y){
       }
     }
   }
+  if(u&&sel&&sel.kind==='unit'&&sel.id===u.id){
+    sel=tileAt(x,y).city?{kind:'city',x,y}:null; sfx.select(); refresh(); return;
+  }
   if(u){ sel={kind:'unit',id:u.id}; sfx.select(); refresh(); return; }
   const c=tileAt(x,y).city;
   if(c&&!u){ sel={kind:'city',x,y}; sfx.select(); refresh(); return; }
@@ -2606,9 +2634,8 @@ function onTileClick(x,y){
 /* ================================================================
    HTML UI
 ================================================================ */
-function readyCount(){
-  return units.filter(u=>u.owner===MYSIDE && !u.attacked && !(UNIT_TYPES[u.type].siege&&u.moved&&attackTargets(u).length===0)).length;
-}
+const hasWork=u=>u.owner===MYSIDE && !u.attacked && (!u.moved || attackTargets(u).length>0);
+function readyCount(){ return gameOver?0:units.filter(hasWork).length; }
 function refresh(){
   if(!map) return;
   $('hudStars').textContent=stars[MYSIDE];
@@ -2618,7 +2645,7 @@ function refresh(){
   hs.textContent=side===MYSIDE?'YOU':(playerMeta[side]?meta(side).name.split(' ')[0].toUpperCase():'ENEMY');
   hs.className='v';
   hs.style.color=side===MYSIDE?'var(--blue)':(playerMeta[side]?meta(side).css:'var(--red)');
-  const ready=side===MYSIDE?readyCount():0;
+  const ready=side===MYSIDE&&!gameOver?readyCount():0;
   $('hudReady').textContent=ready;
   $('hudReady').style.display=ready?'':'none';
   $('hudCities').textContent=cityCount(MYSIDE);
@@ -2694,7 +2721,7 @@ function renderTech(){
     }
     const cost=st==='owned'?'':`<rect class="tn-pill" x="-17" y="18" width="34" height="14" rx="7"/><text class="tn-cost" y="28.5">${techCost(k,MYSIDE)}★</text>`;
     nodes+=`<g class="tn ${st}${techSel===k?' sel':''}" data-k="${k}" transform="translate(${p.x},${p.y})" tabindex="0" role="button" aria-label="${t.name}">`+
-      `<circle class="tn-ring" r="29"/><circle class="tn-c" r="25" style="stroke:${st==='owned'?'#f4f7f4':st.startsWith('avail')&&!st.includes('cant')?'':BRANCH_COL[t.branch]}"/>${inner}${cost}</g>`;
+      `<circle class="tn-ring" r="29"/><circle class="tn-c" r="25" style="stroke:${st==='owned'?'#f4f7f4':BRANCH_COL[t.branch]}"/>${inner}${cost}</g>`;
   }
   const hub=`<circle class="hub" r="30"/><text class="hub-t" y="5">${stars[MYSIDE]}★</text><text class="hub-k" y="17">STARS</text>`;
   $('techCols').innerHTML=`<svg id="techTree" viewBox="${x0} ${y0} ${x1-x0} ${y1-y0}" style="--fac:${fac}" role="group" aria-label="Tech tree">${edges}${hub}${nodes}</svg>`;
@@ -2736,7 +2763,7 @@ const SAVE_KEY='foothold-save-v1';
 const CAN_STORE=(()=>{try{localStorage.setItem('__t','1');localStorage.removeItem('__t');return true;}catch(e){return false;}})();
 function serializeGame(){
   return JSON.stringify({
-    v:1, cfg:{...cfg}, W,
+    v:1, cfg:{...(gcfg||cfg)}, W,
     sides:Object.fromEntries(turnOrder.map(s=>[s,meta(s).faction.key])),
     enemySides:[...enemySides],
     alive:{...alive},
@@ -2767,7 +2794,7 @@ function restoreGame(data, net){
     $('endBar').hidden=true;
     if(!net) NET.leave();
     pendingAtk=null;
-    cfg={...data.cfg};
+    cfg={...data.cfg}; gcfg={...data.cfg};
     setBoardSize(data.W);
     enemySides=[...data.enemySides];
     turnOrder=[P,...enemySides];
@@ -2879,7 +2906,7 @@ function showSetup(){
   document.querySelectorAll('#sizeRow .opt').forEach(o=>o.classList.toggle('sel', +o.dataset.size===cfg.size));
   document.querySelectorAll('#enRow .opt').forEach(o=>o.classList.toggle('sel', +o.dataset.en===cfg.enemies));
   document.querySelectorAll('#diffRow .opt').forEach(o=>o.classList.toggle('sel', o.dataset.diff===(DIFFS[cfg.diff]?cfg.diff:'normal')));
-  $('quickInfo').textContent=FACTIONS[cfg.faction].name+' · '+SIZE_NAME[cfg.size]+' map · '+cfg.enemies+' enem'+(cfg.enemies===1?'y':'ies')+' · '+diff().name;
+  $('quickInfo').textContent=FACTIONS[cfg.faction].name+' · '+SIZE_NAME[cfg.size]+' map · '+cfg.enemies+' enem'+(cfg.enemies===1?'y':'ies')+' · '+(DIFFS[cfg.diff]||DIFFS.normal).name;
   const running=!!map&&!gameOver;
   $('resumeBtn').style.display=running?'':'none';
   // continue button if a save exists and no game is running
@@ -3008,23 +3035,39 @@ function nearestVillage(){
   return best;
 }
 const selOwnCity=()=>sel&&sel.kind==='city'&&tileAt(sel.x,sel.y).city&&tileAt(sel.x,sel.y).city.owner===MYSIDE;
+const TAP=()=>COARSE?'Tap':'Click';
+const tutRes=()=>{
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const t=tileAt(x,y);
+    if(t.resource&&explored[y][x]&&resUnlocked(MYSIDE,t.resource)&&ownCityNear(x,y,MYSIDE)&&ownCityNear(x,y,MYSIDE).city.level<MAX_LEVEL
+       &&stars[MYSIDE]>=harvestCost(MYSIDE,t.resource)) return {x,y};
+  }
+  return null;
+};
 const TUT=[
-  {text:()=>'This is your <b>Infantry</b>. Tap it to give it orders.',
+  {text:()=>'This is your <b>Infantry</b>. '+TAP()+' it to give it orders.',
    at:()=>({tile:myUnit()}), done:()=>sel&&sel.kind==='unit'&&byId(sel.id)&&byId(sel.id).owner===MYSIDE},
   {text:()=>nearestVillage()?'Blue tiles show where it can move. Head for the <b>grey village</b> \u2014 stand on it, and next turn tap <b>Capture</b>.'
                             :'Blue tiles show where it can move. Push toward the clouds to explore.',
    at:()=>({tile:nearestVillage()||myUnit()}), done:()=>coach.flags.moved},
-  {text:()=>'Now tap your <b>HQ</b>. Cities train new units.',
+  {text:()=>'Now '+TAP().toLowerCase()+' your <b>HQ</b>. Cities train new units.',
    at:()=>({tile:myHQ()}), done:selOwnCity, skip:()=>{ const h=myHQ(); return !h||!!unitAt(h.x,h.y); }},
   {text:()=>'Train an <b>Infantry</b>. Units cost stars ★, and your cities pay you more every turn.',
    at:()=>({el:document.querySelector('#train .abtn')}), done:()=>coach.flags.trained,
    skip:()=>!selOwnCity()||stars[MYSIDE]<unitCost(MYSIDE,'INF')},
   {text:()=>'Open <b>Tech</b> to unlock new units, harvesting and upgrades.',
    at:()=>({el:$('techBtn')}), done:()=>$('techPanel').classList.contains('show')},
-  {text:()=>'Tap a glowing tech you can afford, then <b>Research</b>. Close the tree when you are done.',
+  {text:()=>TAP()+' a glowing tech you can afford, then <b>Research</b>. Close the tree when you are done.',
    at:()=>({el:$('techDetail'), place:'above'}), done:()=>!$('techPanel').classList.contains('show')},
-  {text:()=>'Out of moves? Tap <b>End turn</b>. Capture villages and every enemy HQ to win.',
+  {text:()=>'Out of moves? '+TAP()+' <b>End turn</b>.',
    at:()=>({el:$('endTurn')}), done:()=>coach.flags.ended},
+  {text:()=>'Your unit held the village through the night. Select it and '+TAP().toLowerCase()+' <b>Capture</b> \u2014 more cities mean more stars.',
+   at:()=>{ const u=units.find(q=>q.owner===MYSIDE&&canCapture(q)); return {tile:u||myHQ()}; },
+   done:()=>coach.flags.captured, skip:()=>!units.some(q=>q.owner===MYSIDE&&canCapture(q))},
+  {text:()=>TAP()+' a <b>resource</b> inside your borders and <b>Harvest</b> it. Population levels up the city: more income and a reward.',
+   at:()=>({tile:tutRes()}), done:()=>coach.flags.harvested, skip:()=>!tutRes()},
+  {text:()=>'Enemies in range get <b>red rings</b>. '+TAP()+' one to see the battle forecast before you strike. Take every enemy HQ to win!',
+   at:()=>({el:$('endTurn')}), done:()=>coach.flags.ended2||coach.flags.attacked},
 ];
 function tutStart(){
   if(NET.on) return;
@@ -3045,7 +3088,10 @@ function coachNote(a){
   if(!coach.on) return;
   if(a.t==='move') coach.flags.moved=true;
   if(a.t==='train') coach.flags.trained=true;
-  if(a.t==='endturn') coach.flags.ended=true;
+  if(a.t==='endturn'){ if(coach.flags.ended) coach.flags.ended2=true; coach.flags.ended=true; }
+  if(a.t==='capture') coach.flags.captured=true;
+  if(a.t==='harvest') coach.flags.harvested=true;
+  if(a.t==='atk') coach.flags.attacked=true;
 }
 function coachPing(el){
   if(coach.ping===el) return;
@@ -3094,6 +3140,7 @@ function coachTick(){
     coachPing(null);
   } else coachPing(null);
   b.hidden=false;
+  b.style.zIndex=$('techPanel').classList.contains('show')?46:'';
   const bw=b.offsetWidth, bh=b.offsetHeight;
   let top=place==='below'?py+14:place==='above'?py-bh-14:py;
   if(place==='above'&&top<80){ top=py+14; place='below'; }
@@ -3231,9 +3278,10 @@ function renderInfo(){
         title:'Veteran: +5 max HP and a full heal. Free \u2014 promote now or save it as an emergency heal.',
         onclick:()=>act({t:'promote',uid:u.id})}));
       if(mine&&!u.attacked&&u.type!=='NUKE'){
-        const heal=hasTech(MYSIDE,'MEDIC');
-        train.appendChild(actBtn({icon:heal?'heal':'hold', name:heal?'Heal':'Hold',
-          title:heal?'Skip this unit’s turn — heals '+healAmt(MYSIDE)+' HP next turn':'Skip this unit’s turn',
+        const fac=meta(MYSIDE).faction;
+        const heal=hasTech(MYSIDE,'MEDIC')&&u.hp<u.maxHp&&(!u.moved||fac.healOnMove);
+        train.appendChild(actBtn({icon:heal?'heal':'hold', name:heal?'Heal':u.moved?'Done':'Hold',
+          title:heal?'End this unit’s turn — heals '+healAmt(MYSIDE)+' HP next turn':u.moved?'End this unit’s turn':'Skip this unit’s turn',
           onclick:()=>{ act({t:'hold',uid:u.id}); sel=null; refresh(); }}));
       }
       // a unit standing on a resource can harvest it (doesn't use the unit's action)
@@ -3327,8 +3375,10 @@ function renderInfo(){
   body.textContent='Tap a unit to move it, your city to train, or a resource to harvest it.';
 }
 
+let myCam=null;   // where the player left the camera, restored after enemy turns
 $('endTurn').onclick=()=>{
   if(side!==MYSIDE||gameOver) return;
+  myCam=cam.target.clone();
   sfx.endturn();
   if(!NET.on) log(P,'You end your turn.');
   act({t:'endturn'});
@@ -3337,7 +3387,7 @@ $('endTurn').onclick=()=>{
 /* ---- next ready unit cycling ---- */
 function nextUnit(){
   if(side!==MYSIDE||gameOver) return;
-  const ready=units.filter(u=>u.owner===MYSIDE&&!u.attacked);
+  const ready=units.filter(hasWork);
   if(!ready.length){ sfx.denied(); return; }
   let idx=0;
   if(sel&&sel.kind==='unit'){
@@ -3370,6 +3420,9 @@ syncMute();
 window.addEventListener('keydown',e=>{
   if(e.repeat) return;
   const techOpen=$('techPanel').classList.contains('show');
+  const manualOpen=$('overlay').classList.contains('manual');
+  if(e.key==='Escape'&&manualOpen){ closeManual(); return; }
+  if(manualOpen&&e.key!=='m'&&e.key!=='M') return;   // the manual is modal
   if(e.key==='Escape'){
     const setupOpen=$('setup').classList.contains('show');
     if(setupOpen){ if(map) $('setup').classList.remove('show'); return; }
@@ -3455,7 +3508,7 @@ $('helpBtn').onclick=()=>{
     ['Goal','Capture every enemy HQ. Lose if your own HQ falls.'],
     ['Capturing','Move a unit onto a village or enemy city, then at the start of your next turn select it and tap Capture (it uses the unit\u2019s action). The defender gets a turn to strike back.'],
     ['Army size','Each city supports its level + 1 units. Grow and capture cities to field a bigger army.'],
-    ['Move & Attack','Click a unit: blue tiles = move, red rings = attack. One move + one attack each per turn. On a computer, right-click a tile to move or fire with the selected unit straight away. Melee units (range 1) advance into a tile when they destroy its defender — a kill on a city captures it.'],
+    ['Move & Attack','Click a unit: blue tiles = move, red rings = attack. One move + one attack each per turn. On a computer, right-click a tile to move or fire with the selected unit straight away. Melee units (range 1) advance into a tile when they destroy its defender — advance onto a city and it can capture next turn.'],
     ['Fog','Cloud cover hides undiscovered land. Units and cities see 2 tiles around them; explored ground stays visible.'],
     ['Economy','Crops (2\u2605), ore (4\u2605) and oil (6\u2605) sit near cities. Harvest one inside your territory to add population — fill the bar to level the city up for +1\u2605 income, permanently. Capture gray neutral cities to claim their resources.'],
     ['Counters','Snipers +50% vs Infantry \u00b7 Tanks take 50% less from Snipers \u00b7 Helicopters +50% vs Tanks \u00b7 Flak Batteries +75% vs Helicopters and resist their fire. Artillery blasts all enemies around its target for 50%.'],
@@ -3466,7 +3519,7 @@ $('helpBtn').onclick=()=>{
     ['Veterans','A unit with three kills can be promoted for +5 max HP and a full heal. It is free, so you can save it as an emergency heal.'],
     ['Recon','Tap any rival unit or city to inspect it \u2014 stats, income, and the red zone shows where that unit can reach next turn. Your own units dim once they\u2019ve acted.'],
     ['Multiplayer','Host an operation from the menu to get a 5-letter room code \u2014 up to three friends join with it. The host\u2019s device referees the match, so keep it online; if the host drops, guests can Export Save and finish the campaign solo. The host can set a per-turn timer in the lobby.'],
-    ['Difficulty','Menu \u2192 Custom. Easy rivals collect 60% of their income, train one unit a turn, research every other turn and are slow to attack. Normal: 80%, two units a turn. Hard is the full-strength AI. Crazy rivals collect 70% extra, start richer and research twice as fast.'],
+    ['Difficulty','Menu \u2192 Custom. Easy rivals collect 60% of their income, train one unit a turn, research every other turn and are slow to attack. Normal: 80%, two units a turn. Hard: full income, three units a turn. Crazy rivals collect 70% extra, train in every city, start richer and research twice as fast.'],
     ['Undo','Single player: step back through this turn\u2019s moves, training, harvests and holds. Attacks, captures, supply drops, research and ending the turn are final.'],
     ['Enemy turns','Tap the speed pill under the banner (or press F) to watch enemy turns at normal speed, fast, or skip straight to your turn.'],
     ['Tutorial','Replay the guided first game any time: Menu \u2192 How to play.'],
@@ -3479,11 +3532,15 @@ $('helpBtn').onclick=()=>{
   $('ovBody').style.maxWidth='560px';
   const btn=$('restart');
   btn.textContent='Close';
-  btn.onclick=()=>{ $('overlay').classList.remove('show'); resetOverlayButton(); };
+  btn.onclick=closeManual;
   $('ovAlt').hidden=true;
-  $('overlay').classList.add('show');
+  $('overlay').classList.add('show','manual');
+  $('overlay').scrollTop=0;
 };
+function closeManual(){ $('overlay').classList.remove('show','manual'); resetOverlayButton(); }
+$('overlay').addEventListener('click',e=>{ if(e.target===$('overlay')&&$('overlay').classList.contains('manual')) closeManual(); });
 function resetOverlayButton(){
+  $('overlay').classList.remove('manual');
   $('ovAlt').hidden=true;
   const btn=$('restart');
   btn.textContent='Redeploy';
@@ -3520,7 +3577,7 @@ function act(a){
 const undoStack=[];
 const UNDOABLE={move:1, train:1, harvest:1, hold:1, promote:1, reward:1};
 function undoSnap(){
-  return JSON.stringify({units, stars, uid, map:map.map(row=>row.map(t=>[t.city, t.resource]))});
+  return JSON.stringify({units, stars, uid, explored, map:map.map(row=>row.map(t=>[t.city, t.resource]))});
 }
 function undoableAct(a){
   const u=a.t==='move'?byId(a.uid):null;
@@ -3535,6 +3592,7 @@ function undo(){
   if(NET.on||side!==MYSIDE||gameOver||!undoStack.length) return;
   const d=JSON.parse(undoStack.pop());
   units=d.units; stars=d.stars; uid=d.uid;
+  if(d.explored&&explored.some((row,y)=>row.some((v,x)=>v&&!d.explored[y][x]))){ explored=d.explored; buildBoard(); }
   d.map.forEach((row,y)=>row.forEach(([c,r],x)=>{
     const t=map[y][x];
     t.city=c;
@@ -4171,6 +4229,7 @@ if(CAN_STORE){ try{ const n=localStorage.getItem('foothold-callsign'); if(n) $('
 ================================================================ */
 function newGame(){
   gen++;
+  gcfg={...cfg};
   undoStack.length=0;
   turnCities={};
   $('endBar').hidden=true;
@@ -4212,7 +4271,7 @@ function newGame(){
   sun.shadow.camera.updateProjectionMatrix();
   camGoal=null;
   cam.dist=camera.aspect<1?11:8.5;
-  cam.target.set(wx(caps[P].x), 0, wz(caps[P].y));
+  cam.target.set(wx(caps[P].x)*0.65, 0, wz(caps[P].y)*0.65);
   applyCam();
   if($('log')) $('log').innerHTML='';
   log('sys','\u2014 OPERATION FOOTHOLD \u00b7 '+W+'\u00d7'+H+' \u00b7 '+(NET.on?cfg.enemies+' rival'+(cfg.enemies===1?'':'s'):cfg.enemies+' enem'+(cfg.enemies===1?'y':'ies'))+' \u2014');
