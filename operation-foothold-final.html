@@ -96,7 +96,7 @@ button{font:inherit; transition:background .15s ease, color .15s ease, border-co
 #speedBtn:hover{border-color:var(--amber)}
 #speedBtn:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
 /* after the game: browse the revealed map, then start over */
-#endBar{position:fixed; z-index:14; left:50%; transform:translateX(-50%); bottom:calc(env(safe-area-inset-bottom,0px) + 104px);
+#endBar{position:fixed; z-index:14; left:50%; transform:translateX(-50%); top:calc(env(safe-area-inset-top,0px) + 74px);
   display:flex; align-items:center; gap:12px; padding:8px 8px 8px 16px; border-radius:999px; white-space:nowrap;
   background:rgba(14,20,16,.94); border:1px solid var(--amber); box-shadow:0 10px 28px rgba(0,0,0,.5)}
 #endText{font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:15px; letter-spacing:.1em; text-transform:uppercase}
@@ -644,7 +644,7 @@ const DIFFS={
   hard:  {name:'Hard',   note:'a tough fight',        inc:1,   start:6, train:3,  techs:1, every:1, reserve:2, press:1,   sharp:true,  nukes:true},
   crazy: {name:'Crazy',  note:'rivals earn far more', inc:1.7, start:10, train:99, techs:2, every:1, reserve:1, press:1,   sharp:true,  nukes:true},
 };
-let gcfg=null, blockedHint=false;   // settings of the game being played (the menu's cfg can change underneath it)
+let gcfg=null, blockedHint=false, lastNuke={}, nukeWarned={};   // settings of the game being played (the menu's cfg can change underneath it)
 const diff=()=>DIFFS[(gcfg||cfg).diff]||DIFFS.normal;
 const isAI=s=>s!==P && !(NET.on&&NET.humans[s]);   // the host's own side and remote humans are people
 let playerMeta={};      // side id -> {faction, name, body, trim, flag, css}
@@ -963,6 +963,7 @@ function harvest(x,y,owner){
 function startTurn(s, first){
   side=s;
   if(s===MYSIDE&&!first&&myCam&&alive[MYSIDE]){ camGoal=myCam; myCam=null; }
+  if(s===MYSIDE) endGuard=performance.now()+700;
   turnCities[s]=cityCount(s);
   stars[s]+=isAI(s)?Math.round(income(s)*diff().inc):income(s);
   const medic=hasTech(s,'MEDIC'), hosp=hasTech(s,'HOSP');
@@ -1436,15 +1437,6 @@ async function aiTurn(me){
   const AI_TECH_ORDER=['MINING','MARKS','MECH','DRILL','LOGI','MEDIC','URBAN','DRILLS','SIEGE','FORT','AVIA',
                        'ARMOR','HOSP','AIRDEF','SPG','TURBO','FWDOBS','NUKE','RADIO','CAMO','CIVDEF','SAT'];
   const D=diff();
-  let learned=0;
-  if(turn%D.every===0){
-    let looked=0;
-    for(const k of AI_TECH_ORDER){
-      if(hasTech(me,k)||(TECHS[k].req&&!hasTech(me,TECHS[k].req))) continue;
-      if(stars[me]>=techCost(k,me)+(TECHS[k].tier>=4?2:4)){ research(me,k); if(++learned>=D.techs) break; }
-      if(++looked>=3) break;
-    }
-  }
   // economy: harvest best value resources while comfortably affordable
   let did=true, hguard=0;
   while(did && hguard++<8){
@@ -1457,6 +1449,15 @@ async function aiTurn(me){
     opts.sort((a,b)=>(b.r.pop/b.c)-(a.r.pop/a.c));
     for(const o of opts){
       if(stars[me]>=o.c+D.reserve){ if(harvest(o.x,o.y,me)){ did=true; break; } }
+    }
+  }
+  let learned=0;
+  if(turn%D.every===0){
+    let looked=0;
+    for(const k of AI_TECH_ORDER){
+      if(hasTech(me,k)||(TECHS[k].req&&!hasTech(me,TECHS[k].req))) continue;
+      if(stars[me]>=techCost(k,me)+(TECHS[k].tier>=4?2:4)){ research(me,k); if(++learned>=D.techs) break; }
+      if(++looked>=3) break;
     }
   }
   aiRewards(me);
@@ -1474,11 +1475,15 @@ async function aiTurn(me){
   for(const c of cities){
     if(trained>=D.train||armySize(me)>=armyCap(me)) break;
     // strategic: build a nuke if affordable and none in flight yet
-    if(D.nukes && hasTech(me,'NUKE') && stars[me]>=UNIT_TYPES.NUKE.cost+6 &&
+    if(D.nukes && hasTech(me,'NUKE') && stars[me]>=UNIT_TYPES.NUKE.cost+6 && turn-(lastNuke[me]??-99)>=5 &&
        !units.some(q=>q.owner===me&&q.type==='NUKE')){
       stars[me]-=UNIT_TYPES.NUKE.cost; spawn(me,'NUKE',c.x,c.y);
       const nu=units[units.length-1]; nu.moved=true; nu.attacked=true;
       log(me,`${meta(me).name} assembles a Nuclear Missile.`);
+      if(!nukeWarned[me]&&alive[MYSIDE]){
+        nukeWarned[me]=true;
+        toast('\u2622 '+meta(me).name+' built a Nuclear Missile (range 6, 2-tile blast). Spread out \u2014 Civil Defense halves blast damage.','var(--red)');
+      }
       refresh();
       continue;
     }
@@ -1503,7 +1508,7 @@ async function aiTurn(me){
     const full=armySize(me)>=armyCap(me);
     for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.owner===me&&canDevelop(c)&&(c.level<MAX_LEVEL||full)) own.push({x,y,c}); }
     own.sort((a,b)=>developCost(a.c)-developCost(b.c));
-    for(const o of own) if(stars[me]>=developCost(o.c)+D.reserve+3) develop(me,o.x,o.y);
+    for(const o of own) if(stars[me]>=developCost(o.c)+D.reserve) develop(me,o.x,o.y);
     aiRewards(me);
   }
   // objectives: every rival's cities and units
@@ -1555,7 +1560,7 @@ async function aiTurn(me){
       }
       if(bestT && bestN>=2){
         aiPan(bestT.x,bestT.y); await sleep(400); if(stale()) return;
-        nukeStrike(u,bestT.x,bestT.y);
+        nukeStrike(u,bestT.x,bestT.y); lastNuke[me]=turn;
         refresh(); await sleep(400); if(stale()) return;
       } else { u.attacked=true; } // hold fire until a worthwhile cluster appears
       continue;
@@ -2719,7 +2724,7 @@ function refresh(){
   const et=$('endTurn');
   et.disabled=(side!==MYSIDE||gameOver);
   $('techBtn').classList.toggle('avail',
-    side===MYSIDE && !gameOver && Object.keys(TECHS).some(k=>canResearch(MYSIDE,k)));
+    side===MYSIDE && !gameOver && alive[MYSIDE] && Object.keys(TECHS).some(k=>canResearch(MYSIDE,k)));
   et.classList.toggle('pulse', side===MYSIDE && !gameOver && ready===0);
   $('nextBtn').disabled=(side!==MYSIDE||gameOver||ready===0);
   computeVision(); syncFog();
@@ -2809,7 +2814,7 @@ function renderTech(){
     `<div class="tdn">${t.name}</div><div class="tdd">${t.unlocks}</div>`+
     (st==='locked'?`<div class="tdq">Requires ${TECHS[t.req].name}</div>`:'')+`</div>`+
     (st==='owned'?'<span class="done">✔ Researched</span>'
-      :`<button class="rbtn" id="techGo" ${st==='avail'?'':'disabled'}>Research · ${cost}★</button>`);
+      :`<button class="rbtn" id="techGo" ${st==='avail'&&side===MYSIDE&&alive[MYSIDE]&&!gameOver?'':'disabled'}>Research · ${cost}★</button>`);
   const go=$('techGo');
   if(go) go.onclick=()=>{ if(side!==MYSIDE||gameOver) return; act({t:'research',k:techSel}); };
 }
@@ -3010,7 +3015,7 @@ function launchSolo(withTutorial, keepCfg){
   NET.leave();
   if(!keepCfg) saveCfg();
   newGame();
-  if(withTutorial||!tutDone()) tutStart(); else tutStop();
+  if(withTutorial||!tutDone()){ tutStart(); seedTutorialVillage(); } else tutStop();
 }
 $('continueBtn').onclick=()=>{
   try{
@@ -3081,7 +3086,7 @@ function toast(msg,color){
 function toastFromLog(who,msg){
   const big=/ELIMINATED|NUCLEAR|ran out of time/i.test(msg);
   if(!big && !(who===MYSIDE||who==='sys')) return;
-  if(!big && !/captured|grew to level|research|Satellite|promotion|supply drop/i.test(msg)) return;
+  if(!big && !/captured|grew to level|research|Satellite|promotion|supply drop|Nuclear/i.test(msg)) return;
   toast(msg, who===MYSIDE||who==='sys'?'var(--amber)':playerMeta[who]?meta(who).css:'var(--red)');
 }
 
@@ -3120,7 +3125,7 @@ const TUT=[
   {text:()=>'Now '+TAP().toLowerCase()+' your <b>HQ</b>. Cities train new units.',
    at:()=>({tile:myHQ()}), done:selOwnCity, skip:()=>{ const h=myHQ(); return !h||!!unitAt(h.x,h.y); }},
   {text:()=>'Train an <b>Infantry</b>. Units cost stars ★, and your cities pay you more every turn.',
-   at:()=>({el:document.querySelector('#train .abtn')}), done:()=>coach.flags.trained,
+   at:()=>({el:document.querySelector('#train .abtn'), place:innerWidth<700?'top':undefined}), done:()=>coach.flags.trained,
    skip:()=>!selOwnCity()||stars[MYSIDE]<unitCost(MYSIDE,'INF')},
   {text:()=>'Open <b>Tech</b> to unlock new units, harvesting and upgrades.',
    at:()=>({el:$('techBtn')}), done:()=>$('techPanel').classList.contains('show')},
@@ -3128,14 +3133,33 @@ const TUT=[
    at:()=>({el:$('techDetail'), place:'above'}), done:()=>!$('techPanel').classList.contains('show')},
   {text:()=>'Out of moves? '+TAP()+' <b>End turn</b>.',
    at:()=>({el:$('endTurn')}), done:()=>coach.flags.ended},
-  {text:()=>'Your unit held the village through the night. Select it and '+TAP().toLowerCase()+' <b>Capture</b> \u2014 more cities mean more stars.',
-   at:()=>{ const u=units.find(q=>q.owner===MYSIDE&&canCapture(q)); return {tile:u||myHQ()}; },
-   done:()=>coach.flags.captured, skip:()=>!units.some(q=>q.owner===MYSIDE&&canCapture(q))},
   {text:()=>TAP()+' a <b>resource</b> inside your borders and <b>Harvest</b> it. Population levels up the city: more income and a reward.',
    at:()=>({tile:tutRes()}), done:()=>coach.flags.harvested, skip:()=>!tutRes()},
-  {text:()=>'Enemies in range get <b>red rings</b>. '+TAP()+' one to see the battle forecast before you strike. Take every enemy HQ to win!',
+  {text:()=>'Enemies in range get <b>red rings</b>. '+TAP()+' one to see the battle forecast before you strike.',
    at:()=>({el:$('endTurn')}), done:()=>coach.flags.ended2||coach.flags.attacked},
+  {text:()=>'Your unit held the village through the night. Select it and '+TAP().toLowerCase()+' <b>Capture</b> \u2014 more cities mean more stars. Take every enemy HQ to win!',
+   at:()=>{ const u=units.find(q=>q.owner===MYSIDE&&canCapture(q)); return {tile:u||myHQ()}; },
+   done:()=>coach.flags.captured, skip:()=>turn>15,
+   wait:()=>!units.some(q=>q.owner===MYSIDE&&canCapture(q))},   // stays quiet until a unit can capture
 ];
+function seedTutorialVillage(){
+  const h=myHQ(); if(!h) return;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&!c.owner&&cheb(h,{x,y})<=2) return; }
+  const spots=[];
+  for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+    const x=h.x+dx, y=h.y+dy;
+    if(!inb(x,y)||Math.max(Math.abs(dx),Math.abs(dy))!==2) continue;
+    const t=tileAt(x,y);
+    if(t.city||t.resource||t.ruin||unitAt(x,y)||t.terrain==='water'||t.terrain==='mountain') continue;
+    let near=false; for(let yy=0;yy<H;yy++)for(let xx=0;xx<W;xx++) if(tileAt(xx,yy).city&&cheb({x,y},{x:xx,y:yy})<2) near=true;
+    if(!near) spots.push({x,y});
+  }
+  if(!spots.length) return;
+  spots.sort((a,b)=>(Math.abs(wx(a.x))+Math.abs(wz(a.y)))-(Math.abs(wx(b.x))+Math.abs(wz(b.y))));   // toward the middle
+  const s=spots[0];
+  tileAt(s.x,s.y).city={owner:null, capital:false, level:1, pop:0};
+  buildBoard(); computeVision(); refresh();
+}
 function tutStart(){
   if(NET.on) return;
   Object.assign(coach,{on:true, i:0, shown:-1, flags:{}});
@@ -3173,6 +3197,7 @@ function coachCheck(){
     if(s.done()||(s.skip&&s.skip())) coach.i++; else break;
   }
   if(coach.i>=TUT.length){ tutEnd(false); return; }
+  if(TUT[coach.i].wait&&TUT[coach.i].wait()) return 'wait';
   if(coach.shown!==coach.i){
     coach.shown=coach.i;
     const s=TUT[coach.i];
@@ -3189,7 +3214,7 @@ function coachTick(){
     if(!b.hidden){ b.hidden=true; coachPing(null); }
     return;
   }
-  coachCheck();
+  if(coachCheck()==='wait'){ if(!b.hidden){ b.hidden=true; coachPing(null); } return; }
   if(!coach.on) return;
   const a=TUT[coach.i].at()||{};
   let px=innerWidth/2, py=innerHeight*0.3, place='free';
@@ -3209,7 +3234,7 @@ function coachTick(){
   b.hidden=false;
   b.style.zIndex=$('techPanel').classList.contains('show')?46:'';
   const bw=b.offsetWidth, bh=b.offsetHeight;
-  let top=place==='below'?py+14:place==='above'?py-bh-14:py;
+  let top=place==='below'?py+14:place==='above'?py-bh-14:place==='top'?84:py;
   if(place==='above'&&top<80){ top=py+14; place='below'; }
   const left=Math.min(innerWidth-bw-10, Math.max(10, px-bw/2));
   b.style.left=left+'px';
@@ -3324,14 +3349,14 @@ function renderInfo(){
   if(sel&&sel.kind==='unit'){
     const u=units.find(x=>x.id===sel.id);
     if(u){
-      const t=UNIT_TYPES[u.type], mine=u.owner===MYSIDE;
+      const t=UNIT_TYPES[u.type], mine=u.owner===MYSIDE&&!gameOver;
       por.innerHTML=`<img src="${unitIcon(u.type,u.owner)}" alt="">`;
       por.style.setProperty('--fc', meta(u.owner).css);
       title.textContent=t.name;
       sub.textContent=!mine?ownerName(u.owner)
         :u.type==='NUKE'?(u.attacked?'Launched':'Armed — tap any tile in range to launch')
         :u.attacked?'Done for this turn'
-        :u.moved?(siegeLocked(u)?'Moved — artillery cannot fire after moving':'Moved — can still attack')
+        :u.moved?(siegeLocked(u)?'Moved — artillery cannot fire after moving':attackTargets(u).length?'Moved — can still attack':'Moved — nothing in range')
         :'Ready — blue tiles move, red rings attack';
       const forest=tileAt(u.x,u.y).terrain==='forest';
       chips.innerHTML=hpChip(u)+chip('ATK',fmtStat(uAtk(u)))+chip('DEF',uDef(u))+chip('MOVE',uMove(u))+chip('RANGE',uRange(u))+
@@ -3405,6 +3430,7 @@ function renderInfo(){
     title.textContent=(c.capital?'Headquarters':'City')+' · Level '+c.level;
     chips.innerHTML=chip('Income','+'+inc+'★')+(c.level<MAX_LEVEL?chip('Pop',c.pop+'/'+(c.level+1)):chip('Pop','max'))+
       (c.walls?chip('Walls','+50% DEF','good'):'')+(c.bk?chip('Barracks','+'+c.bk,'good'):'')+((c.border||1)>1?chip('Borders','5×5','good'):'')+(c.scout?chip('Sight','4','good'):'');
+    if(gameOver||!alive[MYSIDE]){ sub.textContent=ownerName(c.owner); body.textContent=''; return; }
     if(c.owner!==MYSIDE){
       const nm=c.owner&&playerMeta[c.owner]?meta(c.owner).name:null;
       sub.textContent=nm?nm:'Neutral village';
@@ -3418,7 +3444,7 @@ function renderInfo(){
       const nx=sel.x+dx, ny=sel.y+dy;
       if(inb(nx,ny)&&tileAt(nx,ny).resource) resN++;
     }
-    sub.textContent=c.level<MAX_LEVEL?'Harvest the '+resN+' resource'+(resN===1?'':'s')+' around it to grow':'Fully grown';
+    sub.textContent=c.level>=MAX_LEVEL?'Fully grown':resN?'Harvest the '+resN+' resource'+(resN===1?'':'s')+' around it to grow':'No resources left nearby \u2014 Develop it to grow';
     const full=armySize(MYSIDE)>=armyCap(MYSIDE);
     chips.innerHTML+=chip('Army',armySize(MYSIDE)+'/'+armyCap(MYSIDE),full?'':'good');
     if(canDevelop(c)){
@@ -3451,8 +3477,11 @@ function renderInfo(){
 }
 
 let myCam=null;   // where the player left the camera, restored after enemy turns
+let endGuard=0;   // ignore End turn taps right after a tap or the start of your turn (double taps skipped turns)
 $('endTurn').onclick=()=>{
   if(side!==MYSIDE||gameOver) return;
+  if(performance.now()<endGuard) return;
+  endGuard=performance.now()+700;
   myCam=cam.target.clone();
   sfx.endturn();
   if(!NET.on) log(P,'You end your turn.');
@@ -3587,8 +3616,8 @@ $('helpBtn').onclick=()=>{
     ['Move & Attack','Click a unit: blue tiles = move, red rings = attack. One move + one attack each per turn. On a computer, right-click a tile to move or fire with the selected unit straight away. Melee units (range 1) advance into a tile when they destroy its defender — advance onto a city and it can capture next turn.'],
     ['Fog','Cloud cover hides undiscovered land. Units and cities see 2 tiles around them; explored ground stays visible.'],
     ['Economy','Crops (2\u2605), ore (4\u2605) and oil (6\u2605) sit near cities. Harvest one inside your territory to add population — fill the bar to level the city up for +1\u2605 income, permanently. Capture gray neutral cities to claim their resources.'],
-    ['Counters','Snipers +50% vs Infantry \u00b7 Tanks take 50% less from Snipers \u00b7 Helicopters +50% vs Tanks \u00b7 Flak Batteries +75% vs Helicopters and resist their fire. Artillery blasts all enemies around its target for 50%.'],
-    ['Factions','Aegis heals 4 HP (free Field Medicine) \u00b7 Crimson trains units 1\u2605 cheaper \u00b7 Solaris mines from the start & harvests cheaper \u00b7 Ghost sees 3 tiles & has range-3 Snipers.'],
+    ['Counters','Snipers +25% vs Infantry \u00b7 Tanks resist Sniper fire \u00b7 Helicopters +50% vs Tanks and resist their guns \u00b7 Flak Batteries +75% vs Helicopters and resist their fire. Artillery blasts all enemies around its target for 50%.'],
+    ['Factions','Aegis: +1 HP and heals while resting or on the march (free Field Medicine) \u00b7 Crimson: every unit 1\u2605 cheaper \u00b7 Solaris mines from the start & harvests cheaper \u00b7 Ghost sees 3 tiles, and Snipers that hold still shoot 3 tiles.'],
     ['Tech','Combat: Sniper \u2192 Tank \u2192 Artillery, plus drills, armor and self-propelled guns. Industry: Ore \u2192 Oil \u2192 Helicopter, plus cheaper training, +1\u2605 per city and faster gunships. Support: healing, 2\u00d7 city defense, forest camouflage, field hospitals and blast protection. Intel: +1 vision, the Flak Battery and longer artillery range. Strategic: Satellite Network (reveals the map) and Manhattan Project (the Nuclear Missile — a one-use 5\u00d75 strike). A tech costs 4/6/12/18\u2605 by tier, plus its tier for every city beyond your first (counted at the start of your turn).'],
     ['City rewards','Every time a city levels up you pick one of two rewards: Workshop or Scouts, City walls or a War chest, Population boom or Wider borders, Command post or an Elite tank.'],
     ['Supply drops','Parachuted crates hide in the fog. The first unit to step on one opens it: stars, a free tech, a free Infantry, a map of the area, or settlers for your nearest city.'],
@@ -4307,7 +4336,7 @@ if(CAN_STORE){ try{ const n=localStorage.getItem('foothold-callsign'); if(n) $('
 function newGame(){
   gen++;
   $('turnBanner').classList.remove('show');
-  gcfg={...cfg}; blockedHint=false;
+  gcfg={...cfg}; blockedHint=false; lastNuke={}; nukeWarned={};
   undoStack.length=0;
   turnCities={};
   $('endBar').hidden=true;
