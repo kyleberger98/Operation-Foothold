@@ -60,6 +60,7 @@ button{font:inherit; transition:background .15s ease, color .15s ease, border-co
   display:flex; gap:8px}
 
 /* ---- bottom dock: Tech on the left, Next unit + End turn on the right ---- */
+body.nogame #hud, body.nogame .dock, body.nogame #topRight, body.nogame #fitBtn, body.nogame #menuBtn{visibility:hidden}
 .dock{position:fixed; z-index:12; bottom:calc(env(safe-area-inset-bottom,0px) + 12px);
   display:flex; flex-direction:column; align-items:center; gap:5px;
   padding:0; background:none; border:none; cursor:pointer; color:var(--text)}
@@ -200,7 +201,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 /* ================= title screen + custom game ================= */
 #setup{position:fixed; inset:0; z-index:60; display:none; align-items:flex-start; justify-content:center; overflow-y:auto;
   padding:max(30px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 30px max(12px, env(safe-area-inset-left));
-  background:radial-gradient(ellipse at 50% 30%, rgba(30,44,34,.92), rgba(8,12,10,.97) 70%); backdrop-filter:blur(5px)}
+  background:radial-gradient(ellipse at 50% 30%, rgba(16,34,38,.5), rgba(6,12,14,.84) 75%); backdrop-filter:blur(3px)}
 #setup.show{display:flex}
 #setupInner{background:var(--panel); border:1px solid var(--line); max-width:860px; width:100%; margin:auto 0;
   padding:22px 24px 26px; border-radius:18px; box-shadow:0 24px 70px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04)}
@@ -2702,6 +2703,7 @@ function loop(now){
     }
   }
   if(!gfxLow) waveOcean(now);
+  if(!map&&$('setup').classList.contains('show')){ cam.theta+=dt*0.04; applyCam(); }   // the title screen drifts slowly over the sea
   if(surf) surf.material.opacity=0.2+Math.sin(now*0.0016)*0.08;
   fx.step(dt);
   coachTick();
@@ -3007,6 +3009,7 @@ function autoSave(){
 function clearSave(){ if(CAN_STORE){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} } }
 function hasSave(){ if(!CAN_STORE) return false; try{ return !!localStorage.getItem(SAVE_KEY); }catch(e){ return false; } }
 function restoreGame(data, net){
+  document.body.classList.remove('nogame');
   try{
     gen++;
     undoStack.length=0;
@@ -4500,6 +4503,7 @@ if(CAN_STORE){ try{ const n=localStorage.getItem('foothold-callsign'); if(n) $('
 ================================================================ */
 function newGame(){
   gen++;
+  document.body.classList.remove('nogame');
   fitSaved=null; camDistGoal=null; $('fitBtn').classList.remove('on');
   $('turnBanner').classList.remove('show');
   gcfg={...cfg}; blockedHint=false; lastNuke={}; nukeWarned={};
@@ -4561,6 +4565,7 @@ function newGame(){
 function mkMeta(f){ return {faction:f, name:f.name, body:f.color, trim:f.trim, flag:f.color, css:f.css}; }
 
 sizeRenderer(); applyGfx();
+if(!map) document.body.classList.add('nogame');   // nothing to show in the HUD until a game starts
 applyCam();
 buildSkyClouds();
 showSetup();
