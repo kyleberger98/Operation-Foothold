@@ -6,6 +6,15 @@ A turn-based tactics game in your browser: capture every enemy HQ. Low-poly 3D, 
 
 The whole game is one file, `gridline-command.html`. It also runs offline: download it and open it in any modern browser.
 
+## Install it on your phone
+
+Gridline Command installs like an app, with its own home-screen icon, full-screen play and offline single-player:
+
+- **Android (Chrome):** open the game and tap **Install app** on the title screen (or Chrome's menu → *Install app*).
+- **iPhone / iPad (Safari):** open the game, tap **Share**, then **Add to Home Screen**.
+
+Once installed it opens straight into the game and works without a connection (online matches still need the internet). Updates arrive automatically the next time you open it online.
+
 ## Playing with friends
 
 1. On the title screen tap **Online**, then **Host Operation**.
@@ -21,4 +30,5 @@ Everyone plays live, and the host's device runs the match, so the host keeps the
 | `gridline-command.html` | The game |
 | `operation-foothold-final.html` | The old file name (the game used to be called Operation Foothold); forwards to the game so old links keep working |
 | `index.html` | Forwards the short address (and invite links) to the game |
+| `manifest.webmanifest`, `sw.js`, `icons/` | Make the game installable on phones and playable offline |
 | `art/units/` | Blender source for the unit models; see its README |

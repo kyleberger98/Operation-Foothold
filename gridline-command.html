@@ -2,8 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>Gridline Command — Modern Tactics</title>
+<meta name="description" content="Turn-based tactics: capture every enemy HQ. Low-poly 3D, four factions, solo against the AI or online with friends.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0b1d27">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gridline">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/favicon-64.png">
 <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -12,7 +21,9 @@
   --blue:#5aa7e8; --blue-d:#274a66; --red:#e8625a;
 }
 *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent}
-html,body{height:100%}
+html,body{height:100%; overscroll-behavior:none}
+body{touch-action:manipulation; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none}
+input{-webkit-user-select:text; user-select:text}
 [hidden]{display:none!important}
 body{
   background:var(--bg); color:var(--text);
@@ -230,6 +241,10 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 #setupInner{background:var(--panel); border:1px solid var(--line); max-width:860px; width:100%; margin:auto 0;
   padding:22px 24px 26px; border-radius:18px; box-shadow:0 24px 70px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04)}
 #setupInner.home{max-width:440px; background:rgba(22,29,24,.9)}
+.speedMenu.install{border-color:var(--amber); color:var(--amber)}
+.speedMenu.install b{color:var(--amber)}
+#installTip{margin:10px auto 0; max-width:340px; font-size:12px; line-height:1.5; color:var(--dim); text-align:center}
+#installTip b{color:var(--text)}
 .setRow{display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:10px}
 .speedMenu{display:block; margin:0; background:none; border:1px solid var(--line); color:var(--dim); border-radius:999px;
   padding:6px 14px; font:inherit; font-size:12px; cursor:pointer}
@@ -504,7 +519,8 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
         <button id="tutBtn" class="bigbtn">How to play<span>a guided first game</span></button>
       </div>
       <div class="saveNote">Your campaign auto-saves every move on this device.</div>
-      <div class="setRow"><button id="speedMenuBtn" class="speedMenu"></button><button id="soundMenuBtn" class="speedMenu"></button><button id="gfxMenuBtn" class="speedMenu"></button></div>
+      <div class="setRow"><button id="speedMenuBtn" class="speedMenu"></button><button id="soundMenuBtn" class="speedMenu"></button><button id="gfxMenuBtn" class="speedMenu"></button><button id="installBtn" class="speedMenu install" hidden></button></div>
+      <div id="installTip" hidden>On iPhone or iPad: tap the <b>Share</b> button, then <b>Add to Home Screen</b>. Gridline Command opens full-screen from its icon and plays offline.</div>
     </div>
     <div id="soloPane" style="display:none">
     <button class="backBtn" data-back>◂ Back</button>
@@ -3325,6 +3341,7 @@ function swapSaveSides(d, me){
 }
 function restoreGame(data, net){
   document.body.classList.remove('nogame');
+  keepAwake(true);
   if(!net&&data&&data.me) data=swapSaveSides(data, data.me);
   if(net) tutStop();
   try{
@@ -3503,7 +3520,9 @@ $('tutBtn').onclick=()=>{
   cfg=keep;
 };
 $('customBtn').onclick=()=>{ disarm(); setupView('solo'); sfx.select(); };
-$('mpOpenBtn').onclick=()=>{ disarm(); setupView('mp'); sfx.select(); if(!window.Peer) mpMsg('⚠ P2P engine failed to load — re-download the game file.'); };
+$('mpOpenBtn').onclick=()=>{ disarm(); setupView('mp'); sfx.select();
+  if(!navigator.onLine) mpMsg('⚠ You are offline \u2014 online play needs an internet connection. Solo games work offline.');
+  else if(!window.Peer) mpMsg('⚠ P2P engine failed to load — re-download the game file.'); };
 document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>{
   if(NET.on&&!NET.inGame) NET.leave();
   disarm(); setupView('home'); sfx.select();
@@ -4066,7 +4085,18 @@ function log(who,msg){
   l.prepend(e);
   while(l.children.length>60) l.removeChild(l.lastChild);
 }
+let wakeLock=null;
+async function keepAwake(on){
+  try{
+    if(on&&!wakeLock&&'wakeLock' in navigator&&document.visibilityState==='visible'){
+      wakeLock=await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release',()=>{ wakeLock=null; });
+    } else if(!on&&wakeLock){ const w=wakeLock; wakeLock=null; await w.release(); }
+  }catch(e){ wakeLock=null; }
+}
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&map&&!gameOver) keepAwake(true); });
 function endGame(winner){
+  keepAwake(false);
   gameOver=true;
   if(NET.host) NET.winner=winner;
   if(!NET.on) clearSave();
@@ -4855,6 +4885,7 @@ if(CAN_STORE){ try{ const n=localStorage.getItem('foothold-callsign'); if(n) $('
 ================================================================ */
 function newGame(){
   gen++;
+  keepAwake(true);
   if(NET.on) tutStop();
   document.body.classList.remove('nogame');
   fitSaved=null; camDistGoal=null; camPhiGoal=null; cam.phi=0.96; $('fitBtn').classList.remove('on');
@@ -4918,6 +4949,25 @@ function newGame(){
 function mkMeta(f){ return {faction:f, name:f.name, body:f.color, trim:f.trim, flag:f.color, css:f.css}; }
 
 sizeRenderer(); applyGfx();
+/* ---- installable app: offline cache + install button ---- */
+const IS_WEB=/^https?:$/.test(location.protocol);
+const IS_IOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const IS_APP=()=>matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||navigator.standalone===true;
+let installEvt=null;
+function syncInstall(){
+  const b=$('installBtn'), show=IS_WEB&&!IS_APP()&&(installEvt||IS_IOS);
+  b.hidden=!show; b.innerHTML='\u2913 <b>Install app</b>';
+  if(!show) $('installTip').hidden=true;
+}
+addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); installEvt=e; syncInstall(); });
+addEventListener('appinstalled',()=>{ installEvt=null; syncInstall(); });
+$('installBtn').onclick=async()=>{
+  sfx.select();
+  if(installEvt){ const e=installEvt; installEvt=null; e.prompt(); try{ await e.userChoice; }catch(err){} syncInstall(); }
+  else $('installTip').hidden=!$('installTip').hidden;
+};
+syncInstall();
+if(IS_WEB&&'serviceWorker' in navigator) addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
 if(!map) document.body.classList.add('nogame');   // nothing to show in the HUD until a game starts
 applyCam();
 buildSkyClouds();
