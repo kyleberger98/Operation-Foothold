@@ -176,10 +176,15 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
   .abtn .disc{width:46px; height:46px}
   .abtn .nm{font-size:11.5px}
 }
-@media (min-width:1100px){
-  #command{left:24px; transform:translate(0,18px); width:480px}
-  body.dockR #command{left:auto; right:24px}
+@media (min-width:1100px), (orientation:landscape) and (max-height:560px){
+  #command{left:24px; transform:translate(0,18px); width:min(480px, 46vw)}
+  body.dockR #command{left:auto; right:24px; bottom:calc(env(safe-area-inset-bottom,0px) + 124px)}
   body.selOpen #command{transform:translate(0,0)}
+}
+@media (orientation:landscape) and (max-height:560px){
+  #command{bottom:calc(env(safe-area-inset-bottom,0px) + 12px); max-height:calc(100vh - 80px)}
+  body.dockR #command{bottom:calc(env(safe-area-inset-bottom,0px) + 12px); right:178px}
+  #command{left:104px; width:min(420px, 42vw)}
 }
 #train:empty{display:none}
 #train::-webkit-scrollbar{display:none}
@@ -317,6 +322,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 #techDetail{width:min(540px, calc(100vw - 24px)); margin:0 auto calc(env(safe-area-inset-bottom,0px) + 14px);
   background:rgba(22,29,24,.95); border:1px solid var(--line); border-radius:16px; padding:12px 14px;
   display:flex; gap:14px; align-items:center; min-height:76px}
+@media (max-width:360px){ #techDetail{flex-direction:column; align-items:stretch; gap:8px} #techDetail .rbtn{width:100%} }
 #techDetail .tdx{flex:1; min-width:0}
 #techDetail .tdn{font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:18px; letter-spacing:.08em; text-transform:uppercase}
 #techDetail .tdm{font-size:10.5px; color:var(--dim); letter-spacing:.06em; text-transform:uppercase}
@@ -668,7 +674,7 @@ const DIFFS={
   hard:  {name:'Hard',   note:'a tough fight',        inc:1,   start:6, train:3,  techs:1, every:1, reserve:2, press:1,   sharp:true,  nukes:true},
   crazy: {name:'Crazy',  note:'rivals earn far more', inc:1.7, start:10, train:99, techs:2, every:1, reserve:1, press:1,   sharp:true,  nukes:true},
 };
-let gcfg=null, blockedHint=false, lastNuke={}, nukeWarned={};   // settings of the game being played (the menu's cfg can change underneath it)
+let gcfg=null, blockedHint=false, lastNuke={}, nukeWarned={}, mapReveals=[];   // settings of the game being played (the menu's cfg can change underneath it)
 const diff=()=>DIFFS[(gcfg||cfg).diff]||DIFFS.normal;
 const isAI=s=>s!==P && !(NET.on&&NET.humans[s]);   // the host's own side and remote humans are people
 let playerMeta={};      // side id -> {faction, name, body, trim, flag, css}
@@ -688,7 +694,7 @@ function healAmt(s){ return 2+(meta(s).faction.healBonus||0); }
 /* faction-aware attack range (Ghost snipers reach 3) */
 function uRange(u){
   return UNIT_TYPES[u.type].range
-    + (u.type==='SNP'&&!u.moved&&meta(u.owner).faction.overwatch?1:0)
+    + (u.type==='SNP'&&!u.walked&&meta(u.owner).faction.overwatch?1:0)
     + ((u.type==='ART'||u.type==='AA')&&hasTech(u.owner,'FWDOBS')?1:0)
     + ((u.type==='ART'||u.type==='AA'||u.type==='NUKE')&&hasTech(u.owner,'SAT')?1:0);
 }
@@ -916,13 +922,13 @@ function income(s){
   return inc;
 }
 /* a resource belongs to the territory (3x3) of an adjacent city */
-function ownCityNear(x,y,owner){
+function ownCityNear(x,y,owner,growing){
   let best=null, bd=9;
   for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
     const nx=x+dx, ny=y+dy;
     if(!inb(nx,ny)) continue;
     const c=tileAt(nx,ny).city, d=Math.max(Math.abs(dx),Math.abs(dy));
-    if(c&&c.owner===owner&&d<=(c.border||1)&&d<bd){ best={x:nx,y:ny,city:c}; bd=d; }
+    if(c&&c.owner===owner&&d<=(c.border||1)&&d<bd&&(!growing||c.level<MAX_LEVEL)){ best={x:nx,y:ny,city:c}; bd=d; }
   }
   return best;
 }
@@ -958,7 +964,7 @@ function harvest(x,y,owner){
   const t=tileAt(x,y);
   if(!t.resource) return false;
   if(!resUnlocked(owner,t.resource)) return false;
-  const rc=ownCityNear(x,y,owner);
+  const rc=ownCityNear(x,y,owner,true);
   if(!rc||rc.city.level>=MAX_LEVEL) return false;
   const r=RES_TYPES[t.resource];
   const hc=harvestCost(owner,t.resource);
@@ -985,6 +991,39 @@ function harvest(x,y,owner){
   }
   return true;
 }
+/* the notice at the start of your turn: income, what happened during the enemy turn, hints */
+function myTurnNotices(){
+  const s=MYSIDE;
+  if(turnSnap){
+    let hits=0, dmg=0, lost=0; recapAt=null;
+    for(const [id,hp] of turnSnap.hp){
+      const q=units.find(z=>z.id===id);
+      if(!q) lost++;
+      else if(q.hp<hp){ hits++; dmg+=hp-q.hp; fx.shock(q.x,q.y,0xe8625a); if(!recapAt) recapAt={x:q.x,y:q.y}; }
+    }
+    const cl=turnSnap.cities-cityCount(s);
+    const parts=[];
+    if(hits) parts.push(hits+' unit'+(hits>1?'s':'')+' hit (\u2212'+dmg+' HP)');
+    if(lost) parts.push(lost+' unit'+(lost>1?'s':'')+' lost');
+    if(cl>0) parts.push(cl+' cit'+(cl>1?'ies':'y')+' lost');
+    if(parts.length) turnNotes.push('\u26a0 Enemy turn: '+parts.join(', ')+'.'+(recapAt?' Tap to look.':''));
+    turnSnap=null;
+  }
+  {
+    const cap=units.filter(u=>u.owner===s&&canCapture(u)).length;
+    if(cap) turnNotes.push(cap===1?'\u2691 A unit can capture a city \u2014 select it and tap Capture.':'\u2691 '+cap+' units can capture cities this turn.');
+  }
+  if(!blockedHint){
+    let own=0, blocked=0;
+    map.flat().forEach((t,i)=>{ if(t.city&&t.city.owner===s){ own++; const q=unitAt(i%W,Math.floor(i/W)); if(q&&q.owner===s) blocked++; } });
+    if(own&&blocked===own&&stars[s]>=unitCost(s,'INF')&&armySize(s)<armyCap(s)){
+      blockedHint=true;
+      turnNotes.push('Units standing on your cities block training \u2014 move one off to recruit.');
+    }
+  }
+  { const at=recapAt; toast(['Your turn \u00b7 turn '+turn+' \u00b7 +'+income(s)+'\u2605 income',...turnNotes].join('\n'), turnNotes.length?'var(--amber)':meta(s).css, at?()=>panTo(at.x,at.y):null); }
+  turnNotes.length=0;
+}
 const turnNotes=[];
 let recapAt=null;   // hints gathered at the start of your turn, shown in one notice
 function startTurn(s, first){
@@ -1000,46 +1039,22 @@ function startTurn(s, first){
       let heal=0;
       const rested=(!u.moved && !u.attacked)||u.held;
       if(medic && rested) heal=healAmt(s);
-      else if(medic && meta(s).faction.healOnMove && !u.attacked) heal=2;   // Aegis patch up on the march
+      else if(medic && meta(s).faction.healOnMove && (!u.attacked||u.waited)) heal=2;   // Aegis patch up on the march
       if(hosp){ const c=tileAt(u.x,u.y).city; if(c&&c.owner===s) heal=Math.max(heal,4); }
       if(!heal) return;
       u.hp=Math.min(u.maxHp,u.hp+heal);
       if(s===MYSIDE||NET.on) fx.popup(u.x,u.y,'+'+heal,'#8fd89a');
     });
   }
-  units.forEach(u=>{ if(u.owner===s){u.moved=false;u.attacked=false;u.held=false;} });
+  units.forEach(u=>{ if(u.owner===s){u.moved=false;u.attacked=false;u.held=false;u.waited=false;u.walked=false;} });
   if(s===turnOrder.find(x=>alive[x]) && !first) turn++;   // counts on even after the player is knocked out
   undoStack.length=0;   // undo never reaches back past the start of a turn
   if(NET.host&&NET.inGame) NET.turnEnds=(NET.timer&&(s===P||NET.humans[s]))?Date.now()+NET.timer*1000:0;
-  if(s===MYSIDE && !first && !gameOver && turnSnap){
-    let hits=0, dmg=0, lost=0; recapAt=null;
-    for(const [id,hp] of turnSnap.hp){
-      const q=units.find(z=>z.id===id);
-      if(!q) lost++;
-      else if(q.hp<hp){ hits++; dmg+=hp-q.hp; fx.shock(q.x,q.y,0xe8625a); if(!recapAt) recapAt={x:q.x,y:q.y}; }
-    }
-    const cl=turnSnap.cities-cityCount(s);
-    const parts=[];
-    if(hits) parts.push(hits+' unit'+(hits>1?'s':'')+' hit (\u2212'+dmg+' HP)');
-    if(lost) parts.push(lost+' unit'+(lost>1?'s':'')+' lost');
-    if(cl>0) parts.push(cl+' cit'+(cl>1?'ies':'y')+' lost');
-    if(parts.length) turnNotes.push('\u26a0 Enemy turn: '+parts.join(', ')+'.'+(recapAt?' Tap to look.':''));
-    turnSnap=null;
+  if(NET.host&&NET.inGame&&NET.humans[s]&&!NET.humans[s].conn&&alive[s]){
+    clearTimeout(NET._takeT);
+    NET._takeT=setTimeout(()=>{ if(NET.humans[s]&&!NET.humans[s].conn&&side===s) NET.aiTakeover(s); }, 30000);
   }
-  if(s===MYSIDE && !first && !gameOver){
-    const cap=units.filter(u=>u.owner===s&&canCapture(u)).length;
-    if(cap) turnNotes.push(cap===1?'\u2691 A unit can capture a city \u2014 select it and tap Capture.':'\u2691 '+cap+' units can capture cities this turn.');
-  }
-  if(s===MYSIDE && !first && !gameOver && !blockedHint){
-    let own=0, blocked=0;
-    map.flat().forEach((t,i)=>{ if(t.city&&t.city.owner===s){ own++; const q=unitAt(i%W,Math.floor(i/W)); if(q&&q.owner===s) blocked++; } });
-    if(own&&blocked===own&&stars[s]>=unitCost(s,'INF')&&armySize(s)<armyCap(s)){
-      blockedHint=true;
-      turnNotes.push('Units standing on your cities block training \u2014 move one off to recruit.');
-    }
-  }
-  if(s===MYSIDE && !first && !gameOver){ const at=recapAt; toast(['Your turn \u00b7 turn '+turn+' \u00b7 +'+income(s)+'\u2605 income',...turnNotes].join('\n'), turnNotes.length?'var(--amber)':meta(s).css, at?()=>panTo(at.x,at.y):null); }
-  turnNotes.length=0;
+  if(s===MYSIDE && !first && !gameOver) myTurnNotices();
   sel=null;
   refresh();
   if(!gameOver){
@@ -1214,7 +1229,7 @@ function forecast(u,d){
   const advances=kills && uRange(u)===1 && !ut.siege && passable(u,d.x,d.y);
   let rdmg=0, dies=false;
   if(!kills && uRange(d)>=cheb(u,d) && !dt.siege){
-    rdmg=Math.max(1,Math.round(DF/(AF+DF)*uDef(d)*4.5));
+    rdmg=Math.max(1,Math.round(DF/(AF+DF)*uDef(d)*4.5*drillMul(d)));
     dies=rdmg>=u.hp;
   }
   let splashN=0;
@@ -1255,8 +1270,9 @@ function reachable(u){
   }
   return out;
 }
+const drillMul=q=>(q.type==='INF'||q.type==='SNP')&&hasTech(q.owner,'DRILLS')?1.25:1;
 function attackTargets(u){
-  if(u.attacked) return [];
+  if(u.attacked||u.type==='NUKE') return [];   // missiles only launch with the nuke action
   if(siegeLocked(u)) return [];
   const rg=uRange(u);
   return units.filter(e=>e.owner!==u.owner && cheb(u,e)<=rg && (u.owner!==MYSIDE || explored[e.y][e.x]));
@@ -1291,7 +1307,7 @@ function nukeStrike(u,tx,ty){
   }
   // missile expended
   units=units.filter(q=>q!==u);
-  if(unitMeshes.has(u.id)){ unitGroup.remove(unitMeshes.get(u.id)); unitMeshes.delete(u.id); }
+  if(unitMeshes.has(u.id)){ const g=unitMeshes.get(u.id); unitGroup.remove(g); freeUnitMesh(g); unitMeshes.delete(u.id); }
   buildBoard();
   log(u.owner, `${meta(u.owner).name} detonated a NUCLEAR STRIKE!`);
   // win check in case the blast wiped a faction's last units AND they have no cities — handled at city capture only,
@@ -1365,7 +1381,7 @@ function attack(u,d){
       moveUnit(u,d.x,d.y);
     }
   } else if(uRange(d)>=dist && !dt.siege){
-    const rdmg=Math.max(1,Math.round(DF/(AF+DF)*uDef(d)*4.5));
+    const rdmg=Math.max(1,Math.round(DF/(AF+DF)*uDef(d)*4.5*drillMul(d)));
     u.hp-=rdmg;
     fx.flash(u.x,u.y,0xff5040);
     fx.strike(d.x,d.y,u.x,u.y,d.id,u.id, dist>1?'shot':'melee');
@@ -1390,7 +1406,7 @@ function openDrop(u,x,y){
   if(r<0.3||(r<0.55&&!nextTech.length)){ stars[s]+=10; msg='10\u2605 of supplies'; }
   else if(r<0.55){ const k=nextTech[rnd(nextTech.length)]; tech[s].add(k); msg='intel files: '+TECHS[k].name+' learned'; }
   else if(r<0.75&&near.length){ const q=near[rnd(near.length)]; spawn(s,'INF',q.x,q.y); const nu=units[units.length-1]; nu.moved=true; nu.attacked=true; msg='recruits: a free Infantry'; }
-  else if(r<0.88||!home){ stars[s]+=4; if(s===MYSIDE) revealAround(x,y,4); msg='a map of the area and 4\u2605'; }
+  else if(r<0.88||!home){ stars[s]+=4; mapReveals.push({s,x,y,r:4}); if(s===MYSIDE) revealAround(x,y,4); msg='a map of the area and 4\u2605'; }
   else {
     const c=home.c; c.pop+=2; const gained=[];
     while(c.level<MAX_LEVEL&&c.pop>=c.level+1){ c.pop-=c.level+1; c.level++; gained.push(c.level); }
@@ -1404,7 +1420,7 @@ function openDrop(u,x,y){
 }
 function moveUnit(u,x,y){
   fx.faceTarget(u,{x,y});
-  u.x=x; u.y=y; u.moved=true;
+  u.x=x; u.y=y; u.moved=true; u.walked=true;
   if(u.owner===MYSIDE) sfx.move();
   if(tileAt(x,y).ruin) openDrop(u,x,y);
 }
@@ -1473,6 +1489,7 @@ $('speedBtn').onclick=cycleSpeed;
 $('speedMenuBtn').onclick=cycleSpeed;
 syncSpeed();
 const sleep=ms=>new Promise(r=>setTimeout(r,aiDelay(ms)));
+setInterval(()=>{ if(!NET._lastTick||Date.now()-NET._lastTick>900) NET.timerTick(); }, 1000);   // background tabs get no frames
 async function aiTurn(me){
   if(gameOver||!alive[me]) return;
   const g0=gen, stale=()=>gen!==g0||gameOver;
@@ -1952,17 +1969,91 @@ function cloudPuff(size,mat){
 }
 /* Puffs are placed past the tile edges (±0.5) with deterministic jitter so
    neighbouring tiles overlap and merge into one continuous layer. */
-function makeFogCloud(x,y){
-  const g=new THREE.Group();
+/* tile boxes: one shared geometry per height with just two draw groups (top, sides) instead of six */
+const TILE_GEOS={};
+function tileGeo(h){
+  if(TILE_GEOS[h]) return TILE_GEOS[h];
+  const g=new THREE.BoxGeometry(0.976,h,0.976), idx=Array.from(g.index.array), per=idx.length/6;
+  const top=idx.slice(2*per,3*per), rest=[...idx.slice(0,2*per),...idx.slice(3*per)];
+  g.setIndex([...top,...rest]); g.clearGroups(); g.addGroup(0,top.length,0); g.addGroup(top.length,rest.length,1);
+  g.userData.keep=true;
+  return TILE_GEOS[h]=g;
+}
+/* a tile's grass, rocks, mountains, buildings and pines become one mesh per material (dozens of draw calls -> a few).
+   The tile box stays separate (it is the pick target); pines merge into one group that squashes when a unit stands there. */
+function mergeTileStatics(g, tileBox, x, y){
+  g.updateMatrixWorld(true);
+  const inv=new THREE.Matrix4().copy(g.matrixWorld).invert();
+  const local=o=>new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld);
+  const byMat=new Map(), treeByMat=new Map(), drop=[];
+  const pines=forestTrees[key(x,y)]||[];
+  const add=(map,mat,part)=>{ if(!map.has(mat)) map.set(mat,[]); map.get(mat).push(part); };
+  for(const ch of [...g.children]){
+    if(ch===tileBox||ch.isSprite) continue;
+    if(pines.includes(ch)){
+      ch.traverse(m=>{ if(m.isMesh) add(treeByMat, m.material, {geo:m.geometry, m:new THREE.Matrix4().makeTranslation(0,-TOP,0).multiply(local(m)), cast:m.castShadow, src:m}); });
+      drop.push(ch); continue;
+    }
+    if(!ch.isMesh||Array.isArray(ch.material)) continue;
+    add(byMat, ch.material, {geo:ch.geometry, m:local(ch), cast:ch.castShadow, rcv:ch.receiveShadow, src:ch});
+  }
+  const build=(parts,mat)=>{
+    const geo=mergeParts(parts); geo.userData.keep=false;
+    const mesh=new THREE.Mesh(geo, mat); mesh.castShadow=parts.some(p=>p.cast); mesh.receiveShadow=true;
+    for(const p of parts) if(!p.geo.userData.keep) p.geo.dispose();
+    return mesh;
+  };
+  for(const [mat,parts] of byMat){
+    if(parts.length<2) continue;
+    for(const p of parts) g.remove(p.src);
+    g.add(build(parts,mat));
+  }
+  if(treeByMat.size){
+    for(const ch of drop) g.remove(ch);
+    const tg=new THREE.Group(); tg.position.y=TOP;
+    for(const [mat,parts] of treeByMat) tg.add(build(parts,mat));
+    g.add(tg);
+    forestTrees[key(x,y)]=[tg];
+  }
+}
+/* a few prebuilt cloud shapes, each merged into one geometry per material, shared by every fog tile */
+const FOG_VARIANTS={};
+function mergeParts(parts){
+  let n=0; const nis=parts.map(p=>{ const g=p.geo.index?p.geo.toNonIndexed():p.geo; n+=g.attributes.position.count; return g; });
+  const pos=new Float32Array(n*3), nor=new Float32Array(n*3), v=new THREE.Vector3(), nm=new THREE.Matrix3();
+  let o=0;
+  parts.forEach((p,i)=>{
+    const g=nis[i], pa=g.attributes.position, na=g.attributes.normal; nm.getNormalMatrix(p.m);
+    for(let k=0;k<pa.count;k++){
+      v.fromBufferAttribute(pa,k).applyMatrix4(p.m); pos[(o+k)*3]=v.x; pos[(o+k)*3+1]=v.y; pos[(o+k)*3+2]=v.z;
+      v.fromBufferAttribute(na,k).applyMatrix3(nm).normalize(); nor[(o+k)*3]=v.x; nor[(o+k)*3+1]=v.y; nor[(o+k)*3+2]=v.z;
+    }
+    o+=pa.count;
+  });
+  const out=new THREE.BufferGeometry();
+  out.setAttribute('position',new THREE.BufferAttribute(pos,3)); out.setAttribute('normal',new THREE.BufferAttribute(nor,3));
+  out.userData.keep=true;
+  return out;
+}
+function fogVariant(par,vi){
+  const k=par+':'+vi;
+  if(FOG_VARIANTS[k]) return FOG_VARIANTS[k];
   const spots=[[0,0,2],[0.42,0.0,1],[-0.42,0.0,1],[0.0,0.42,1],[0.0,-0.42,1],
                [0.34,0.34,0],[-0.34,0.34,0],[0.34,-0.34,0],[-0.34,-0.34,0]];
+  const a=[], b=[];
   for(const [px,pz,size] of spots){
-    const p=cloudPuff(size, ((x+y+px*3+pz*5)%2<1)?cloudMat:cloudMatSoft);
-    p.position.set(px+(Math.random()-0.5)*0.08,
-                   (Math.random()-0.5)*0.07,
-                   pz+(Math.random()-0.5)*0.08);
-    g.add(p);
+    const m=new THREE.Matrix4().compose(
+      new THREE.Vector3(px+(Math.random()-0.5)*0.08,(Math.random()-0.5)*0.07,pz+(Math.random()-0.5)*0.08),
+      new THREE.Quaternion(), new THREE.Vector3(1,0.5,1));
+    (((par+px*3+pz*5)%2<1)?a:b).push({geo:puffGeo[size], m});
   }
+  return FOG_VARIANTS[k]={a:a.length?mergeParts(a):null, b:b.length?mergeParts(b):null};
+}
+function makeFogCloud(x,y){
+  const g=new THREE.Group();
+  const fv=fogVariant((x+y)%2,(x*7+y*3)%4);
+  if(fv.a) g.add(new THREE.Mesh(fv.a,cloudMat));
+  if(fv.b) g.add(new THREE.Mesh(fv.b,cloudMatSoft));
   g.position.set(wx(x),0.52,wz(y));
   g.userData={baseY:0.52, phase:(x*0.7+y*1.3)}; // phase from grid pos: neighbours bob almost in sync, no seams
   return g;
@@ -1999,6 +2090,20 @@ function revealAround(x,y,r){
     if(inb(nx,ny)) explored[ny][nx]=true;
   }
 }
+/* the host keeps a record of what each remote player has seen, to refuse attacks into their fog */
+let seenBy={};
+function markSeen(s){
+  const g=seenBy[s]||(seenBy[s]=Array.from({length:H},()=>Array(W).fill(false)));
+  const rev=(x,y,r)=>{ for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++) if(inb(x+dx,y+dy)) g[y+dy][x+dx]=true; };
+  if(hasTech(s,'SAT')){ for(const row of g) row.fill(true); return g; }
+  const vr=visionR(s);
+  for(const u of units) if(u.owner===s) rev(u.x,u.y,vr);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const t=tileAt(x,y);
+    if(t.city&&t.city.owner===s) rev(x,y,t.city.scout?Math.max(vr,4):vr);
+    if(hasTech(s,'RADIO')&&(t.city||t.ruin)) g[y][x]=true; }
+  for(const r of mapReveals) if(r.s===s) rev(r.x,r.y,r.r);
+  return g;
+}
 function computeVision(){
   if(hasTech(MYSIDE,'SAT')){
     for(let y=0;y<H;y++)for(let x=0;x<W;x++) explored[y][x]=true;
@@ -2030,6 +2135,14 @@ let forestTrees={};   // key -> pine groups, shrunk while a unit stands among th
 let dropDecor={};     // key -> supply-drop crate
 let pumpjacks=[]; // animated oil pumpjack beams
 
+/* free GPU buffers of a removed object; shared materials (M.*) stay, per-object ones go */
+function freeTree(o, mats){
+  o.traverse(n=>{
+    if(n.geometry&&!n.geometry.userData.keep) n.geometry.dispose();
+    if(mats&&n.material){ for(const m of [].concat(n.material)){ if(m.map) m.map.dispose(); m.dispose(); } }
+  });
+}
+function fxFree(o){ fxGroup.remove(o); freeTree(o,true); }
 function box(w,h,d,mat){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.castShadow=true;m.receiveShadow=true;return m}
 function cyl(rt,rb,h,mat,seg=10){const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg),mat);m.castShadow=true;m.receiveShadow=true;return m}
 function cone(r,h,mat,seg=7){const m=new THREE.Mesh(new THREE.ConeGeometry(r,h,seg),mat);m.castShadow=true;m.receiveShadow=true;return m}
@@ -2164,6 +2277,7 @@ function drawCityLabel(sp,city){
 
 /* ---- static board ---- */
 function buildBoard(){
+  freeTree(boardGroup,false); freeTree(fogGroup,false); freeTree(terrGroup,false);
   boardGroup.clear(); terrGroup.clear(); terrSig=''; pickTiles=[]; cityDecor={}; tileGroups={}; resourceDecor={}; dropDecor={}; pumpjacks=[]; forestTrees={};
   fogGroup.clear(); fogClouds={}; dissolving=[];
   // layered earth strata under the board
@@ -2206,8 +2320,7 @@ function buildBoard(){
     else if(t.terrain==='mountain') topMat=M.mountain;
     else topMat=M.water;
     const sideMat=Mside[t.terrain];
-    const tileBox=new THREE.Mesh(new THREE.BoxGeometry(0.976,h,0.976),
-      [sideMat,sideMat,topMat,sideMat,sideMat,sideMat]);
+    const tileBox=new THREE.Mesh(tileGeo(h), [topMat,sideMat]);
     tileBox.castShadow=true; tileBox.receiveShadow=true;
     tileBox.position.y=h/2;
     tileBox.userData={x,y};
@@ -2306,6 +2419,7 @@ function buildBoard(){
       g.add(b1,b2,pole,flag,cd.sprite);
       cityDecor[key(x,y)]=cd;
     }
+    mergeTileStatics(g, tileBox, x, y);
     boardGroup.add(g);
     if(t.resource) addResourceDecor(x,y);
     if(t.ruin) addDropDecor(x,y);
@@ -2322,6 +2436,8 @@ const terrGroup=new THREE.Group();
 scene.add(terrGroup);
 let terrSig='';
 const terrMats={};
+const TERR_GEO={f:new THREE.PlaneGeometry(0.976,0.976), h:new THREE.BoxGeometry(0.976,0.012,0.05), v:new THREE.BoxGeometry(0.05,0.012,0.976)};
+for(const k in TERR_GEO) TERR_GEO[k].userData.keep=true;
 function terrMat(o,edge){
   const k=o+(edge?'e':'f');
   return terrMats[k]||(terrMats[k]=new THREE.MeshBasicMaterial({color:meta(o).flag, transparent:true, opacity:edge?0.8:0.13, depthWrite:false}));
@@ -2344,7 +2460,7 @@ function syncTerritory(){
   if(sig===terrSig) return;
   terrSig=sig;
   terrGroup.clear();
-  const ft=new THREE.PlaneGeometry(0.976,0.976);
+  const ft=TERR_GEO.f;
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const o=vis(x,y)&&own[y][x]; if(!o) continue;
     const top=(tileAt(x,y).terrain==='water'?TOP-0.14:TOP)+0.008;
@@ -2352,7 +2468,7 @@ function syncTerritory(){
     for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
       const nx=x+dx, ny=y+dy;
       if(inb(nx,ny)&&own[ny][nx]===o) continue;
-      const e=new THREE.Mesh(new THREE.BoxGeometry(dx?0.05:0.976,0.012,dx?0.976:0.05), terrMat(o,true));
+      const e=new THREE.Mesh(dx?TERR_GEO.v:TERR_GEO.h, terrMat(o,true));
       e.position.set(wx(x)+dx*0.464,top+0.004,wz(y)+dy*0.464); terrGroup.add(e);
     }
   }
@@ -2369,7 +2485,7 @@ function syncCities(){
     if(cd.roof) cd.roof.color.setHex(city.owner?meta(city.owner).flag:0x9aa3a0);
     if(cd.g&&cd.lvl!==city.level){
       cd.lvl=city.level;
-      if(cd.extra) cd.g.remove(cd.extra);
+      if(cd.extra){ cd.g.remove(cd.extra); freeTree(cd.extra,false); }
       cd.extra=new THREE.Group();
       const spots=[[0.27,-0.24],[-0.3,0.24],[0.02,0.3],[0.32,0.05]];
       for(let i=0;i<Math.min(4,city.level-1);i++){
@@ -2481,6 +2597,7 @@ function drawLabel(sp,u){
 /* ---- unit mesh sync ---- */
 function unitBaseY(u){ return UNIT_TYPES[u.type].fly ? TOP+0.55 : TOP; }
 const dyingUnits=[], deathDelay={};
+function freeUnitMesh(g){ freeTree(g,false); for(const m of g.userData.mats||[]) m.dispose(); }
 let labelF=1, labelShow=true;
 let fullResync=false;   // set while a whole game is being rebuilt (new game, load, undo): no death animations
 function syncUnits(){
@@ -2517,7 +2634,7 @@ function syncUnits(){
       const lbl=g.userData.label;
       if(lbl){ lbl.material.map.dispose(); lbl.material.dispose(); g.remove(lbl); }
       unitMeshes.delete(id);
-      if(g.visible&&!fullResync) dyingUnits.push({g,t:-(deathDelay[id]||0)}); else unitGroup.remove(g);   // a destroyed unit sinks and fades
+      if(g.visible&&!fullResync) dyingUnits.push({g,t:-(deathDelay[id]||0)}); else { unitGroup.remove(g); freeUnitMesh(g); }   // a destroyed unit sinks and fades
       delete deathDelay[id];
     }
   }
@@ -2739,65 +2856,65 @@ const fx={
       const k=f.t/life;
       f.m.scale.setScalar(1+(f.boom?3.4:1.6)*k);
       f.m.material.opacity=Math.max(0,1-k);
-      if(f.t>life){ fxGroup.remove(f.m); this.flashes.splice(i,1); }
+      if(f.t>life){ fxFree(f.m); this.flashes.splice(i,1); }
     }
     for(let i=this.pops.length-1;i>=0;i--){
       const p=this.pops[i]; p.t+=dt;
       if(p.tracer){
         const k=p.t/0.16; p.sp.material.opacity=Math.max(0,0.95*(1-k));
-        if(p.t>0.16){ fxGroup.remove(p.sp); this.pops.splice(i,1); }
+        if(p.t>0.16){ fxFree(p.sp); this.pops.splice(i,1); }
         continue;
       }
       if(p.shell){
         const k=Math.min(1,p.t/0.32);
         p.sp.position.lerpVectors(p.a,p.b,k); p.sp.position.y+=Math.sin(Math.PI*k)*0.9;
-        if(k>=1){ fxGroup.remove(p.sp); this.pops.splice(i,1); }
+        if(k>=1){ fxFree(p.sp); this.pops.splice(i,1); }
         continue;
       }
       if(p.smoke){
         if(p.t<0) continue;
         const k=p.t/1.1;
         p.sp.position.y+=p.v*dt; p.sp.scale.setScalar(1+k*1.6); p.sp.material.opacity=Math.max(0,0.75*(1-k));
-        if(k>=1){ fxGroup.remove(p.sp); this.pops.splice(i,1); }
+        if(k>=1){ fxFree(p.sp); this.pops.splice(i,1); }
         continue;
       }
       if(p.shock){
         const life=0.5, k=p.t/life;
         const s=1+k*4.2; p.sp.scale.set(s,s,s);
         p.sp.material.opacity=Math.max(0,0.85*(1-k));
-        if(p.t>life){ fxGroup.remove(p.sp); this.pops.splice(i,1); }
+        if(p.t>life){ fxFree(p.sp); this.pops.splice(i,1); }
         continue;
       }
       if(p.nukeFlash){
         const life=0.45, k=p.t/life; const s=1+k*(p.R*3.5);
         p.sp.scale.set(s,s,s); p.sp.material.opacity=Math.max(0,1-k);
-        if(p.t>life){ fxGroup.remove(p.sp); this.pops.splice(i,1); }
+        if(p.t>life){ fxFree(p.sp); this.pops.splice(i,1); }
         continue;
       }
       if(p.nukeStem){
         const life=1.8, k=p.t/life;
         p.sp.scale.set(1,1+k*0.8,1); p.sp.position.y=TOP+0.6+k*0.5;
         p.sp.material.opacity=Math.max(0,0.9*(1-k));
-        if(p.t>life){ fxGroup.remove(p.sp); this.pops.splice(i,1); }
+        if(p.t>life){ fxFree(p.sp); this.pops.splice(i,1); }
         continue;
       }
       if(p.nukeCap){
         const life=1.8, k=p.t/life;
         const s=1+k*1.6; p.sp.scale.set(s,s,s); p.sp.position.y=TOP+1.3+k*1.0;
         p.sp.material.opacity=Math.max(0,0.92*(1-k*0.9));
-        if(p.t>life){ fxGroup.remove(p.sp); this.pops.splice(i,1); }
+        if(p.t>life){ fxFree(p.sp); this.pops.splice(i,1); }
         continue;
       }
       if(p.nukeRing){
         const life=0.9, k=p.t/life; const s=1+k*p.R*5;
         p.sp.scale.set(s,s,s); p.sp.material.opacity=Math.max(0,0.9*(1-k));
-        if(p.t>life){ fxGroup.remove(p.sp); this.pops.splice(i,1); }
+        if(p.t>life){ fxFree(p.sp); this.pops.splice(i,1); }
         continue;
       }
       const life=1.1;
       p.sp.position.y+=dt*0.55;
       p.sp.material.opacity=Math.max(0,1-(p.t/life)*(p.t/life));
-      if(p.t>life){ fxGroup.remove(p.sp); this.pops.splice(i,1); }
+      if(p.t>life){ fxFree(p.sp); this.pops.splice(i,1); }
     }
   }
 };
@@ -2829,7 +2946,7 @@ function loop(now){
     const d=dyingUnits[i]; d.t+=dt;
     if(d.t<0) continue;
     const k=d.t/0.7;
-    if(k>=1){ unitGroup.remove(d.g); dyingUnits.splice(i,1); continue; }
+    if(k>=1){ unitGroup.remove(d.g); freeUnitMesh(d.g); dyingUnits.splice(i,1); continue; }
     d.g.position.y-=dt*0.35; d.g.scale.setScalar(1-0.6*k);
     for(const mm of d.g.userData.mats){ mm.transparent=true; mm.opacity=1-k; }
   }
@@ -2838,7 +2955,7 @@ function loop(now){
     const occ=new Set((units||[]).filter(u=>!UNIT_TYPES[u.type].fly).map(u=>key(u.x,u.y)));
     for(const k in forestTrees){
       const want=occ.has(k)?0.5:1;
-      for(const tg of forestTrees[k]){ const s=tg.scale.x+(want-tg.scale.x)*Math.min(1,dt*8); tg.scale.setScalar(s); }
+      for(const tg of forestTrees[k]){ const s=tg.scale.y+(want-tg.scale.y)*Math.min(1,dt*8); tg.scale.y=s; }
     }
   }
   if(!gfxLow) waveOcean(now);
@@ -2891,7 +3008,7 @@ function loop(now){
     const f=dissolving[i];
     f.userData.t=(f.userData.t||0)+dt;
     const kk=1-f.userData.t/0.55;
-    if(kk<=0){ fogGroup.remove(f); dissolving.splice(i,1); }
+    if(kk<=0){ fogGroup.remove(f); freeTree(f,false); dissolving.splice(i,1); }
     else { f.scale.setScalar(kk); f.position.y=f.userData.baseY+(1-kk)*0.5; }
   }
   // low clouds drift past the battlefield
@@ -2907,7 +3024,28 @@ function loop(now){
 
 /* ---- picking ---- */
 const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
+let cardGuard=0, lastSelKey='';
+/* if the selected tile sits under the card, slide the camera so it shows above the card */
+function keepSelVisible(){
+  if(!sel||!document.body.classList.contains('selOpen')) return;
+  const p=sel.kind==='unit'?byId(sel.id):sel; if(!p) return;
+  const card=$('command').getBoundingClientRect(), r=cvs.getBoundingClientRect();
+  const proj=(x,z)=>{ const v=new THREE.Vector3(x,TOP,z).project(camera); return {x:r.left+(v.x+1)/2*r.width, y:r.top+(1-v.y)/2*r.height}; };
+  if(card.left>innerWidth*0.3||card.right<innerWidth*0.7){   // docked to a side: slide the tile into the open half
+    const a=proj(wx(p.x),wz(p.y)), b=proj(wx(p.x)+1,wz(p.y));
+    if(a.x<card.left-24||a.x>card.right+24||a.y<card.top||b.x===a.x) return;
+    const want=card.left>innerWidth*0.3?card.left/2:(card.right+innerWidth)/2;
+    camGoal=(camGoal||cam.target).clone().add(new THREE.Vector3((a.x-want)/(b.x-a.x),0,0));
+    return;
+  }
+  const a=proj(wx(p.x),wz(p.y)), b=proj(wx(p.x),wz(p.y)+1);
+  const want=Math.max(70, card.top*0.5);
+  if(a.y<card.top-24||b.y===a.y) return;
+  const dz=(a.y-want)/(b.y-a.y);   // world units along z per pixel, measured at the tile
+  camGoal=(camGoal||cam.target).clone().add(new THREE.Vector3(0,0,dz));
+}   // card buttons ignore clicks for a moment after a board tap
 function handleClick(e){
+  cardGuard=performance.now()+400;
   const watching=gameOver||(map&&!alive[MYSIDE]);
   if(side!==MYSIDE&&!watching) return;
   const r=cvs.getBoundingClientRect();
@@ -2917,7 +3055,7 @@ function handleClick(e){
   const hit=ray.intersectObjects(pickTiles)[0];
   if(!hit) { sel=null; refresh(); return; }
   const {x,y}=hit.object.userData;
-  if(fitSaved){ toggleFit({x,y}); return; }   // in the whole-map view a tap zooms in on that spot
+  if(fitSaved) toggleFit({x,y});   // in the whole-map view a tap zooms in on that spot, then acts as usual
   if(watching){   // look, don't touch
     const u=explored[y][x]?unitAt(x,y):null, c=explored[y][x]?tileAt(x,y).city:null;
     sel=u?{kind:'unit',id:u.id}:c?{kind:'city',x,y}:null;
@@ -3033,9 +3171,10 @@ function refresh(){
   computeVision(); syncFog();
   autoSave();
   document.body.classList.toggle('selOpen', !!sel);
+  { const k=sel?(sel.kind==='unit'?'u'+sel.id:sel.kind+sel.x+','+sel.y):''; if(k&&k!==lastSelKey) requestAnimationFrame(keepSelVisible); lastSelKey=k; }
   $('hoverTip').hidden=true;
-  // wide screens: the card docks on the side away from the selected tile
-  if(sel&&innerWidth>=1100){
+  // wide or short-landscape screens: the card docks on the side away from the selected tile
+  if(sel&&(innerWidth>=1100||(innerWidth>innerHeight&&innerHeight<=560))){
     const v=new THREE.Vector3(wx(sel.x!=null?sel.x:(byId(sel.id)||{x:0}).x),TOP,wz(sel.y!=null?sel.y:(byId(sel.id)||{y:0}).y)).project(camera);
     document.body.classList.toggle('dockR', v.x<0);
   }
@@ -3151,6 +3290,8 @@ function serializeGame(){
     stars:{...stars},
     tech:Object.fromEntries(turnOrder.map(s=>[s,[...tech[s]]])),
     turn, uid, stats:{...stats},
+    tc:{...turnCities}, ln:{...lastNuke}, rv:mapReveals, me:MYSIDE,
+    names:Object.fromEntries(turnOrder.map(s=>[s,meta(s).name])),
     units:units.map(u=>({...u})),
     explored,
     map:map.map(row=>row.map(t=>({
@@ -3167,12 +3308,30 @@ function autoSave(){
 }
 function clearSave(){ if(CAN_STORE){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} } }
 function hasSave(){ if(!CAN_STORE) return false; try{ return !!localStorage.getItem(SAVE_KEY); }catch(e){ return false; } }
+/* a save exported by an online guest: swap its side into the host seat so it plays on solo */
+function swapSaveSides(d, me){
+  if(!me||me===P||!d.sides||!d.sides[me]) return d;
+  const sw=s=>s===me?P:s===P?me:s;
+  const swKeys=o=>{ if(!o) return o; const r={}; for(const k in o) r[sw(k)]=o[k]; return r; };
+  d=JSON.parse(JSON.stringify(d));
+  d.sides=swKeys(d.sides); d.alive=swKeys(d.alive); d.stars=swKeys(d.stars); d.tech=swKeys(d.tech);
+  d.names=swKeys(d.names); d.tc=swKeys(d.tc); d.ln=swKeys(d.ln);
+  d.enemySides=d.enemySides.map(sw);
+  d.units.forEach(u=>u.owner=sw(u.owner));
+  d.map.forEach(row=>row.forEach(t=>{ if(t.c&&t.c.o) t.c.o=sw(t.c.o); }));
+  if(d.rv) d.rv.forEach(r=>r.s=sw(r.s));
+  d.me=P;
+  return d;
+}
 function restoreGame(data, net){
   document.body.classList.remove('nogame');
+  if(!net&&data&&data.me) data=swapSaveSides(data, data.me);
+  if(net) tutStop();
   try{
     gen++;
     undoStack.length=0;
-    turnCities={};
+    turnCities={...(data.tc||{})}; lastNuke={...(data.ln||{})}; mapReveals=data.rv?data.rv.map(r=>({...r})):[];
+    nukeWarned={}; blockedHint=false; seenBy={};
     $('endBar').hidden=true;
     if(!net) NET.leave();
     pendingAtk=null;
@@ -3188,7 +3347,7 @@ function restoreGame(data, net){
     tech={};
     for(const s of turnOrder) tech[s]=new Set(data.tech[s]||[]);
     turn=data.turn; uid=data.uid; side=net?data.side:P; sel=null; gameOver=net?!!data.over:false;
-    stats=data.stats?{...data.stats}:{kills:0,losses:0};
+    if(!net||!stats) stats=data.stats?{...data.stats}:{kills:0,losses:0};   // online, your own tally stays yours
     units=data.units.map(u=>({...u}));
     map=data.map.map(row=>row.map(o=>({
       terrain:o.t,
@@ -3196,9 +3355,9 @@ function restoreGame(data, net){
       resource:o.r||null, ruin:!!o.ru
     })));
     explored=data.explored?data.explored.map(r=>[...r]):Array.from({length:H},()=>Array(W).fill(false));
-    if(net) computeVision();
-    for(const [,g] of unitMeshes) unitGroup.remove(g);
-    dyingUnits.forEach(d=>unitGroup.remove(d.g)); dyingUnits.length=0;
+    if(net){ for(const r of data.rv||[]) if(r.s===MYSIDE) revealAround(r.x,r.y,r.r); computeVision(); }
+    for(const [,g] of unitMeshes){ unitGroup.remove(g); freeUnitMesh(g); }
+    dyingUnits.forEach(d=>{ unitGroup.remove(d.g); freeUnitMesh(d.g); }); dyingUnits.length=0;
     unitMeshes.clear(); hlGroup.clear(); fxGroup.clear(); fx.flashes.length=0; fx.pops.length=0;
     buildBoard();
     buildSkyClouds();
@@ -3435,7 +3594,7 @@ const TUT=[
                             :'Blue tiles show where it can move. Push toward the clouds to explore.',
    at:()=>({tile:nearestVillage()||myUnit()}), done:()=>coach.flags.moved},
   {text:()=>'Now '+TAP().toLowerCase()+' your <b>HQ</b>. Cities train new units.',
-   at:()=>({tile:myHQ()}), done:selOwnCity, skip:()=>{ const h=myHQ(); return !h||!!unitAt(h.x,h.y); }},
+   at:()=>({tile:myHQ()}), done:selOwnCity, skip:()=>!myHQ()||turn>3, wait:()=>{ const h=myHQ(); return !!h&&!!unitAt(h.x,h.y); }},
   {text:()=>'Train an <b>Infantry</b>. Units cost stars ★, and your cities pay you more every turn.',
    at:()=>({el:document.querySelector('#train .abtn[data-k="INF"]'), place:innerWidth<700?'top':undefined}), done:()=>coach.flags.trained,
    skip:()=>!selOwnCity()||stars[MYSIDE]<unitCost(MYSIDE,'INF')||!document.querySelector('#train .abtn[data-k="INF"]')},
@@ -3649,7 +3808,7 @@ function actBtn(o){
     `<span class="nm">${o.name}</span>`+(o.cost!=null?`<span class="cost">${o.cost}★</span>`:'');
   b.disabled=!!o.disabled;
   if(o.title) b.title=o.title;
-  b.onclick=o.onclick;
+  b.onclick=e=>{ if(performance.now()<cardGuard) return; if(o.onclick) o.onclick(e); };   // ignore the tap that opened the card
   if(o.k) b.dataset.k=o.k;
   return b;
 }
@@ -3858,10 +4017,12 @@ syncMute(); syncGfx();
 /* ---- keyboard shortcuts ---- */
 window.addEventListener('keydown',e=>{
   if(e.repeat) return;
+  const tg=e.target; if(tg&&(tg.tagName==='INPUT'||tg.tagName==='TEXTAREA'||tg.isContentEditable)) return;
   const techOpen=$('techPanel').classList.contains('show');
   const manualOpen=$('overlay').classList.contains('manual');
   if(e.key==='Escape'&&manualOpen){ closeManual(); return; }
   if(manualOpen&&e.key!=='m'&&e.key!=='M') return;   // the manual is modal
+  if((!$('rewardBox').hidden||$('overlay').classList.contains('show'))&&e.key!=='m'&&e.key!=='M') return;   // so are rewards and end screens
   if(e.key==='Escape'){
     const setupOpen=$('setup').classList.contains('show');
     if(setupOpen){ if(map) $('setup').classList.remove('show'); return; }
@@ -3870,6 +4031,8 @@ window.addEventListener('keydown',e=>{
     return;
   }
   if(e.key==='m'||e.key==='M'){ $('muteBtn').click(); return; }
+  if(map&&(e.key==='v'||e.key==='V')){ toggleFit(); return; }
+  if(map&&(e.key==='h'||e.key==='H')){ $('helpBtn').click(); return; }
   if(gameOver) return;
   if(!map || $('setup').classList.contains('show')) return; // no game running / setup open
   if(e.key==='t'||e.key==='T'){
@@ -4024,7 +4187,9 @@ function undoableAct(a){
   const u=a.t==='move'?byId(a.uid):null;
   const can=UNDOABLE[a.t] && !(u&&inb(a.x,a.y)&&tileAt(a.x,a.y).ruin);   // supply drops are final
   const before=can?undoSnap():null;
+  const seen0=a.t==='move'?explored.reduce((n,r)=>n+r.filter(Boolean).length,0):0;
   doAction(MYSIDE, a);
+  if(a.t==='move'&&explored.reduce((n,r)=>n+r.filter(Boolean).length,0)>seen0){ undoStack.length=0; syncUndo(); return; }   // new ground revealed: final
   if(!can) undoStack.length=0;
   else if(undoSnap()!==before){ undoStack.push(before); if(undoStack.length>40) undoStack.shift(); }
   syncUndo();
@@ -4052,7 +4217,9 @@ $('undoBtn').onclick=undo;
 /* host/solo: validate and execute one action for side s */
 function doAction(s, a){
   if(gameOver||!a||side!==s||!alive[s]) return;
+  for(const f of ['x','y','uid','tid','pick']) if(a[f]!==undefined&&!Number.isInteger(a[f])) return;   // malformed (or tampered) action
   const T=a.t;
+  if(NET.on&&s!==MYSIDE&&!isAI(s)) markSeen(s);
   if(T==='endturn'){ if(NET.on) log('sys', meta(s).name+' ends the turn.'); startTurn(nextAlive(s)); return; }
   if(T==='research'){ if(research(s,a.k)) refresh(); return; }
   if(T==='harvest'){ if(harvest(a.x,a.y,s)) refresh(); return; }
@@ -4078,7 +4245,7 @@ function doAction(s, a){
   }
   const u=byId(a.uid);
   if(!u||u.owner!==s) return;
-  if(T==='hold'){ if(!u.attacked){ u.held=!u.moved; u.moved=true; u.attacked=true; refresh(); } return; }
+  if(T==='hold'){ if(!u.attacked){ u.held=!u.moved; u.waited=true; u.moved=true; u.attacked=true; refresh(); } return; }
   if(T==='promote'){ if(promote(u)) refresh(); return; }
   if(T==='capture'){ if(captureCity(u)) refresh(); return; }
   if(T==='move'){
@@ -4089,6 +4256,7 @@ function doAction(s, a){
   if(T==='atk'){
     const d=byId(a.tid);
     if(!d||u.attacked||!attackTargets(u).includes(d)) return;
+    if(NET.on&&s!==MYSIDE&&!isAI(s)&&!markSeen(s)[d.y][d.x]) return;   // a remote player can't hit what they have never seen
     attack(u,d); refresh(); return;
   }
   if(T==='nuke'){
@@ -4166,6 +4334,7 @@ const NET={
   hostData(conn,m){
     if(!m||typeof m!=='object') return;
     if(m.t==='hello'){
+      if(conn._side) return;   // one seat per connection
       if(m.v!==1){ try{conn.send({t:'deny',m:'Version mismatch \u2014 both players need the same game file.'});}catch(e){} setTimeout(()=>{try{conn.close();}catch(e){}},400); return; }
       const nm=String(m.name||'ALLY').slice(0,14).toUpperCase()||'ALLY';
       if(this.inGame){
@@ -4175,7 +4344,7 @@ const NET={
         this.humans[slot].conn=conn; conn._side=slot;
         clearTimeout(this._takeT); this._takeT=null; netBar(null);
         log('sys', nm+' reconnected.');
-        try{ conn.send({t:'start', you:slot, d:this.state(), e:[]}); }catch(e){}
+        try{ conn.send({t:'start', you:slot, d:this.stateFor(slot,this.state()), e:[]}); }catch(e){}
         return;
       }
       let sl=this.slots.find(x=>x.kind==='open');
@@ -4301,7 +4470,7 @@ const NET={
       alive:{...alive}, stars:{...stars},
       tech:Object.fromEntries(turnOrder.map(s=>[s,[...tech[s]]])),
       turn, uid, side, over:gameOver, winner:this.winner, stats:{...stats},
-      tm:this.timer, tl:this.turnEnds?Math.max(0,this.turnEnds-Date.now()):0, tc:{...turnCities},
+      tm:this.timer, tl:this.turnEnds?Math.max(0,this.turnEnds-Date.now()):0, tc:{...turnCities}, rv:mapReveals, ln:{...lastNuke},
       units:units.map(u=>({...u})),
       explored:null,
       map:map.map(row=>row.map(t=>({t:t.terrain, c:packCity(t.city), r:t.resource||0, ru:t.ruin?1:0})))
@@ -4315,11 +4484,17 @@ const NET={
   },
   flush(){
     if(!this.host||!this.inGame) return;
-    const pack={t:'st', d:this.state(), e:this.evts.splice(0)};
+    const d=this.state(), e=this.evts.splice(0);
     for(const s in this.humans){
       const c=this.humans[s].conn;
-      if(c&&c.open){ try{ c.send(pack); }catch(e){} }
+      if(c&&c.open){ try{ c.send({t:'st', d:this.stateFor(s,d), e}); }catch(err){} }
     }
+  },
+  // a player's copy of the state: enemy units they have never had in sight are left out (spectators see all)
+  stateFor(s,d){
+    if(!alive[s]||gameOver) return d;
+    const seen=markSeen(s);
+    return {...d, units:d.units.filter(u=>u.owner===s||(seen[u.y]&&seen[u.y][u.x]))};
   },
 
   /* ---------------- joining ---------------- */
@@ -4410,6 +4585,7 @@ const NET={
 
   /* ---------------- turn timer: everyone sees the clock, the host enforces it ---------------- */
   timerTick(){
+    this._lastTick=Date.now();
     const box=$('hudTimerBox'), on=this.on&&this.inGame&&!gameOver&&this.turnEnds>0;
     if(box.hidden===on) box.hidden=!on;
     if(!on) return;
@@ -4545,10 +4721,12 @@ function applyNetState(d, evts){
   units=d.units.map(u=>({...u}));
   alive={...d.alive}; stars={...d.stars}; uid=d.uid; turn=d.turn;
   tech={}; for(const s of turnOrder) tech[s]=new Set(d.tech[s]||[]);
+  const wasMine=side===MYSIDE;
   side=d.side;
   NET.humansList=d.humans||[];
   NET.timer=d.tm||0; NET.turnEnds=d.tl?Date.now()+d.tl:0;
   turnCities=d.tc||{};
+  for(const r of d.rv||[]) if(r.s===MYSIDE) revealAround(r.x,r.y,r.r);
   if(terr) buildBoard();
   if(sel){
     if(sel.kind==='unit'){ if(!byId(sel.id)) sel=null; }
@@ -4557,6 +4735,7 @@ function applyNetState(d, evts){
   }
   refresh();
   if(evts&&evts.length) replayEvts(evts);
+  if(!wasMine&&side===MYSIDE&&alive[MYSIDE]&&!d.over){ endGuard=performance.now()+700; myTurnNotices(); }   // a guest's turn begins
   if(wasAlive&&alive[MYSIDE]===false&&!d.over) showDefeat();
   if(d.over&&!gameOver) endGame(d.winner);
 }
@@ -4676,10 +4855,11 @@ if(CAN_STORE){ try{ const n=localStorage.getItem('foothold-callsign'); if(n) $('
 ================================================================ */
 function newGame(){
   gen++;
+  if(NET.on) tutStop();
   document.body.classList.remove('nogame');
   fitSaved=null; camDistGoal=null; camPhiGoal=null; cam.phi=0.96; $('fitBtn').classList.remove('on');
   $('turnBanner').classList.remove('show');
-  gcfg={...cfg}; blockedHint=false; lastNuke={}; nukeWarned={};
+  gcfg={...cfg}; blockedHint=false; lastNuke={}; nukeWarned={}; mapReveals=[]; seenBy={};
   undoStack.length=0;
   turnCities={};
   $('endBar').hidden=true;
@@ -4706,8 +4886,8 @@ function newGame(){
     stars[s]=(isAI(s)?diff().start:6)+(turnOrder.indexOf(s)>0?3:0);
     tech[s]=new Set(playerMeta[s].faction.startTech?[playerMeta[s].faction.startTech]:[]);
   }
-  for(const [,g] of unitMeshes) unitGroup.remove(g);
-  dyingUnits.forEach(d=>unitGroup.remove(d.g)); dyingUnits.length=0;
+  for(const [,g] of unitMeshes){ unitGroup.remove(g); freeUnitMesh(g); }
+  dyingUnits.forEach(d=>{ unitGroup.remove(d.g); freeUnitMesh(d.g); }); dyingUnits.length=0;
   unitMeshes.clear(); hlGroup.clear(); fxGroup.clear(); fx.flashes.length=0; fx.pops.length=0;
   const caps=genMap();
   explored=Array.from({length:H},()=>Array(W).fill(false));
