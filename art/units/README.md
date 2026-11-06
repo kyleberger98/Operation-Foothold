@@ -2,14 +2,14 @@
 
 ![All seven units in Aegis colours](lineup.webp)
 
-Low-poly unit models for Operation Foothold, built in Blender from a Python script.
+Low-poly unit models for Gridline Command, built in Blender from a Python script.
 
 | File | What it is |
 |---|---|
 | `units.py` | Builds all seven units (INF, SNP, TNK, ART, AA, HEL, NUKE) in Blender. Exports `units.json` and can render previews. |
 | `units.blend` | The models as a Blender scene, laid out on tiles. Open it in Blender 5.x. |
 | `units.json` | The packed models the game uses. |
-| `integrate.py` | Writes `units.json` into `operation-foothold-final.html`, replacing the unit builders. |
+| `integrate.py` | Writes `units.json` into `gridline-command.html`, replacing the unit builders. |
 
 ## Conventions
 
@@ -25,7 +25,7 @@ You need Blender as a Python module (`bpy`). Python 3.13 needs `bpy` 5.1 or newe
 python3 -m venv .venv && .venv/bin/pip install bpy
 .venv/bin/python art/units/units.py /tmp/units render      # models + Cycles renders + units.blend
 cp /tmp/units/units.json /tmp/units/units.blend art/units/
-python3 art/units/integrate.py operation-foothold-final.html art/units/units.json
+python3 art/units/integrate.py gridline-command.html art/units/units.json
 ```
 
 Use `quick` in place of `render` for a fast single-lineup preview. Leave both off to export `units.json` only.
