@@ -1,10 +1,10 @@
-# Operation Foothold
+# Gridline Command
 
 A turn-based tactics game in your browser: capture every enemy HQ. Low-poly 3D, four factions, a 22-tech research tree, solo games against the AI and live online matches for up to four players.
 
 **Play:** https://kyleberger98.github.io/Operation-Foothold/
 
-The whole game is one file, `operation-foothold-final.html`. It also runs offline: download it and open it in any modern browser.
+The whole game is one file, `gridline-command.html`. It also runs offline: download it and open it in any modern browser.
 
 ## Playing with friends
 
@@ -18,6 +18,7 @@ Everyone plays live, and the host's device runs the match, so the host keeps the
 
 | Path | What it is |
 |---|---|
-| `operation-foothold-final.html` | The game |
+| `gridline-command.html` | The game |
+| `operation-foothold-final.html` | The old file name (the game used to be called Operation Foothold); forwards to the game so old links keep working |
 | `index.html` | Forwards the short address (and invite links) to the game |
 | `art/units/` | Blender source for the unit models; see its README |
