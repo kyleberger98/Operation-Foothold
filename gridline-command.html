@@ -3045,20 +3045,31 @@ let cardGuard=0, lastSelKey='';
 function keepSelVisible(){
   if(!sel||!document.body.classList.contains('selOpen')) return;
   const p=sel.kind==='unit'?byId(sel.id):sel; if(!p) return;
-  const card=$('command').getBoundingClientRect(), r=cvs.getBoundingClientRect();
-  const proj=(x,z)=>{ const v=new THREE.Vector3(x,TOP,z).project(camera); return {x:r.left+(v.x+1)/2*r.width, y:r.top+(1-v.y)/2*r.height}; };
-  if(card.left>innerWidth*0.3||card.right<innerWidth*0.7){   // docked to a side: slide the tile into the open half
-    const a=proj(wx(p.x),wz(p.y)), b=proj(wx(p.x)+1,wz(p.y));
-    if(a.x<card.left-24||a.x>card.right+24||a.y<card.top||b.x===a.x) return;
-    const want=card.left>innerWidth*0.3?card.left/2:(card.right+innerWidth)/2;
-    camGoal=(camGoal||cam.target).clone().add(new THREE.Vector3((a.x-want)/(b.x-a.x),0,0));
-    return;
+  const el=$('command'), r=cvs.getBoundingClientRect();
+  // the card's resting place (ignores its slide-in animation)
+  const box=el.getBoundingClientRect(), slide=new DOMMatrix(getComputedStyle(el).transform).m42;
+  const card={left:box.left, top:box.top-slide, right:box.right};
+  const side=card.left>innerWidth*0.3||card.right<innerWidth*0.7;
+  // measure from where the camera is heading (a glide may be under way), not where it is this frame
+  const goal=(camGoal||cam.target).clone(), keep=cam.target.clone();
+  const at=t=>{ cam.target.copy(t); applyCam(); camera.updateMatrixWorld();
+    const v=new THREE.Vector3(wx(p.x),TOP,wz(p.y)).project(camera); return {x:r.left+(v.x+1)/2*r.width, y:r.top+(1-v.y)/2*r.height}; };
+  let a=at(goal), t=goal.clone(), need=false;
+  if(side) need=a.x>card.left-24&&a.x<card.right+24&&a.y>card.top;
+  else need=a.y>card.top-40;
+  if(need){
+    const want=side?(card.left>innerWidth*0.3?card.left-70:card.right+70):Math.max(80,card.top-70);
+    for(let i=0;i<5;i++){   // a few steps: perspective makes one step fall short
+      const cur=at(t), d=side?cur.x-want:cur.y-want;
+      if(Math.abs(d)<4) break;
+      const probe=t.clone().add(side?new THREE.Vector3(0.5,0,0):new THREE.Vector3(0,0,0.5)), q=at(probe);
+      const ppu=side?(cur.x-q.x)/0.5:(cur.y-q.y)/0.5;   // screen pixels the tile moves per world unit of camera travel
+      if(!ppu) break;
+      t.add(side?new THREE.Vector3(d/ppu,0,0):new THREE.Vector3(0,0,d/ppu));
+    }
   }
-  const a=proj(wx(p.x),wz(p.y)), b=proj(wx(p.x),wz(p.y)+1);
-  const want=Math.max(70, card.top*0.5);
-  if(a.y<card.top-24||b.y===a.y) return;
-  const dz=(a.y-want)/(b.y-a.y);   // world units along z per pixel, measured at the tile
-  camGoal=(camGoal||cam.target).clone().add(new THREE.Vector3(0,0,dz));
+  cam.target.copy(keep); applyCam();
+  if(need) camGoal=t;
 }   // card buttons ignore clicks for a moment after a board tap
 function handleClick(e){
   cardGuard=performance.now()+400;
