@@ -519,7 +519,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
         <button id="tutBtn" class="bigbtn">How to play<span>a guided first game</span></button>
       </div>
       <div class="saveNote">Your campaign auto-saves every move on this device.</div>
-      <div class="setRow"><button id="speedMenuBtn" class="speedMenu"></button><button id="soundMenuBtn" class="speedMenu"></button><button id="gfxMenuBtn" class="speedMenu"></button><button id="installBtn" class="speedMenu install" hidden></button></div>
+      <div class="setRow"><button id="speedMenuBtn" class="speedMenu"></button><button id="soundMenuBtn" class="speedMenu"></button><button id="gfxMenuBtn" class="speedMenu"></button><button id="followMenuBtn" class="speedMenu"></button><button id="installBtn" class="speedMenu install" hidden></button></div>
       <div id="installTip" hidden>On iPhone or iPad: tap the <b>Share</b> button, then <b>Add to Home Screen</b>. Gridline Command opens full-screen from its icon and plays offline.</div>
     </div>
     <div id="soloPane" style="display:none">
@@ -674,7 +674,7 @@ const FACTIONS={
   SOLARIS:{key:'SOLARIS',name:'Solaris Syndicate',color:0xf0b35c, trim:0xa67424, css:'#f0b35c',
            perk:'Industrialists \u2014 starts with Mining; ore and oil harvests cost 1\u2605 less.',
            startTech:'MINING', harvestDiscount:1},
-  GHOST:  {key:'GHOST',  name:'Ghost Division',   color:0xb18ae8, trim:0x6f4fa8, css:'#b18ae8',
+  GHOST:  {key:'GHOST',  name:'Ghost Division',   color:0xe65bc8, trim:0x99307f, css:'#e65bc8',
            perk:'Recon doctrine \u2014 vision range 3, starts with Marksmanship, and Ghost Snipers that haven\u2019t moved this turn shoot 3 tiles (overwatch).',
            startTech:'MARKS', vision:3, overwatch:true},
 };
@@ -740,7 +740,8 @@ function nextAlive(cur){
   }
   return cur;
 }
-function visXY(x,y){ return !!(explored&&explored[y]&&explored[y][x]); }
+let visNow=[];   // tiles in sight right now; explored ground you can't currently see keeps its terrain but hides enemy units
+function visXY(x,y){ return !!(visNow&&visNow[y]&&visNow[y][x]); }
 const UNIT_TYPES={
   INF:{key:'INF', name:'Infantry',   cost:2, hp:10, atk:2, def:2, move:1, range:1, fly:false, desc:'Cheap, dependable riflemen.'},
   SNP:{key:'SNP', name:'Sniper',     cost:5, hp:8,  atk:3, def:1, move:1, range:2, fly:false, desc:'Strikes from 2 tiles. +25% damage vs Infantry; armor shrugs it off.'},
@@ -1291,7 +1292,7 @@ function attackTargets(u){
   if(u.attacked||u.type==='NUKE') return [];   // missiles only launch with the nuke action
   if(siegeLocked(u)) return [];
   const rg=uRange(u);
-  return units.filter(e=>e.owner!==u.owner && cheb(u,e)<=rg && (u.owner!==MYSIDE || explored[e.y][e.x]));
+  return units.filter(e=>e.owner!==u.owner && cheb(u,e)<=rg && (u.owner!==MYSIDE || visXY(e.x,e.y)));
 }
 // detonate a nuclear missile on a target tile: full splash everywhere in radius, then consume the launcher
 function nukeStrike(u,tx,ty){
@@ -1488,7 +1489,15 @@ const SPEEDS=[{v:1,l:'Normal',i:'\u25b6'},{v:2.5,l:'Fast',i:'\u25b6\u25b6'},{v:0
 let aiSpeed=1;
 try{ const v=localStorage.getItem('foothold-ai-speed'); if(SPEEDS.some(s=>String(s.v)===v)) aiSpeed=+v; }catch(e){}
 const aiDelay=ms=>aiSpeed?ms/aiSpeed:0;
-const aiPan=(x,y)=>{ if(aiSpeed) panTo(x,y); };   // instant turns leave the camera where you put it
+let followAI=true;
+try{ followAI=localStorage.getItem('foothold-follow')!=='off'; }catch(e){}
+/* the camera glides to an enemy action only if you can see it, it's off screen, and following is on */
+const aiPan=(x,y)=>{
+  if(!aiSpeed||!followAI||!visXY(x,y)) return;
+  const v=new THREE.Vector3(wx(x),TOP,wz(y)).project(camera);
+  if(Math.abs(v.x)<0.8&&v.y<0.62&&v.y>-0.5) return;   // already in view
+  panTo(x,y);
+};
 function syncSpeed(){
   const s=SPEEDS.find(x=>x.v===aiSpeed)||SPEEDS[0];
   $('speedBtn').innerHTML=`<i>${s.i}</i>${s.l}<span>enemy turns \u00b7 tap to change</span>`;
@@ -1581,7 +1590,7 @@ async function aiTurn(me){
       const nu=units[units.length-1]; nu.moved=true; nu.attacked=true;
       log(me,`${meta(me).name} deploys ${UNIT_TYPES[pick].name}.`);
       refresh();
-      if(explored[c.y][c.x]){ aiPan(c.x,c.y); await sleep(280); if(stale()) return; }
+      if(visXY(c.x,c.y)){ aiPan(c.x,c.y); await sleep(280); if(stale()) return; }
     }
   }
   // spare stars after training: develop cities, cheapest first
@@ -1641,7 +1650,7 @@ async function aiTurn(me){
         if(n>bestN){ bestN=n; bestT={x,y}; }
       }
       if(bestT && bestN>=2){
-        aiPan(bestT.x,bestT.y); await sleep(400); if(stale()) return;
+        if(visXY(bestT.x,bestT.y)){ aiPan(bestT.x,bestT.y); await sleep(400); if(stale()) return; }
         nukeStrike(u,bestT.x,bestT.y); lastNuke[me]=turn;
         refresh(); await sleep(400); if(stale()) return;
       } else { u.attacked=true; } // hold fire until a worthwhile cluster appears
@@ -1899,7 +1908,7 @@ function setHover(h){
   let txt='';
   if(sel&&sel.kind==='unit'&&side===MYSIDE&&!gameOver){
     const su=units.find(q=>q.id===sel.id);
-    const tu=unitAt(h.x,h.y);
+    let tu=unitAt(h.x,h.y); if(tu&&tu.owner!==MYSIDE&&!visXY(h.x,h.y)) tu=null;
     if(su&&su.owner===MYSIDE&&tu&&tu.owner!==MYSIDE&&attackTargets(su).includes(tu)){
       txt=fcText(forecast(su,tu),tu)+(COARSE?'':' <span style="color:var(--dim)">\u00b7 click to fire</span>');
       cvs.style.cursor='crosshair';
@@ -2108,6 +2117,15 @@ function revealAround(x,y,r){
 }
 /* the host keeps a record of what each remote player has seen, to refuse attacks into their fog */
 let seenBy={};
+function sightOf(s){
+  const g=Array.from({length:H},()=>Array(W).fill(hasTech(s,'SAT')));
+  if(hasTech(s,'SAT')) return g;
+  const rev=(x,y,r)=>{ for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++) if(inb(x+dx,y+dy)) g[y+dy][x+dx]=true; };
+  const vr=visionR(s);
+  for(const u of units) if(u.owner===s) rev(u.x,u.y,vr);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.owner===s) rev(x,y,c.scout?Math.max(vr,4):vr); }
+  return g;
+}
 function markSeen(s){
   const g=seenBy[s]||(seenBy[s]=Array.from({length:H},()=>Array(W).fill(false)));
   const rev=(x,y,r)=>{ for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++) if(inb(x+dx,y+dy)) g[y+dy][x+dx]=true; };
@@ -2121,16 +2139,37 @@ function markSeen(s){
   return g;
 }
 function computeVision(){
-  if(hasTech(MYSIDE,'SAT')){
-    for(let y=0;y<H;y++)for(let x=0;x<W;x++) explored[y][x]=true;
-    return;
+  if(!map||!H) return;
+  const sat=hasTech(MYSIDE,'SAT'), all=sat||gameOver||!alive[MYSIDE];   // satellites, spectators and the end screen see everything
+  visNow=Array.from({length:H},()=>Array(W).fill(all));
+  if(sat) for(let y=0;y<H;y++)for(let x=0;x<W;x++) explored[y][x]=true;
+  if(!all){
+    const see=(x,y,r)=>{ for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){ const nx=x+dx, ny=y+dy; if(inb(nx,ny)){ explored[ny][nx]=true; visNow[ny][nx]=true; } } };
+    const vr=visionR(MYSIDE);
+    if(hasTech(MYSIDE,'RADIO')) for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const t=tileAt(x,y); if(t.city||t.ruin) explored[y][x]=true; }
+    for(const u of units) if(u.owner===MYSIDE) see(u.x,u.y,vr);
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+      const c=tileAt(x,y).city;
+      if(c&&c.owner===MYSIDE) see(x,y,c.scout?Math.max(vr,4):vr);
+    }
   }
-  const vr=visionR(MYSIDE);
-  if(hasTech(MYSIDE,'RADIO')) for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const t=tileAt(x,y); if(t.city||t.ruin) explored[y][x]=true; }
-  for(const u of units) if(u.owner===MYSIDE) revealAround(u.x,u.y,vr);
+  syncDim();
+}
+/* explored ground out of sight gets a soft shadow so it reads as "last seen" */
+const dimGroup=new THREE.Group();
+scene.add(dimGroup);
+const DIM_GEO=new THREE.PlaneGeometry(0.976,0.976); DIM_GEO.userData.keep=true;
+const DIM_MAT=new THREE.MeshBasicMaterial({color:0x08141a, transparent:true, opacity:0.34, depthWrite:false});
+let dimSig='';
+function syncDim(){
+  let sig='';
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++) sig+=explored[y][x]&&!visNow[y][x]?'1':'0';
+  if(sig===dimSig) return;
+  dimSig=sig; dimGroup.clear();
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-    const c=tileAt(x,y).city;
-    if(c&&c.owner===MYSIDE) revealAround(x,y,c.scout?Math.max(vr,4):vr);
+    if(!explored[y][x]||visNow[y][x]) continue;
+    const m=new THREE.Mesh(DIM_GEO, DIM_MAT); m.rotation.x=-Math.PI/2;
+    m.position.set(wx(x),(tileAt(x,y).terrain==='water'?TOP-0.14:TOP)+0.014,wz(y)); dimGroup.add(m);
   }
 }
 function syncFog(){
@@ -2294,7 +2333,7 @@ function drawCityLabel(sp,city){
 /* ---- static board ---- */
 function buildBoard(){
   freeTree(boardGroup,false); freeTree(fogGroup,false); freeTree(terrGroup,false);
-  boardGroup.clear(); terrGroup.clear(); terrSig=''; pickTiles=[]; cityDecor={}; tileGroups={}; resourceDecor={}; dropDecor={}; pumpjacks=[]; forestTrees={};
+  boardGroup.clear(); terrGroup.clear(); terrSig=''; dimGroup.clear(); dimSig=''; pickTiles=[]; cityDecor={}; tileGroups={}; resourceDecor={}; dropDecor={}; pumpjacks=[]; forestTrees={};
   fogGroup.clear(); fogClouds={}; dissolving=[];
   // layered earth strata under the board
   const base=box(W+0.6, 0.34, H+0.6, M.sand);
@@ -2403,7 +2442,7 @@ function buildBoard(){
       }
     }
     if(t.city){
-      const cd={};
+      const cd={tileBox};
       const cap=t.city.capital;
       // buildings
       const b1=box(cap?0.34:0.26, cap?0.42:0.24, cap?0.34:0.26, M.bldg);
@@ -2470,7 +2509,7 @@ function syncTerritory(){
       if(d<dist[ny][nx]){ dist[ny][nx]=d; own[ny][nx]=c.owner; }
     }
   }
-  const vis=(x,y)=>explored[y]&&explored[y][x];
+  const vis=(x,y)=>explored[y]&&explored[y][x]&&(own[y][x]===MYSIDE||visXY(x,y));
   let sig='';
   for(let y=0;y<H;y++)for(let x=0;x<W;x++) sig+=(vis(x,y)&&own[y][x])||'.';
   if(sig===terrSig) return;
@@ -2512,6 +2551,9 @@ function syncCities(){
       }
       cd.g.add(cd.extra);
     }
+    // rival and neutral cities only show while you can see them
+    const shown=city.owner===MYSIDE||visXY(x,y);
+    for(const ch of cd.g.children) if(ch!==cd.tileBox) ch.visible=shown;
   }
 }
 
@@ -2635,7 +2677,7 @@ function syncUnits(){
       unitMeshes.set(u.id,g);
     }
     g.userData.target=new THREE.Vector3(wx(u.x), unitBaseY(u), wz(u.y));
-    g.visible = (u.owner===MYSIDE) || explored[u.y][u.x];
+    g.visible = (u.owner===MYSIDE) || visXY(u.x,u.y);
     // dim your own spent units so ready troops stand out at a glance
     const spent = u.owner===MYSIDE && side===MYSIDE && !gameOver &&
       (u.attacked || (UNIT_TYPES[u.type].siege && u.moved && attackTargets(u).length===0));
@@ -3122,7 +3164,8 @@ cvs.addEventListener('contextmenu',e=>{
 function onTileClick(x,y){
   if($('setup').classList.contains('show')) return;
   if(!explored[y][x]){ sel=null; refresh(); return; }
-  const u=unitAt(x,y);
+  let u=unitAt(x,y);
+  if(u&&u.owner!==MYSIDE&&!visXY(x,y)) u=null;   // nothing to tap on where you can't see
   const pa=pendingAtk; pendingAtk=null;
   if(sel&&sel.kind==='unit'){
     const su=units.find(q=>q.id===sel.id);
@@ -3165,7 +3208,7 @@ function onTileClick(x,y){
   }
   if(u){ sel={kind:'unit',id:u.id}; sfx.select(); refresh(); return; }
   const c=tileAt(x,y).city;
-  if(c&&!u){ sel={kind:'city',x,y}; sfx.select(); refresh(); return; }
+  if(c&&!u&&(c.owner===MYSIDE||visXY(x,y))){ sel={kind:'city',x,y}; sfx.select(); refresh(); return; }
   if(tileAt(x,y).ruin){ sel={kind:'drop',x,y}; sfx.select(); refresh(); return; }
   if(tileAt(x,y).resource){ sel={kind:'res',x,y}; sfx.select(); refresh(); return; }
   sel=null; refresh();
@@ -3178,6 +3221,7 @@ const hasWork=u=>u.owner===MYSIDE && !u.attacked && (!u.moved || attackTargets(u
 function readyCount(){ return gameOver?0:units.filter(hasWork).length; }
 function refresh(){
   if(!map) return;
+  computeVision();
   $('hudStars').textContent=stars[MYSIDE];
   $('hudIncome').textContent='+'+income(MYSIDE);
   $('hudTurn').textContent=turn;
@@ -4036,6 +4080,9 @@ $('muteBtn').onclick=()=>{
   if(!muted) sfx.select();
 };
 $('soundMenuBtn').onclick=()=>$('muteBtn').click();
+function syncFollow(){ $('followMenuBtn').innerHTML='Camera: <b>'+(followAI?'Follows enemies':'Stays put')+'</b>'; $('followMenuBtn').title=followAI?'During enemy turns the camera glides to actions you can see':'The camera stays where you leave it during enemy turns'; }
+$('followMenuBtn').onclick=()=>{ followAI=!followAI; try{ localStorage.setItem('foothold-follow', followAI?'on':'off'); }catch(e){} syncFollow(); sfx.select(); };
+syncFollow();
 function syncGfx(){ $('gfxMenuBtn').innerHTML='Graphics: <b>'+(gfxLow?'Low':'High')+'</b>'; $('gfxMenuBtn').title=gfxLow?'Low: no shadows or waves, lighter on battery':'High: shadows, waves, sharp rendering'; }
 $('gfxMenuBtn').onclick=()=>{
   gfxLow=!gfxLow;
@@ -4154,7 +4201,7 @@ $('helpBtn').onclick=()=>{
     ['Army size','Each city supports its level + 1 units. Grow and capture cities to field a bigger army.'],
     ['Develop','Spare stars? Select one of your cities and tap Develop for +1 population (4\u2605 + 2\u2605 per level, once per city each turn). A level-5 city builds Barracks instead: 20\u2605 for +1 army size, up to three per city.'],
     ['Move & Attack','Click a unit: blue tiles = move, red rings = attack. One move + one attack each per turn. On a computer, right-click a tile to move or fire with the selected unit straight away. Melee units (range 1) advance into a tile when they destroy its defender — advance onto a city and it can capture next turn.'],
-    ['Fog','Cloud cover hides undiscovered land. Units and cities see 2 tiles around them; explored ground stays visible.'],
+    ['Fog','Cloud cover hides undiscovered land. Units and cities see 2 tiles around them. Explored ground stays on the map, but enemy units only show where you can see right now \u2014 shaded tiles are out of sight.'],
     ['Economy','Crops (2\u2605), ore (4\u2605) and oil (6\u2605) sit near cities. Harvest one inside your territory to add population — fill the bar to level the city up for +1\u2605 income, permanently. Capture gray neutral cities to claim their resources.'],
     ['Counters','Snipers +25% vs Infantry \u00b7 Tanks resist Sniper fire \u00b7 Helicopters +50% vs Tanks and resist their guns \u00b7 Flak Batteries +75% vs Helicopters and resist their fire. Artillery blasts also hit enemies next to the target for 25%.'],
     ['Factions','Aegis: +1 HP and heals while resting or on the march (free Field Medicine) \u00b7 Crimson: every unit 1\u2605 cheaper \u00b7 Solaris mines from the start & harvests cheaper \u00b7 Ghost sees 3 tiles, and Snipers that hold still shoot 3 tiles.'],
@@ -4166,7 +4213,8 @@ $('helpBtn').onclick=()=>{
     ['Multiplayer','Host an operation from the menu to get a 5-letter room code \u2014 up to three friends join with it. The host\u2019s device referees the match, so keep it online; if the host drops, guests can Export Save and finish the campaign solo. The host can set a per-turn timer in the lobby.'],
     ['Difficulty','Menu \u2192 Custom. Easy rivals collect 60% of their income, train one unit a turn, research every other turn and are slow to attack. Normal: 80%, two units a turn. Hard: full income, three units a turn. Crazy rivals collect 70% extra, train in every city, start richer and research twice as fast.'],
     ['Undo','Single player: step back through this turn\u2019s moves, training, harvests and holds. Attacks, captures, supply drops, research and ending the turn are final.'],
-    ['Enemy turns','Tap the speed pill under the banner (or press F) to watch enemy turns at normal speed, fast, or skip straight to your turn.'],
+    ['Enemy turns','Tap the speed pill under the banner (or press F) to watch enemy turns at normal speed, fast, or skip straight to your turn. Menu \u2192 Camera chooses whether the camera follows enemy actions you can see.'],
+
     ['Tutorial','Replay the guided first game any time: Menu \u2192 How to play.'],
     ['Hotkeys','Space/Enter end turn \u00b7 Tab/N next unit \u00b7 U or Ctrl+Z undo \u00b7 F enemy speed \u00b7 C center on HQ \u00b7 V whole map \u00b7 T tech \u00b7 H manual \u00b7 M mute \u00b7 Esc deselect.'],
   ];
@@ -4297,7 +4345,7 @@ function doAction(s, a){
   if(T==='atk'){
     const d=byId(a.tid);
     if(!d||u.attacked||!attackTargets(u).includes(d)) return;
-    if(NET.on&&s!==MYSIDE&&!isAI(s)&&!markSeen(s)[d.y][d.x]) return;   // a remote player can't hit what they have never seen
+    if(NET.on&&s!==MYSIDE&&!isAI(s)&&!sightOf(s)[d.y][d.x]) return;   // a remote player can't hit what they can't see
     attack(u,d); refresh(); return;
   }
   if(T==='nuke'){
@@ -4534,7 +4582,7 @@ const NET={
   // a player's copy of the state: enemy units they have never had in sight are left out (spectators see all)
   stateFor(s,d){
     if(!alive[s]||gameOver) return d;
-    const seen=markSeen(s);
+    const seen=sightOf(s);
     return {...d, units:d.units.filter(u=>u.owner===s||(seen[u.y]&&seen[u.y][u.x]))};
   },
 
