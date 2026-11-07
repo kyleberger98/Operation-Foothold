@@ -684,8 +684,8 @@ const FACTIONS={
            perk:'Green revolution \u2014 crop harvests give +1 extra population, and Develop costs 2\u2605 less.',
            cropBonus:1, devDiscount:2},
   TIDE:   {key:'TIDE',   name:'Tidewatch Rangers', color:0x22d3b0, trim:0x16806c, css:'#22d3b0',
-           perk:'Light infantry \u2014 Infantry move 2 tiles, and you start with Field Radio (+1 vision, villages revealed).',
-           startTech:'RADIO', infMove:1},
+           perk:'Rapid deployment \u2014 starts with a second Infantry squad and Field Radio (+1 vision, villages revealed).',
+           startTech:'RADIO', extraInf:1},
 };
 /* factions whose colours read alike on the board are kept apart when the AI picks rivals */
 const FACTION_CLASH={AEGIS:['TIDE'], TIDE:['AEGIS']};
@@ -4216,7 +4216,7 @@ $('helpBtn').onclick=()=>{
     ['Fog','Cloud cover hides undiscovered land. Units and cities see 2 tiles around them. Explored ground stays on the map, but enemy units only show where you can see right now \u2014 shaded tiles are out of sight.'],
     ['Economy','Crops (2\u2605), ore (4\u2605) and oil (6\u2605) sit near cities. Harvest one inside your territory to add population — fill the bar to level the city up for +1\u2605 income, permanently. Capture gray neutral cities to claim their resources.'],
     ['Counters','Snipers +25% vs Infantry \u00b7 Tanks resist Sniper fire \u00b7 Helicopters +50% vs Tanks and resist their guns \u00b7 Flak Batteries +75% vs Helicopters and resist their fire. Artillery blasts also hit enemies next to the target for 25%.'],
-    ['Factions','Aegis: +1 HP and heals while resting or on the march (free Field Medicine) \u00b7 Crimson: every unit 1\u2605 cheaper \u00b7 Solaris mines from the start & harvests cheaper \u00b7 Ghost sees 3 tiles, and Snipers that hold still shoot 3 tiles \u00b7 Iron Bastion: City Walls on every city it holds \u00b7 Verdant: crops give +1 population, Develop 2\u2605 cheaper \u00b7 Tidewatch: Infantry move 2, free Field Radio.'],
+    ['Factions','Aegis: +1 HP and heals while resting or on the march (free Field Medicine) \u00b7 Crimson: every unit 1\u2605 cheaper \u00b7 Solaris mines from the start & harvests cheaper \u00b7 Ghost sees 3 tiles, and Snipers that hold still shoot 3 tiles \u00b7 Iron Bastion: City Walls on every city it holds \u00b7 Verdant: crops give +1 population, Develop 2\u2605 cheaper \u00b7 Tidewatch: a second starting Infantry and free Field Radio.'],
     ['Tech','Combat: Sniper \u2192 Tank \u2192 Artillery, plus drills, armor and self-propelled guns. Industry: Ore \u2192 Oil \u2192 Helicopter, plus cheaper training, +1\u2605 per city and faster gunships. Support: healing, 2\u00d7 city defense, forest camouflage, field hospitals and blast protection. Intel: +1 vision, the Flak Battery and longer artillery range. Strategic: Satellite Network (reveals the map) and Manhattan Project (the Nuclear Missile — a one-use 5\u00d75 strike). A tech costs 4/6/12/18\u2605 by tier, plus its tier for every city beyond your first (counted at the start of your turn).'],
     ['City rewards','Every time a city levels up you pick one of two rewards: Workshop or Scouts, City walls or a War chest, Population boom or Wider borders, Command post or an Elite tank.'],
     ['Supply drops','Parachuted crates hide in the fog. The first unit to step on one opens it: stars, a free tech, a free Infantry, a map of the area, or settlers for your nearest city.'],
@@ -4997,7 +4997,15 @@ function newGame(){
   unitMeshes.clear(); hlGroup.clear(); fxGroup.clear(); fx.flashes.length=0; fx.pops.length=0;
   const caps=genMap();
   explored=Array.from({length:H},()=>Array(W).fill(false));
-  for(const s of turnOrder) spawn(s,'INF',caps[s].x,caps[s].y);
+  for(const s of turnOrder){
+    spawn(s,'INF',caps[s].x,caps[s].y);
+    // Tidewatch lands a second rifle squad beside the HQ
+    for(let n=0;n<(meta(s).faction.extraInf||0);n++){
+      const c=caps[s], q=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]].map(([dx,dy])=>({x:c.x+dx,y:c.y+dy}))
+        .find(t=>inb(t.x,t.y)&&!unitAt(t.x,t.y)&&!tileAt(t.x,t.y).city&&!tileAt(t.x,t.y).ruin&&tileAt(t.x,t.y).terrain!=='water'&&tileAt(t.x,t.y).terrain!=='mountain');
+      if(q) spawn(s,'INF',q.x,q.y);
+    }
+  }
   computeVision();
   buildBoard();
   buildSkyClouds();
