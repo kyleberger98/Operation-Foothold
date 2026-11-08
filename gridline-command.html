@@ -544,7 +544,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
     <div class="optRow" id="diffRow">
       <button class="opt" data-diff="easy">Easy<span>relaxed rivals</span></button>
       <button class="opt sel" data-diff="normal">Normal<span>a fair fight</span></button>
-      <button class="opt" data-diff="hard">Hard<span>the original AI</span></button>
+      <button class="opt" data-diff="hard">Hard<span>a tough fight</span></button>
       <button class="opt" data-diff="crazy">Crazy<span>rivals earn far more</span></button>
     </div>
     <button id="startBtn" class="bigbtn primary">Begin operation<span>start a new game with these settings</span></button>
@@ -677,7 +677,18 @@ const FACTIONS={
   GHOST:  {key:'GHOST',  name:'Ghost Division',   color:0xe65bc8, trim:0x99307f, css:'#e65bc8',
            perk:'Recon doctrine \u2014 vision range 3, starts with Marksmanship, and Ghost Snipers that haven\u2019t moved this turn shoot 3 tiles (overwatch).',
            startTech:'MARKS', vision:3, overwatch:true},
+  BASTION:{key:'BASTION',name:'Iron Bastion',     color:0xefe6cc, trim:0x8c8370, css:'#efe6cc',
+           perk:'Fortress doctrine \u2014 every city you hold has City Walls (+50% defense), your HQ from the very first turn.',
+           walls:true},
+  VERDANT:{key:'VERDANT',name:'Verdant Collective',color:0xa6d94e, trim:0x5e8a2a, css:'#a6d94e',
+           perk:'Green revolution \u2014 crop harvests give +1 extra population, and Develop costs 2\u2605 less.',
+           cropBonus:1, devDiscount:2},
+  TIDE:   {key:'TIDE',   name:'Tidewatch Rangers', color:0x22d3b0, trim:0x16806c, css:'#22d3b0',
+           perk:'Rapid deployment \u2014 starts with a second Infantry squad and Field Radio (+1 vision, villages revealed).',
+           startTech:'RADIO', extraInf:1},
 };
+/* factions whose colours read alike on the board are kept apart when the AI picks rivals */
+const FACTION_CLASH={AEGIS:['TIDE'], TIDE:['AEGIS']};
 let cfg={size:11, enemies:1, faction:'AEGIS', diff:'normal'};
 /* ---------------- AI DIFFICULTY ----------------
    inc: share of city income the AI collects · start: opening stars · train: units deployed per turn
@@ -724,7 +735,7 @@ function uDef(u){
   const home=inb(u.x,u.y)&&tileAt(u.x,u.y).city&&tileAt(u.x,u.y).city.owner===u.owner;
   return UNIT_TYPES[u.type].def + (u.type==='TNK'&&hasTech(u.owner,'ARMOR')&&!home?1:0);
 }
-function uMove(u){ return UNIT_TYPES[u.type].move + (u.type==='HEL'&&hasTech(u.owner,'TURBO')?1:0); }
+function uMove(u){ return UNIT_TYPES[u.type].move + (u.type==='HEL'&&hasTech(u.owner,'TURBO')?1:0) + (u.type==='INF'?(meta(u.owner).faction.infMove||0):0); }
 /* artillery can't move and fire on the same turn — unless Self-Propelled Guns */
 function siegeLocked(u){ return !!UNIT_TYPES[u.type].siege && u.moved && !(u.type==='ART'&&hasTech(u.owner,'SPG')); }
 function cityIncome(c){ return (c.capital?2:1)+c.level+(c.bonus||0)+(c.owner&&hasTech(c.owner,'URBAN')?1:0); }
@@ -950,7 +961,7 @@ function ownCityNear(x,y,owner,growing){
   return best;
 }
 const BARRACKS_MAX=3;
-const developCost=c=>c.level>=MAX_LEVEL?20:4+2*c.level;
+const developCost=c=>c.level>=MAX_LEVEL?20:Math.max(2,4+2*c.level-(c.owner&&playerMeta[c.owner]?(meta(c.owner).faction.devDiscount||0):0));
 const canDevelop=c=>c.level<MAX_LEVEL||(c.bk||0)<BARRACKS_MAX;
 function develop(s,x,y){
   const c=inb(x,y)?tileAt(x,y).city:null;
@@ -990,7 +1001,7 @@ function harvest(x,y,owner){
   t.resource=null;
   removeResourceDecor(x,y);
   const c=rc.city;
-  c.pop+=r.pop;
+  c.pop+=r.pop+(r===RES_TYPES.CROP?(meta(owner).faction.cropBonus||0):0);
   const gained=[];
   while(c.level<MAX_LEVEL && c.pop>=c.level+1){ c.pop-=c.level+1; c.level++; gained.push(c.level); }
   if(c.level>=MAX_LEVEL) c.pop=0;
@@ -1045,6 +1056,7 @@ const turnNotes=[];
 let recapAt=null;   // hints gathered at the start of your turn, shown in one notice
 function startTurn(s, first){
   side=s;
+  if(meta(s).faction.walls) map.flat().forEach(t=>{ if(t.city&&t.city.owner===s) t.city.walls=true; });
   if(s===MYSIDE&&!first&&myCam&&alive[MYSIDE]){ camGoal=myCam; myCam=null; }
   if(s===MYSIDE) endGuard=performance.now()+700;
   turnCities[s]=cityCount(s);
@@ -4204,7 +4216,7 @@ $('helpBtn').onclick=()=>{
     ['Fog','Cloud cover hides undiscovered land. Units and cities see 2 tiles around them. Explored ground stays on the map, but enemy units only show where you can see right now \u2014 shaded tiles are out of sight.'],
     ['Economy','Crops (2\u2605), ore (4\u2605) and oil (6\u2605) sit near cities. Harvest one inside your territory to add population — fill the bar to level the city up for +1\u2605 income, permanently. Capture gray neutral cities to claim their resources.'],
     ['Counters','Snipers +25% vs Infantry \u00b7 Tanks resist Sniper fire \u00b7 Helicopters +50% vs Tanks and resist their guns \u00b7 Flak Batteries +75% vs Helicopters and resist their fire. Artillery blasts also hit enemies next to the target for 25%.'],
-    ['Factions','Aegis: +1 HP and heals while resting or on the march (free Field Medicine) \u00b7 Crimson: every unit 1\u2605 cheaper \u00b7 Solaris mines from the start & harvests cheaper \u00b7 Ghost sees 3 tiles, and Snipers that hold still shoot 3 tiles.'],
+    ['Factions','Aegis: +1 HP and heals while resting or on the march (free Field Medicine) \u00b7 Crimson: every unit 1\u2605 cheaper \u00b7 Solaris mines from the start & harvests cheaper \u00b7 Ghost sees 3 tiles, and Snipers that hold still shoot 3 tiles \u00b7 Iron Bastion: City Walls on every city it holds \u00b7 Verdant: crops give +1 population, Develop 2\u2605 cheaper \u00b7 Tidewatch: a second starting Infantry and free Field Radio.'],
     ['Tech','Combat: Sniper \u2192 Tank \u2192 Artillery, plus drills, armor and self-propelled guns. Industry: Ore \u2192 Oil \u2192 Helicopter, plus cheaper training, +1\u2605 per city and faster gunships. Support: healing, 2\u00d7 city defense, forest camouflage, field hospitals and blast protection. Intel: +1 vision, the Flak Battery and longer artillery range. Strategic: Satellite Network (reveals the map) and Manhattan Project (the Nuclear Missile — a one-use 5\u00d75 strike). A tech costs 4/6/12/18\u2605 by tier, plus its tier for every city beyond your first (counted at the start of your turn).'],
     ['City rewards','Every time a city levels up you pick one of two rewards: Workshop or Scouts, City walls or a War chest, Population boom or Wider borders, Command post or an Elite tank.'],
     ['Supply drops','Parachuted crates hide in the fog. The first unit to step on one opens it: stars, a free tech, a free Infantry, a map of the area, or settlers for your nearest city.'],
@@ -4961,10 +4973,14 @@ function newGame(){
   playerMeta[P]=mkMeta(FACTIONS[cfg.faction]);
   const pool=Object.keys(FACTIONS).filter(f=>f!==cfg.faction);
   for(let i=pool.length-1;i>0;i--){const j=rnd(i+1);[pool[i],pool[j]]=[pool[j],pool[i]];}
+  const chosen=[cfg.faction];
   for(let i=0;i<cfg.enemies;i++){
     const s='A'+(i+1);
     enemySides.push(s);
-    playerMeta[s]=mkMeta(FACTIONS[pool[i%pool.length]]);
+    let k=pool.findIndex(f=>!chosen.some(c=>(FACTION_CLASH[c]||[]).includes(f)));
+    if(k<0) k=0;
+    const fk=pool.length?pool.splice(k,1)[0]:cfg.faction; chosen.push(fk);
+    playerMeta[s]=mkMeta(FACTIONS[fk]);
     alive[s]=true;
   }
   turnOrder=[P,...enemySides];
@@ -4981,7 +4997,15 @@ function newGame(){
   unitMeshes.clear(); hlGroup.clear(); fxGroup.clear(); fx.flashes.length=0; fx.pops.length=0;
   const caps=genMap();
   explored=Array.from({length:H},()=>Array(W).fill(false));
-  for(const s of turnOrder) spawn(s,'INF',caps[s].x,caps[s].y);
+  for(const s of turnOrder){
+    spawn(s,'INF',caps[s].x,caps[s].y);
+    // Tidewatch lands a second rifle squad beside the HQ
+    for(let n=0;n<(meta(s).faction.extraInf||0);n++){
+      const c=caps[s], q=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]].map(([dx,dy])=>({x:c.x+dx,y:c.y+dy}))
+        .find(t=>inb(t.x,t.y)&&!unitAt(t.x,t.y)&&!tileAt(t.x,t.y).city&&!tileAt(t.x,t.y).ruin&&tileAt(t.x,t.y).terrain!=='water'&&tileAt(t.x,t.y).terrain!=='mountain');
+      if(q) spawn(s,'INF',q.x,q.y);
+    }
+  }
   computeVision();
   buildBoard();
   buildSkyClouds();
