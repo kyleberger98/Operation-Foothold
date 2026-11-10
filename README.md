@@ -6,6 +6,14 @@ A turn-based tactics game in your browser: capture every enemy HQ. Low-poly 3D, 
 
 The whole game is one file, `gridline-command.html`. It also runs offline: download it and open it in any modern browser.
 
+## What's in it
+
+- **Seven factions**, each with its own perk and a once-per-game commander power.
+- **Two modes:** Conquest (capture every HQ) and Score attack (30 turns, highest score wins).
+- **Stars and medals:** every solo win is rated one to three stars, and each faction keeps its best medal per difficulty.
+- **Pass & play:** two to four people can share one phone or computer, each with their own fog of war.
+- **Online:** live matches for up to four players with an invite link.
+
 ## Install it on your phone
 
 Gridline Command installs like an app, with its own home-screen icon, full-screen play and offline single-player:

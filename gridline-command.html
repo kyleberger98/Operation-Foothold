@@ -66,12 +66,20 @@ button{font:inherit; transition:background .15s ease, color .15s ease, border-co
 .rb.off{color:var(--dim)}
 #fitBtn{position:fixed; z-index:11; right:calc(env(safe-area-inset-right,0px) + 12px); top:calc(env(safe-area-inset-top,0px) + 62px)}
 #fitBtn.on{border-color:var(--amber); color:var(--amber)}
+#dangerBtn{position:fixed; z-index:11; right:calc(env(safe-area-inset-right,0px) + 12px); top:calc(env(safe-area-inset-top,0px) + 112px)}
+#dangerBtn.on{border-color:var(--red); color:var(--red)}
+#powerBtn{position:fixed; z-index:11; right:calc(env(safe-area-inset-right,0px) + 12px); top:calc(env(safe-area-inset-top,0px) + 162px)}
+#powerBtn.ready{border-color:var(--fc,var(--amber)); color:var(--fc,var(--amber)); animation:pwPulse 1.8s ease-in-out infinite}
+#powerBtn.spent{opacity:.35}
+@keyframes pwPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}50%{box-shadow:0 0 0 5px rgba(255,255,255,.14)}}
+.fpw{margin-top:6px; font-size:11.5px; color:var(--text); line-height:1.4}
+.fpw b{color:var(--amber)}
 #menuBtn{position:fixed; z-index:11; top:calc(env(safe-area-inset-top,0px) + 12px); left:calc(env(safe-area-inset-left,0px) + 12px)}
 #topRight{position:fixed; z-index:11; top:calc(env(safe-area-inset-top,0px) + 12px); right:calc(env(safe-area-inset-right,0px) + 12px);
   display:flex; gap:8px}
 
 /* ---- bottom dock: Tech on the left, Next unit + End turn on the right ---- */
-body.nogame #hud, body.nogame .dock, body.nogame #topRight, body.nogame #fitBtn, body.nogame #menuBtn{visibility:hidden}
+body.nogame #hud, body.nogame .dock, body.nogame #topRight, body.nogame #fitBtn, body.nogame #dangerBtn, body.nogame #powerBtn, body.nogame #menuBtn{visibility:hidden}
 .dock{position:fixed; z-index:12; bottom:calc(env(safe-area-inset-bottom,0px) + 12px);
   display:flex; flex-direction:column; align-items:center; gap:5px;
   padding:0; background:none; border:none; cursor:pointer; color:var(--text)}
@@ -241,6 +249,30 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 #setupInner{background:var(--panel); border:1px solid var(--line); max-width:860px; width:100%; margin:auto 0;
   padding:22px 24px 26px; border-radius:18px; box-shadow:0 24px 70px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04)}
 #setupInner.home{max-width:440px; background:rgba(22,29,24,.9)}
+.fmed{display:flex; gap:5px; margin-top:8px}
+.md{min-width:30px; padding:1px 6px; border-radius:999px; font-size:10px; font-weight:700; text-align:center; border:1px solid var(--line); color:var(--dim)}
+.md.s1{border-color:#c08457; color:#e0a070}
+.md.s2{border-color:#c9d1d6; color:#e6ecef}
+.md.s3{border-color:var(--amber); background:rgba(240,179,92,.16); color:var(--amber)}
+#progLine{color:var(--amber)}
+.ovScore{margin-top:14px; color:var(--text); font-size:13px}
+.ovStars{font-size:34px; letter-spacing:.14em; color:var(--amber); line-height:1; text-shadow:0 0 18px rgba(240,179,92,.45)}
+.ovStars i{font-style:normal; color:#3c4a40; text-shadow:none}
+.ovBig{font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:26px; letter-spacing:.08em; margin-top:8px}
+.ovNote{color:var(--amber); font-size:12.5px; margin-top:4px}
+.ovGrid{display:grid; grid-template-columns:1fr auto; gap:3px 18px; max-width:300px; margin:10px auto 0; text-align:left; color:var(--dim)}
+.ovGrid b{color:var(--text); text-align:right; font-variant-numeric:tabular-nums}
+.ovBoard{max-width:300px; margin:12px auto 0; border-top:1px solid var(--line); padding-top:8px; display:grid; grid-template-columns:1fr auto; gap:3px 18px; text-align:left}
+.ovBoard span.out{opacity:.5; text-decoration:line-through}
+.ovBoard b{text-align:right; font-variant-numeric:tabular-nums}
+#handoff{position:fixed; inset:0; z-index:58; display:flex; align-items:center; justify-content:center; padding:24px;
+  background:radial-gradient(ellipse at 50% 35%, #16262b, #070d0f 75%)}
+.hoBox{width:min(360px,100%); text-align:center; border-top:4px solid var(--fc,var(--amber)); border-radius:16px; padding:26px 22px 22px; background:rgba(22,29,24,.92); box-shadow:0 18px 50px rgba(0,0,0,.6)}
+.hoK{font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim)}
+#hoName{font-family:'Saira Condensed',sans-serif; font-size:44px; letter-spacing:.12em; text-transform:uppercase; margin:6px 0 2px}
+#hoFac{font-family:'Saira Condensed',sans-serif; font-size:19px; letter-spacing:.1em; text-transform:uppercase; margin-bottom:18px}
+#hoGo{width:100%}
+.opt:disabled{opacity:.35; cursor:default}
 .speedMenu.install{border-color:var(--amber); color:var(--amber)}
 .speedMenu.install b{color:var(--amber)}
 #installTip{margin:10px auto 0; max-width:340px; font-size:12px; line-height:1.5; color:var(--dim); text-align:center}
@@ -460,6 +492,8 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
   <div class="hud-box hb-timer" id="hudTimerBox" hidden><span class="v" id="hudTimer">0:00</span><span class="k">Time</span></div>
   <div class="hud-box hb-side"><span class="v" id="hudSide">YOU</span></div>
 </div>
+<button id="powerBtn" class="rb" title="Commander power (P)" aria-label="Commander power" hidden><svg viewBox="0 0 24 24"><path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/></svg></button>
+<button id="dangerBtn" class="rb" title="Danger zones: where enemies in sight can strike next turn (D)" aria-label="Danger zones"><svg viewBox="0 0 24 24"><path d="M12 4 21 19.5H3z"/><path d="M12 10v4.5M12 17v.3"/></svg></button>
 <button id="fitBtn" class="rb" title="Whole map (V)" aria-label="Whole map"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
 <button id="menuBtn" class="rb" title="Menu" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h14"/></svg></button>
 <div id="topRight">
@@ -470,6 +504,12 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 <button id="speedBtn" hidden></button>
 <div id="endBar" hidden><span id="endText"></span><button id="endNew">New game</button></div>
 <div id="toasts" aria-live="polite"></div>
+<div id="handoff" hidden><div class="hoBox">
+  <div class="hoK">Pass the device to</div>
+  <h2 id="hoName"></h2>
+  <div id="hoFac"></div>
+  <button id="hoGo" class="bigbtn primary">Start turn<span>your map stays hidden until you tap</span></button>
+</div></div>
 <div id="hoverTip" hidden></div>
 
 <button id="techBtn" class="dock" title="Tech tree (T)"><span class="disc"><svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v6.2L4.8 18.3A1.8 1.8 0 0 0 6.4 21h11.2a1.8 1.8 0 0 0 1.6-2.7L14 9.2V3"/><path d="M7.2 14.5h9.6"/></svg></span><span class="lb">Tech</span></button>
@@ -519,6 +559,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
         <button id="tutBtn" class="bigbtn">How to play<span>a guided first game</span></button>
       </div>
       <div class="saveNote">Your campaign auto-saves every move on this device.</div>
+      <div class="saveNote" id="progLine" hidden></div>
       <div class="setRow"><button id="speedMenuBtn" class="speedMenu"></button><button id="soundMenuBtn" class="speedMenu"></button><button id="gfxMenuBtn" class="speedMenu"></button><button id="followMenuBtn" class="speedMenu"></button><button id="installBtn" class="speedMenu install" hidden></button></div>
       <div id="installTip" hidden>On iPhone or iPad: tap the <b>Share</b> button, then <b>Add to Home Screen</b>. Gridline Command opens full-screen from its icon and plays offline.</div>
     </div>
@@ -527,6 +568,11 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
     <h3>Custom game</h3>
     <div class="sec">Choose your faction</div>
     <div id="factionGrid"></div>
+    <div class="sec">Game mode</div>
+    <div class="optRow" id="modeRow">
+      <button class="opt sel" data-mode="conquest">Conquest<span>capture every enemy HQ</span></button>
+      <button class="opt" data-mode="score">Score attack<span>30 turns · highest score wins</span></button>
+    </div>
     <div class="sec">Map size</div>
     <div class="optRow" id="sizeRow">
       <button class="opt" data-size="9">Small<span>9×9</span></button>
@@ -534,6 +580,15 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
       <button class="opt" data-size="13">Large<span>13×13</span></button>
       <button class="opt" data-size="15">Huge<span>15×15</span></button>
     </div>
+    <div class="sec">Players on this device</div>
+    <div class="optRow" id="hotRow">
+      <button class="opt sel" data-hot="1">Just me<span>against the computer</span></button>
+      <button class="opt" data-hot="2">2 players<span>pass &amp; play</span></button>
+      <button class="opt" data-hot="3">3 players<span>pass &amp; play</span></button>
+      <button class="opt" data-hot="4">4 players<span>pass &amp; play</span></button>
+    </div>
+    <div class="optRow" id="hotFacs"></div>
+    <div class="saveNote" id="hotNote" style="text-align:left"></div>
     <div class="sec">Opponents</div>
     <div class="optRow" id="enRow">
       <button class="opt sel" data-en="1">1 enemy</button>
@@ -662,6 +717,12 @@ if(!window.THREE){
 let W=11, H=11;
 const P='P';
 let MYSIDE=P;   // the side this device commands — differs from P for multiplayer guests
+/* pass-and-play: several people share this device. HOT lists their sides; MYSIDE follows whoever's turn it is,
+   and each player keeps their own fog, camera and turn recap. */
+let HOT=[];
+const hotOn=()=>HOT.length>1;
+const pname=s=>hotOn()&&HOT.includes(s)?'Player '+(HOT.indexOf(s)+1):meta(s).name;
+let exploredBy={}, camBy={}, turnSnaps={}, curtainUp=false, noticesDue=false, hoGuard=0;
 
 /* ---------------- FACTIONS ---------------- */
 const FACTIONS={
@@ -689,6 +750,75 @@ const FACTIONS={
 };
 /* factions whose colours read alike on the board are kept apart when the AI picks rivals */
 const FACTION_CLASH={AEGIS:['TIDE'], TIDE:['AEGIS']};
+/* commander powers: each faction has one, usable once per game on your own turn */
+const POWERS={
+  AEGIS:  {key:'triage',   name:'Field Triage',      desc:'Every unit you have is healed to full health.'},
+  CRIMSON:{key:'assault',  name:'All-Out Assault',   desc:'For the rest of this turn your units deal double damage.'},
+  SOLARIS:{key:'windfall', name:'Windfall',          desc:'Collect one and a half turns of income right now (at least 9\u2605).'},
+  GHOST:  {key:'ambush',   name:'Ambush',            desc:'For the rest of this turn your units deal +25% damage and enemies cannot return fire.'},
+  BASTION:{key:'bulwark',  name:'Hold the Line',     desc:'For two rounds, your units take half damage.'},
+  VERDANT:{key:'festival', name:'Harvest Festival',  desc:'Every city you hold gains +1 population.'},
+  TIDE:   {key:'airdrop',  name:'Reinforcements',    desc:'A free Infantry lands at every city you hold.'},
+};
+for(const k in POWERS) FACTIONS[k].power=POWERS[k];
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pw0=()=>({used:{}, rage:{}, ghost:{}, shield:{}});
+let pw=pw0();   // turn each side used its power, and the effects in force
+const powerReady=s=>!!(playerMeta[s]&&meta(s).faction.power)&&pw.used[s]==null&&alive[s];
+const shieldMul=o=>pw.shield[o]?0.5:1;
+function usePower(s){
+  if(!powerReady(s)) return false;
+  const p=meta(s).faction.power;
+  pw.used[s]=turn;
+  const mine=units.filter(u=>u.owner===s&&u.type!=='NUKE');
+  const cities=[];
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.owner===s) cities.push({x,y,c}); }
+  if(p.key==='triage'){
+    for(const u of mine) if(u.hp<u.maxHp){ fx.popup(u.x,u.y,'+'+(u.maxHp-u.hp),'#8fd89a'); u.hp=u.maxHp; }
+  } else if(p.key==='assault') pw.rage[s]=turn;
+  else if(p.key==='ambush') pw.ghost[s]=turn;
+  else if(p.key==='bulwark') pw.shield[s]=2;   // lasts until the second time your turn comes round
+  else if(p.key==='windfall'){ const g=Math.max(9, Math.round(income(s)*1.5)); stars[s]+=g; const h=cities.find(q=>q.c.capital)||cities[0]; if(h) fx.popup(h.x,h.y,'+'+g+'\u2605','#f0b35c'); }
+  else if(p.key==='festival'){
+    for(const q of cities){
+      const c=q.c; if(c.level>=MAX_LEVEL) continue;
+      c.pop+=1; const gained=[];
+      while(c.level<MAX_LEVEL&&c.pop>=c.level+1){ c.pop-=c.level+1; c.level++; gained.push(c.level); }
+      if(c.level>=MAX_LEVEL) c.pop=0;
+      if(gained.length) c.rw=(c.rw||[]).concat(gained);
+      fx.popup(q.x,q.y,gained.length?'LEVEL '+c.level+'!':'+1 POP','#8fd89a');
+    }
+  } else if(p.key==='airdrop'){
+    for(const q of cities){
+      const spot=[[0,0],[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]].map(([dx,dy])=>({x:q.x+dx,y:q.y+dy}))
+        .find(t=>inb(t.x,t.y)&&!unitAt(t.x,t.y)&&!tileAt(t.x,t.y).ruin&&tileAt(t.x,t.y).terrain!=='water'&&tileAt(t.x,t.y).terrain!=='mountain'&&(!tileAt(t.x,t.y).city||(t.x===q.x&&t.y===q.y)));
+      if(!spot) continue;
+      spawn(s,'INF',spot.x,spot.y); const nu=units[units.length-1]; nu.moved=true; nu.attacked=true;
+      fx.popup(spot.x,spot.y,'REINFORCED','#8fd89a');
+    }
+  }
+  for(const q of cities) fx.shock(q.x,q.y,meta(s).flag);
+  if(s===MYSIDE) sfx.level();
+  log(s, `COMMANDER POWER \u2014 ${meta(s).name}: ${p.name}!`);
+  return true;
+}
+/* the computer uses its power when it counts (Easy rivals never do) */
+function aiUsePower(me){
+  if(!powerReady(me)||!diff().sharp||turn<4) return;
+  const k=meta(me).faction.power.key, mine=units.filter(u=>u.owner===me&&u.type!=='NUKE');
+  const foes=units.filter(e=>e.owner!==me);
+  const inRange=mine.filter(u=>attackTargets(u).length).length;   // units that can strike right now
+  let hq=null; for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.capital&&c.owner===me) hq={x,y}; }
+  const cornered=!!hq&&foes.some(e=>cheb(e,hq)<=2);
+  let go=false;
+  const hurt=mine.reduce((n,u)=>n+(u.maxHp-u.hp),0);
+  if(k==='triage') go=hurt>=14;
+  else if(k==='assault'||k==='ambush') go=inRange>=3||(inRange>=2&&mine.length<=4);
+  else if(k==='windfall') go=income(me)>=8;
+  else if(k==='bulwark') go=mine.filter(u=>foes.some(e=>cheb(e,u)<=3)).length>=3;
+  else if(k==='festival'||k==='airdrop') go=cityCount(me)>=3;
+  if(go||(cornered&&mine.length&&(k!=='triage'||hurt>=8))) usePower(me);
+}
 let cfg={size:11, enemies:1, faction:'AEGIS', diff:'normal'};
 /* ---------------- AI DIFFICULTY ----------------
    inc: share of city income the AI collects · start: opening stars · train: units deployed per turn
@@ -703,7 +833,7 @@ const DIFFS={
 };
 let gcfg=null, blockedHint=false, lastNuke={}, nukeWarned={}, mapReveals=[];   // settings of the game being played (the menu's cfg can change underneath it)
 const diff=()=>DIFFS[(gcfg||cfg).diff]||DIFFS.normal;
-const isAI=s=>s!==P && !(NET.on&&NET.humans[s]);   // the host's own side and remote humans are people
+const isAI=s=>s!==P && !HOT.includes(s) && !(NET.on&&NET.humans[s]);   // the host's own side and remote humans are people
 let playerMeta={};      // side id -> {faction, name, body, trim, flag, css}
 let enemySides=[];      // ['A1','A2',...]
 let turnOrder=[];       // [P, ...enemySides]
@@ -833,6 +963,75 @@ function resUnlocked(s,k){ return !RES_REQ[k] || hasTech(s,RES_REQ[k]); }
 
 let map, units, stars, turn, side, sel, gameOver, uid, gen=0;
 let stats={kills:0,losses:0};
+let tally={};   // per side: kills, losses, eliminations (for the score)
+const tl=s=>tally[s]||(tally[s]={kills:0,losses:0,elims:0});
+const SCORE_TURNS=30;
+const gameMode=()=>((gcfg||cfg).mode==='score'&&!NET.on)?'score':'conquest';
+const parTurns=()=>W+6+3*enemySides.length;   // win by this turn for three stars
+function scoreParts(s){
+  let cities=0, techs=tech[s]?tech[s].size*25:0, army=0;
+  map.flat().forEach(t=>{ if(t.city&&t.city.owner===s) cities+=60+40*t.city.level; });
+  for(const u of units) if(u.owner===s&&u.type!=='NUKE') army+=4*UNIT_TYPES[u.type].cost;
+  const t=tl(s);
+  return {Cities:cities, Research:techs, Army:army, 'Enemy units destroyed':t.kills*10, 'Factions eliminated':t.elims*250};
+}
+function scoreOf(s){ return Object.values(scoreParts(s)).reduce((a,b)=>a+b,0); }
+function scoreLeader(){ return turnOrder.filter(s=>alive[s]).sort((a,b)=>scoreOf(b)-scoreOf(a))[0]; }
+/* ---- medals and records, kept on this device ---- */
+const PROG_KEY='foothold-progress';
+function loadProg(){ try{ return JSON.parse(localStorage.getItem(PROG_KEY))||{}; }catch(e){ return {}; } }
+function medalRow(fk){
+  const m=(loadProg().medals||{})[fk]||{};
+  return '<div class="fmed">'+Object.keys(DIFFS).map(d=>{ const n=m[d]||0;
+    return `<span class="md s${n}" title="${DIFFS[d].name}: ${n} of 3 stars">${DIFFS[d].name[0]} ${n?'★'.repeat(n):'–'}</span>`; }).join('')+'</div>';
+}
+function renderProgress(){
+  const p=loadProg(), el=$('progLine'); if(!el) return;
+  let stars=0; for(const f in (p.medals||{})) for(const d in p.medals[f]) stars+=p.medals[f][d];
+  el.hidden=!p.games;
+  el.textContent='★ '+stars+' of '+(Object.keys(FACTIONS).length*Object.keys(DIFFS).length*3)+' medal stars · '+(p.wins||0)+' win'+((p.wins||0)===1?'':'s')+' in '+(p.games||0)+' game'+((p.games||0)===1?'':'s');
+}
+function recordResult(won, stars, score){
+  const p=loadProg(), f=meta(MYSIDE).faction.key, d=(gcfg||cfg).diff||'normal';
+  p.games=(p.games||0)+1; if(won) p.wins=(p.wins||0)+1;
+  p.medals=p.medals||{}; p.medals[f]=p.medals[f]||{};
+  const old=p.medals[f][d]||0, up=stars>old; if(up) p.medals[f][d]=stars;
+  const bk=[gameMode(),W,enemySides.length,d].join('|'); p.best=p.best||{};
+  const ob=p.best[bk]||0, nb=score>ob; if(nb) p.best[bk]=score;
+  try{ localStorage.setItem(PROG_KEY, JSON.stringify(p)); }catch(e){}
+  return {up, old, nb, ob};
+}
+/* the result panel on the end screen: stars, score, what it is made of, and how the rivals did */
+function resultHtml(winner, firstTime){
+  const hot=hotOn(), me=hot?winner:MYSIDE, won=winner===me, solo=!NET.on&&!hot, mode=gameMode();
+  const parts=scoreParts(me);
+  let stars=0, note='';
+  if(mode==='score'){
+    const others=turnOrder.filter(s=>s!==me).map(scoreOf), second=Math.max(0,...others);
+    stars=won?((scoreOf(me)>=second*1.25||!turnOrder.some(s=>s!==me&&alive[s]))?3:2):(alive[me]?1:0);
+    note=won?(stars===3?'A commanding lead.':'Three stars need a 25% lead over the runner-up.'):(alive[me]?'One star for holding out. Finish with the top score for more.':'');
+  } else {
+    const par=parTurns();
+    if(won){
+      parts['Victory']=500; parts['Speed bonus']=30*Math.max(0,par+8-turn);
+      stars=turn<=par?3:turn<=par+8?2:1;
+      note=stars===3?'Won by turn '+par+' — a flawless campaign.':stars===2?'Three stars need a win by turn '+par+'.':'Two stars need a win by turn '+(par+8)+'.';
+    }
+  }
+  const total=Object.values(parts).reduce((a,b)=>a+b,0);
+  let rec=null;
+  if(solo&&firstTime) rec=recordResult(won, stars, total);
+  const fac=meta(me).faction, dn=(DIFFS[(gcfg||cfg).diff]||DIFFS.normal).name;
+  const board=turnOrder.map(s=>({s, v:s===me?total:scoreOf(s)})).sort((a,b)=>b.v-a.v)
+    .map(o=>`<span class="${alive[o.s]?'':'out'}" style="color:${meta(o.s).css}">${esc(meta(o.s).name)}${hot?(HOT.includes(o.s)?' · '+pname(o.s):''):(o.s===me?' (you)':'')}</span><b>${o.v}</b>`).join('');
+  return (solo?`<div class="ovStars">${'★'.repeat(stars)}<i>${'★'.repeat(3-stars)}</i></div>`:'')+
+    `<div class="ovBig">${total} points</div>`+
+    (note&&solo?`<div class="ovNote">${note}</div>`:'')+
+    (rec&&rec.up?`<div class="ovNote">New medal: ${fac.name} · ${dn} ${'★'.repeat(stars)}</div>`:'')+
+    (rec&&rec.nb&&rec.ob?`<div class="ovNote">New best score (was ${rec.ob})</div>`:'')+
+    `<div class="ovGrid">${Object.entries(parts).filter(([,v])=>v).map(([k,v])=>`<span>${k}</span><b>${v}</b>`).join('')}</div>`+
+    `<div class="ovBoard">${board}</div>`;
+}
 
 const rnd=n=>Math.floor(Math.random()*n);
 const key=(x,y)=>x+','+y;
@@ -865,6 +1064,16 @@ function genMap(){
   const capList=Object.values(caps);
   const villageTarget=Math.max(4, Math.round(W*H/20));
   let placed=0;
+  // every HQ gets a starter village two tiles away (diagonally inward; along alternating edges on the small map,
+  // where the diagonals would crowd the middle)
+  const starters=[];
+  Object.values(caps).forEach((c,i)=>{
+    const sx=c.x<W/2?1:-1, sy=c.y<H/2?1:-1;
+    const v=W>=11?{x:c.x+2*sx,y:c.y+2*sy}:(i<2?{x:c.x+2*sx,y:c.y}:{x:c.x,y:c.y+2*sy});
+    tileAt(v.x,v.y).terrain='plains';
+    tileAt(v.x,v.y).city={owner:null, capital:false, level:1, pop:0};
+    starters.push(v); placed++;
+  });
   // Polytopia-style spacing: every city keeps 2 clear tiles from every other,
   // so no two cities ever contest the same 3x3 territory. Greedy placement over a
   // shuffled candidate list packs far better than random darts.
@@ -876,7 +1085,7 @@ function genMap(){
     cand.push({x,y});
   }
   for(let i=cand.length-1;i>0;i--){const j=rnd(i+1);[cand[i],cand[j]]=[cand[j],cand[i]];}
-  const laid=[...capList];
+  const laid=[...capList, ...starters];
   for(const p of cand){
     if(placed>=villageTarget) break;
     if(laid.some(c=>cheb(p,c)<3)) continue;
@@ -1019,6 +1228,15 @@ function harvest(x,y,owner){
   }
   return true;
 }
+function turnHead(s){
+  let h='Your turn \u00b7 turn '+turn+' \u00b7 +'+income(s)+'\u2605 income';
+  if(gameMode()==='score'){
+    const rk=turnOrder.filter(x=>alive[x]).sort((a,b)=>scoreOf(b)-scoreOf(a)).indexOf(s);
+    h+='\nScore '+scoreOf(s)+' \u00b7 '+['1st','2nd','3rd','4th'][rk]+
+      (turn>=SCORE_TURNS-4?' \u00b7 '+(turn===SCORE_TURNS?'final turn!':(SCORE_TURNS-turn+1)+' turns left'):'');
+  }
+  return h;
+}
 /* the notice at the start of your turn: income, what happened during the enemy turn, hints */
 function myTurnNotices(){
   const s=MYSIDE;
@@ -1049,13 +1267,43 @@ function myTurnNotices(){
       turnNotes.push('Units standing on your cities block training \u2014 move one off to recruit.');
     }
   }
-  { const at=recapAt; toast(['Your turn \u00b7 turn '+turn+' \u00b7 +'+income(s)+'\u2605 income',...turnNotes].join('\n'), turnNotes.length?'var(--amber)':meta(s).css, at?()=>panTo(at.x,at.y):null); }
+  { const at=recapAt; toast([turnHead(s),...turnNotes].join('\n'), turnNotes.length?'var(--amber)':meta(s).css, at?()=>panTo(at.x,at.y):null); }
   turnNotes.length=0;
 }
 const turnNotes=[];
 let recapAt=null;   // hints gathered at the start of your turn, shown in one notice
+/* the device changes hands: swap to the next player's fog, camera and recap behind a curtain */
+function handTo(s){
+  exploredBy[MYSIDE]=explored;
+  MYSIDE=s;
+  explored=exploredBy[s]||Array.from({length:H},()=>Array(W).fill(false));
+  stats={kills:tl(s).kills, losses:tl(s).losses};
+  turnSnap=turnSnaps[s]||null; myCam=null; camGoal=null;
+  sel=null; pendingAtk=null; undoStack.length=0;
+  document.querySelectorAll('.toast').forEach(t=>t.remove());
+  $('hoverTip').hidden=true;
+  buildBoard();
+  const cb=camBy[s];
+  if(cb){ cam.target.copy(cb.t); cam.dist=cb.d; }
+  else for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const c=tileAt(x,y).city;
+    if(c&&c.capital&&c.owner===s){ const k=innerWidth<700?0.72:0.65; cam.target.set(wx(x)*k,0,wz(y)*k); }
+  }
+  applyCam();
+  showCurtain(s);
+}
+function showCurtain(s){
+  curtainUp=true; hoGuard=performance.now()+450;
+  const f=meta(s).faction;
+  $('hoName').textContent=pname(s);
+  $('hoFac').textContent=f.name; $('hoFac').style.color=f.css;
+  $('handoff').style.setProperty('--fc', f.css);
+  $('handoff').hidden=false;
+}
 function startTurn(s, first){
   side=s;
+  if(hotOn()&&HOT.includes(s)&&s!==MYSIDE) handTo(s);
+  if(pw.shield[s]&&--pw.shield[s]<=0) delete pw.shield[s];   // Hold the Line covers two rounds
   if(meta(s).faction.walls) map.flat().forEach(t=>{ if(t.city&&t.city.owner===s) t.city.walls=true; });
   if(s===MYSIDE&&!first&&myCam&&alive[MYSIDE]){ camGoal=myCam; myCam=null; }
   if(s===MYSIDE) endGuard=performance.now()+700;
@@ -1076,20 +1324,23 @@ function startTurn(s, first){
     });
   }
   units.forEach(u=>{ if(u.owner===s){u.moved=false;u.attacked=false;u.held=false;u.waited=false;u.walked=false;} });
-  if(s===turnOrder.find(x=>alive[x]) && !first) turn++;   // counts on even after the player is knocked out
+  if(s===turnOrder.find(x=>alive[x]) && !first){
+    if(gameMode()==='score'&&turn>=SCORE_TURNS){ sel=null; endGame(scoreLeader()); return; }   // time is up: the top score wins
+    turn++;   // counts on even after the player is knocked out
+  }
   undoStack.length=0;   // undo never reaches back past the start of a turn
   if(NET.host&&NET.inGame) NET.turnEnds=(NET.timer&&(s===P||NET.humans[s]))?Date.now()+NET.timer*1000:0;
   if(NET.host&&NET.inGame&&NET.humans[s]&&!NET.humans[s].conn&&alive[s]){
     clearTimeout(NET._takeT);
     NET._takeT=setTimeout(()=>{ if(NET.humans[s]&&!NET.humans[s].conn&&side===s) NET.aiTakeover(s); }, 30000);
   }
-  if(s===MYSIDE && !first && !gameOver) myTurnNotices();
+  if(s===MYSIDE && !first && !gameOver){ if(curtainUp) noticesDue=true; else myTurnNotices(); }
   sel=null;
   refresh();
   if(!gameOver){
     if(NET.host) NET.flushSoon(true);
     if(NET.isRemoteHuman(s)){ if(NET.host) log('sys','\u25c2 Awaiting orders from '+meta(s).name+'\u2026'); }
-    else if(s!==MYSIDE){ const g0=gen; setTimeout(()=>{ if(gen===g0) aiTurn(s); }, aiDelay(480)); }
+    else if(isAI(s)){ const g0=gen; setTimeout(()=>{ if(gen===g0) aiTurn(s); }, aiDelay(480)); }
   }
 }
 
@@ -1213,6 +1464,8 @@ function promote(u){
 function recKill(victim, by){
   if(by===MYSIDE) stats.kills++;
   if(victim===MYSIDE) stats.losses++;
+  if(by&&playerMeta[by]) tl(by).kills++;
+  if(victim&&playerMeta[victim]) tl(victim).losses++;
   NET.evt({t:'kill',o:victim,b:by});
 }
 function calcDamage(u,d,frac){
@@ -1221,7 +1474,8 @@ function calcDamage(u,d,frac){
   const AF=effAtk*(u.hp/u.maxHp);
   const DF=uDef(d)*defMult(u,d)*(d.hp/d.maxHp)*defBonus(d);
   const drill=(u.type==='INF'||u.type==='SNP')&&hasTech(u.owner,'DRILLS')?1.25:1;
-  const dmg=Math.max(1, Math.round(AF/(AF+DF)*effAtk*4.5*(frac||1)*drill));
+  const rage=(pw.rage[u.owner]===turn&&side===u.owner?2:1)*(pw.ghost[u.owner]===turn&&side===u.owner?1.25:1);   // All-Out Assault, Ambush
+  const dmg=Math.max(1, Math.round(AF/(AF+DF)*effAtk*4.5*(frac||1)*drill*rage*shieldMul(d.owner)));
   return {dmg, AF, DF};
 }
 
@@ -1257,8 +1511,8 @@ function forecast(u,d){
   const kills=dmg>=d.hp;
   const advances=kills && uRange(u)===1 && !ut.siege && passable(u,d.x,d.y);
   let rdmg=0, dies=false;
-  if(!kills && uRange(d)>=cheb(u,d) && !dt.siege){
-    rdmg=Math.max(1,Math.round(DF/(AF+DF)*uDef(d)*4.5*drillMul(d)));
+  if(!kills && uRange(d)>=cheb(u,d) && !dt.siege && pw.ghost[u.owner]!==turn){
+    rdmg=Math.max(1,Math.round(DF/(AF+DF)*uDef(d)*4.5*drillMul(d)*shieldMul(u.owner)));
     dies=rdmg>=u.hp;
   }
   let splashN=0;
@@ -1409,8 +1663,8 @@ function attack(u,d){
     if(uRange(u)===1 && !ut.siege && passable(u,d.x,d.y) && !unitAt(d.x,d.y)){
       moveUnit(u,d.x,d.y);
     }
-  } else if(uRange(d)>=dist && !dt.siege){
-    const rdmg=Math.max(1,Math.round(DF/(AF+DF)*uDef(d)*4.5*drillMul(d)));
+  } else if(uRange(d)>=dist && !dt.siege && pw.ghost[u.owner]!==turn){
+    const rdmg=Math.max(1,Math.round(DF/(AF+DF)*uDef(d)*4.5*drillMul(d)*shieldMul(u.owner)));
     u.hp-=rdmg;
     fx.flash(u.x,u.y,0xff5040);
     fx.strike(d.x,d.y,u.x,u.y,d.id,u.id, dist>1?'shot':'melee');
@@ -1479,19 +1733,35 @@ function captureCity(u){
   }
   return true;
 }
-function eliminate(s, by){
+/* strength of a side: its army's cost plus its cities (used for surrender) */
+function sidePower(s){
+  let p=0;
+  for(const u of units) if(u.owner===s&&u.type!=='NUKE') p+=UNIT_TYPES[u.type].cost;
+  map.flat().forEach(t=>{ if(t.city&&t.city.owner===s) p+=6*(t.city.level+1); });
+  return p;
+}
+/* an AI down to its HQ and under a quarter of the strongest rival's strength gives up (from turn 12) */
+function aiSurrenders(s){
+  if(turn<12||cityCount(s)>1) return null;
+  let top=null, tp=0;
+  for(const o of turnOrder) if(o!==s&&alive[o]){ const p=sidePower(o); if(p>tp){ tp=p; top=o; } }
+  return top&&sidePower(s)*4<tp ? top : null;
+}
+function eliminate(s, by, surrendered){
   alive[s]=false;
   units=units.filter(q=>{
     if(q.owner!==s) return true;
-    recKill(q.owner,by);
-    if(visXY(q.x,q.y)) fx.boom(q.x,q.y);
+    if(!surrendered){ recKill(q.owner,by); if(visXY(q.x,q.y)) fx.boom(q.x,q.y); }
     return false;
   });
-  map.flat().forEach(t=>{ if(t.city&&t.city.owner===s){ t.city.owner=null; t.city.rw=[]; } });
-  log('sys',`${meta(s).name} has been ELIMINATED${NET.on?(by&&meta(by)?' by '+meta(by).name:''):(by===MYSIDE?' by your forces':'')}!`);
-  sfx.boom();
+  map.flat().forEach(t=>{ if(t.city&&t.city.owner===s){ t.city.owner=null; t.city.rw=[]; t.city.capital=false; } });
+  if(by&&playerMeta[by]) tl(by).elims++;
+  if(surrendered) log('sys',`${meta(s).name} SURRENDERS \u2014 its last troops lay down their arms.`);
+  else log('sys',`${meta(s).name} has been ELIMINATED${NET.on?(by&&meta(by)?' by '+meta(by).name:''):(by===MYSIDE?' by your forces':'')}!`);
+  if(!surrendered) sfx.boom(); else sfx.capture();
   const rem=turnOrder.filter(x=>alive[x]);
   if(rem.length<=1) endGame(rem[0]||by);
+  else if(hotOn()){ if(!HOT.some(h=>alive[h])) showDefeat(); }   // every player here is out: watch the computers finish
   else if(s===MYSIDE) showDefeat();   // rivals fight on; the beaten player can watch
 }
 
@@ -1530,6 +1800,14 @@ setInterval(()=>{ if(!NET._lastTick||Date.now()-NET._lastTick>900) NET.timerTick
 async function aiTurn(me){
   if(gameOver||!alive[me]) return;
   const g0=gen, stale=()=>gen!==g0||gameOver;
+  if(isAI(me)){
+    const victor=aiSurrenders(me);
+    if(victor){
+      eliminate(me, victor, true); refresh();
+      if(!gameOver){ const nx=nextAlive(me); setTimeout(()=>{ if(gen===g0&&!gameOver) startTurn(nx); }, aiDelay(700)); }
+      return;
+    }
+  }
   const banner=$('turnBanner');
   banner.textContent='\u25c2 '+meta(me).name.toUpperCase()+' TURN \u25b8';
   banner.style.borderColor=meta(me).css;
@@ -1563,6 +1841,7 @@ async function aiTurn(me){
       if(++looked>=3) break;
     }
   }
+  aiUsePower(me);
   aiRewards(me);
   refresh();
   await sleep(240); if(stale()) return;
@@ -2506,7 +2785,7 @@ const terrMats={};
 const TERR_GEO={f:new THREE.PlaneGeometry(0.976,0.976), h:new THREE.BoxGeometry(0.976,0.012,0.05), v:new THREE.BoxGeometry(0.05,0.012,0.976)};
 for(const k in TERR_GEO) TERR_GEO[k].userData.keep=true;
 function terrMat(o,edge){
-  const k=o+(edge?'e':'f');
+  const k=meta(o).flag+(edge?'e':'f');   // keyed by colour: a side's faction changes from game to game
   return terrMats[k]||(terrMats[k]=new THREE.MeshBasicMaterial({color:meta(o).flag, transparent:true, opacity:edge?0.8:0.13, depthWrite:false}));
 }
 function syncTerritory(){
@@ -2720,8 +2999,38 @@ const hlMatCap=new THREE.MeshBasicMaterial({color:0xf0b35c, transparent:true, op
 const hlMatTerr=new THREE.MeshBasicMaterial({color:0xf0b35c, transparent:true, opacity:0.14, side:THREE.DoubleSide});
 const hlMatNuke=new THREE.MeshBasicMaterial({color:0xe8625a, transparent:true, opacity:0.14, side:THREE.DoubleSide});
 const hlMatDanger=new THREE.MeshBasicMaterial({color:0xe8625a, transparent:true, opacity:0.16, side:THREE.DoubleSide});
+let dangerOn=false;
+const hlMatAllDanger=new THREE.MeshBasicMaterial({color:0xff4a3d, transparent:true, opacity:0.3, side:THREE.DoubleSide});
+function dangerTiles(){
+  const out=new Set();
+  for(const e of units){
+    if(e.owner===MYSIDE||e.type==='NUKE'||!visXY(e.x,e.y)) continue;
+    const rg=uRange({...e,walked:false}), spots=[{x:e.x,y:e.y}];
+    if(!(UNIT_TYPES[e.type].siege&&!hasTech(e.owner,'SPG'))) for(const p of reachable({...e,moved:false,attacked:false}).values()) spots.push(p);
+    for(const p of spots) for(let dy=-rg;dy<=rg;dy++)for(let dx=-rg;dx<=rg;dx++){
+      const x=p.x+dx, y=p.y+dy;
+      if(inb(x,y)&&explored[y][x]) out.add(key(x,y));
+    }
+  }
+  return out;
+}
+function toggleDanger(){
+  dangerOn=!dangerOn;
+  $('dangerBtn').classList.toggle('on',dangerOn);
+  sfx.select();
+  if(dangerOn&&!units.some(e=>e.owner!==MYSIDE&&visXY(e.x,e.y))) toast('Danger zones on \u2014 no enemy in sight right now.','var(--red)');
+  refresh();
+}
 function syncHighlights(){
   hlGroup.clear();
+  if(dangerOn&&map&&!gameOver){
+    for(const k of dangerTiles()){
+      const [x,y]=k.split(',').map(Number), tt=tileAt(x,y);
+      const m=new THREE.Mesh(hlGeoPlane,hlMatAllDanger);
+      m.rotation.x=-Math.PI/2; m.position.set(wx(x),(tt.terrain==='water'?TOP-0.14:TOP)+0.016,wz(y));
+      hlGroup.add(m);
+    }
+  }
   if(!(sel&&sel.kind==='unit')){
     if(sel&&sel.kind==='city'){
       const m=new THREE.Mesh(hlGeoRing,hlMatSel);
@@ -3094,37 +3403,7 @@ function loop(now){
 
 /* ---- picking ---- */
 const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
-let cardGuard=0, lastSelKey='';
-/* if the selected tile sits under the card, slide the camera so it shows above the card */
-function keepSelVisible(){
-  if(!sel||!document.body.classList.contains('selOpen')) return;
-  const p=sel.kind==='unit'?byId(sel.id):sel; if(!p) return;
-  const el=$('command'), r=cvs.getBoundingClientRect();
-  // the card's resting place (ignores its slide-in animation)
-  const box=el.getBoundingClientRect(), slide=new DOMMatrix(getComputedStyle(el).transform).m42;
-  const card={left:box.left, top:box.top-slide, right:box.right};
-  const side=card.left>innerWidth*0.3||card.right<innerWidth*0.7;
-  // measure from where the camera is heading (a glide may be under way), not where it is this frame
-  const goal=(camGoal||cam.target).clone(), keep=cam.target.clone();
-  const at=t=>{ cam.target.copy(t); applyCam(); camera.updateMatrixWorld();
-    const v=new THREE.Vector3(wx(p.x),TOP,wz(p.y)).project(camera); return {x:r.left+(v.x+1)/2*r.width, y:r.top+(1-v.y)/2*r.height}; };
-  let a=at(goal), t=goal.clone(), need=false;
-  if(side) need=a.x>card.left-24&&a.x<card.right+24&&a.y>card.top;
-  else need=a.y>card.top-40;
-  if(need){
-    const want=side?(card.left>innerWidth*0.3?card.left-70:card.right+70):Math.max(80,card.top-70);
-    for(let i=0;i<5;i++){   // a few steps: perspective makes one step fall short
-      const cur=at(t), d=side?cur.x-want:cur.y-want;
-      if(Math.abs(d)<4) break;
-      const probe=t.clone().add(side?new THREE.Vector3(0.5,0,0):new THREE.Vector3(0,0,0.5)), q=at(probe);
-      const ppu=side?(cur.x-q.x)/0.5:(cur.y-q.y)/0.5;   // screen pixels the tile moves per world unit of camera travel
-      if(!ppu) break;
-      t.add(side?new THREE.Vector3(d/ppu,0,0):new THREE.Vector3(0,0,d/ppu));
-    }
-  }
-  cam.target.copy(keep); applyCam();
-  if(need) camGoal=t;
-}   // card buttons ignore clicks for a moment after a board tap
+let cardGuard=0;   // card buttons ignore clicks for a moment after a board tap
 function handleClick(e){
   cardGuard=performance.now()+400;
   const watching=gameOver||(map&&!alive[MYSIDE]);
@@ -3236,7 +3515,8 @@ function refresh(){
   computeVision();
   $('hudStars').textContent=stars[MYSIDE];
   $('hudIncome').textContent='+'+income(MYSIDE);
-  $('hudTurn').textContent=turn;
+  $('hudTurn').textContent=gameMode()==='score'?turn+'/'+SCORE_TURNS:turn;
+  syncPower();
   const hs=$('hudSide');
   hs.textContent=side===MYSIDE?'YOU':(playerMeta[side]?meta(side).name.split(' ')[0].toUpperCase():'ENEMY');
   hs.className='v';
@@ -3254,7 +3534,6 @@ function refresh(){
   computeVision(); syncFog();
   autoSave();
   document.body.classList.toggle('selOpen', !!sel);
-  { const k=sel?(sel.kind==='unit'?'u'+sel.id:sel.kind+sel.x+','+sel.y):''; if(k&&k!==lastSelKey) requestAnimationFrame(keepSelVisible); lastSelKey=k; }
   $('hoverTip').hidden=true;
   // wide or short-landscape screens: the card docks on the side away from the selected tile
   if(sel&&(innerWidth>=1100||(innerWidth>innerHeight&&innerHeight<=560))){
@@ -3373,7 +3652,8 @@ function serializeGame(){
     stars:{...stars},
     tech:Object.fromEntries(turnOrder.map(s=>[s,[...tech[s]]])),
     turn, uid, stats:{...stats},
-    tc:{...turnCities}, ln:{...lastNuke}, rv:mapReveals, me:MYSIDE,
+    tc:{...turnCities}, ln:{...lastNuke}, rv:mapReveals, me:hotOn()?P:MYSIDE, tl:tally, pw,
+    hot:hotOn()?[...HOT]:0, hs:side, ex:hotOn()?{...exploredBy,[MYSIDE]:explored}:0,
     names:Object.fromEntries(turnOrder.map(s=>[s,meta(s).name])),
     units:units.map(u=>({...u})),
     explored,
@@ -3398,7 +3678,8 @@ function swapSaveSides(d, me){
   const swKeys=o=>{ if(!o) return o; const r={}; for(const k in o) r[sw(k)]=o[k]; return r; };
   d=JSON.parse(JSON.stringify(d));
   d.sides=swKeys(d.sides); d.alive=swKeys(d.alive); d.stars=swKeys(d.stars); d.tech=swKeys(d.tech);
-  d.names=swKeys(d.names); d.tc=swKeys(d.tc); d.ln=swKeys(d.ln);
+  d.names=swKeys(d.names); d.tc=swKeys(d.tc); d.ln=swKeys(d.ln); d.tl=swKeys(d.tl);
+  if(d.pw) for(const k of ['used','rage','ghost','shield']) d.pw[k]=swKeys(d.pw[k]);
   d.enemySides=d.enemySides.map(sw);
   d.units.forEach(u=>u.owner=sw(u.owner));
   d.map.forEach(row=>row.forEach(t=>{ if(t.c&&t.c.o) t.c.o=sw(t.c.o); }));
@@ -3416,6 +3697,8 @@ function restoreGame(data, net){
     undoStack.length=0;
     turnCities={...(data.tc||{})}; lastNuke={...(data.ln||{})}; mapReveals=data.rv?data.rv.map(r=>({...r})):[];
     nukeWarned={}; blockedHint=false; seenBy={};
+    tally=data.tl?JSON.parse(JSON.stringify(data.tl)):{};
+    pw=Object.assign(pw0(), data.pw?JSON.parse(JSON.stringify(data.pw)):{});
     $('endBar').hidden=true;
     if(!net) NET.leave();
     pendingAtk=null;
@@ -3423,14 +3706,17 @@ function restoreGame(data, net){
     setBoardSize(data.W);
     enemySides=[...data.enemySides];
     turnOrder=[P,...enemySides];
+    HOT=(!net&&Array.isArray(data.hot))?data.hot.filter(s=>turnOrder.includes(s)):[];
+    exploredBy={}; camBy={}; turnSnaps={}; curtainUp=false; noticesDue=false; $('handoff').hidden=true;
+    if(hotOn()){ MYSIDE=HOT.includes(data.hs)?data.hs:P; exploredBy=data.ex?JSON.parse(JSON.stringify(data.ex)):{}; }
     playerMeta={};
     for(const s of turnOrder) playerMeta[s]=mkMeta(FACTIONS[data.sides[s]]);
-    if(data.names) for(const s of turnOrder){ if(data.names[s]) playerMeta[s].name=data.names[s]; }
+    if(data.names) for(const s of turnOrder){ if(data.names[s]) playerMeta[s].name=String(data.names[s]).slice(0,24); }
     alive={...data.alive};
     stars={...data.stars};
     tech={};
     for(const s of turnOrder) tech[s]=new Set(data.tech[s]||[]);
-    turn=data.turn; uid=data.uid; side=net?data.side:P; sel=null; gameOver=net?!!data.over:false;
+    turn=data.turn; uid=data.uid; side=net?data.side:(hotOn()?MYSIDE:P); sel=null; gameOver=net?!!data.over:false;
     if(!net||!stats) stats=data.stats?{...data.stats}:{kills:0,losses:0};   // online, your own tally stays yours
     units=data.units.map(u=>({...u}));
     map=data.map.map(row=>row.map(o=>({
@@ -3439,6 +3725,7 @@ function restoreGame(data, net){
       resource:o.r||null, ruin:!!o.ru
     })));
     explored=data.explored?data.explored.map(r=>[...r]):Array.from({length:H},()=>Array(W).fill(false));
+    if(hotOn()&&exploredBy[MYSIDE]) explored=exploredBy[MYSIDE];
     if(net){ for(const r of data.rv||[]) if(r.s===MYSIDE) revealAround(r.x,r.y,r.r); computeVision(); }
     for(const [,g] of unitMeshes){ unitGroup.remove(g); freeUnitMesh(g); }
     dyingUnits.forEach(d=>{ unitGroup.remove(d.g); freeUnitMesh(d.g); }); dyingUnits.length=0;
@@ -3468,6 +3755,7 @@ function restoreGame(data, net){
     $('turnBanner').classList.remove('show');
     $('setup').classList.remove('show');
     refresh();
+    if(hotOn()) showCurtain(MYSIDE);
     return true;
   }catch(e){
     console.error('restore failed',e);
@@ -3501,7 +3789,8 @@ function importSave(file){
 const CFG_KEY='foothold-cfg';
 try{
   const c=JSON.parse(localStorage.getItem(CFG_KEY)||'null');
-  if(c&&FACTIONS[c.faction]) cfg={size:[9,11,13,15].includes(+c.size)?+c.size:11, enemies:Math.min(3,Math.max(1,+c.enemies||1)), faction:c.faction, diff:DIFFS[c.diff]?c.diff:'normal'};
+  if(c&&FACTIONS[c.faction]) cfg={size:[9,11,13,15].includes(+c.size)?+c.size:11, enemies:Math.min(3,Math.max(1,+c.enemies||1)), faction:c.faction, diff:DIFFS[c.diff]?c.diff:'normal', mode:c.mode==='score'?'score':'conquest',
+    hot:Math.min(4,Math.max(1,+c.hot||1)), hotFac:Array.isArray(c.hotFac)?c.hotFac.filter(f=>FACTIONS[f]).slice(0,3):[]};
 }catch(e){}
 function saveCfg(){ try{ localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }catch(e){} }
 function setupView(v){
@@ -3519,20 +3808,25 @@ function showSetup(){
     const card=document.createElement('button');
     card.className='fcard'+(cfg.faction===k?' sel':'');
     card.style.borderLeftColor=f.css;
-    card.innerHTML=`<div class="fn" style="color:${f.css}">${f.name}</div><div class="fp">${f.perk}</div>`;
+    card.innerHTML=`<div class="fn" style="color:${f.css}">${f.name}</div><div class="fp">${f.perk}</div>`+(f.power?`<div class="fpw"><b>Power \u00b7 ${f.power.name}:</b> ${f.power.desc}</div>`:'')+medalRow(k);
     card.onclick=()=>{
       cfg.faction=k;
       grid.querySelectorAll('.fcard').forEach(c=>c.classList.remove('sel'));
       card.classList.add('sel');
       sfx.select();
+      renderHot();
     };
     grid.appendChild(card);
   }
   // sync option buttons to the current config
   document.querySelectorAll('#sizeRow .opt').forEach(o=>o.classList.toggle('sel', +o.dataset.size===cfg.size));
   document.querySelectorAll('#enRow .opt').forEach(o=>o.classList.toggle('sel', +o.dataset.en===cfg.enemies));
+  document.querySelectorAll('#modeRow .opt').forEach(o=>o.classList.toggle('sel', o.dataset.mode===(cfg.mode||'conquest')));
   document.querySelectorAll('#diffRow .opt').forEach(o=>o.classList.toggle('sel', o.dataset.diff===(DIFFS[cfg.diff]?cfg.diff:'normal')));
-  $('quickInfo').textContent=FACTIONS[cfg.faction].name+' · '+SIZE_NAME[cfg.size]+' map · '+cfg.enemies+' enem'+(cfg.enemies===1?'y':'ies')+' · '+(DIFFS[cfg.diff]||DIFFS.normal).name;
+  $('quickInfo').textContent=FACTIONS[cfg.faction].name+' · '+SIZE_NAME[cfg.size]+' map · '+cfg.enemies+' enem'+(cfg.enemies===1?'y':'ies')+' · '+(DIFFS[cfg.diff]||DIFFS.normal).name+(cfg.mode==='score'?' · score attack':'');
+  renderProgress();
+  renderHot();
+  if(cfg.hot>1) $('quickInfo').textContent+=' · pass & play ('+cfg.hot+' players)';
   const running=!!map&&!gameOver;
   $('resumeBtn').style.display=running?'':'none';
   // continue button if a save exists and no game is running
@@ -3541,7 +3835,7 @@ function showSetup(){
     cb.style.display='';
     try{
       const d=JSON.parse(localStorage.getItem(SAVE_KEY));
-      $('continueInfo').textContent=FACTIONS[d.sides.P].name+' · turn '+d.turn+' · '+d.W+'×'+d.W;
+      $('continueInfo').textContent=(d.hot?'Pass & play · '+d.hot.length+' players':FACTIONS[d.sides.P].name)+' · turn '+d.turn+' · '+d.W+'×'+d.W;
     }catch(e){ $('continueInfo').textContent='saved campaign'; }
   } else cb.style.display='none';
   disarm();
@@ -3582,7 +3876,7 @@ $('quickBtn').onclick=()=>{ if(confirmAbandon($('quickBtn'))) launchSolo(false);
 $('tutBtn').onclick=()=>{
   if(!confirmAbandon($('tutBtn'))) return;
   const keep={...cfg};
-  cfg.size=9; cfg.enemies=1; cfg.diff='easy';   // the guided game: small map, one relaxed rival
+  cfg.size=9; cfg.enemies=1; cfg.diff='easy'; cfg.hot=1; cfg.mode='conquest';   // the guided game: small map, one relaxed rival
   launchSolo(true,true);
   cfg=keep;
 };
@@ -3608,6 +3902,48 @@ document.querySelectorAll('#sizeRow .opt').forEach(b=>{
     sfx.select();
   };
 });
+/* pass-and-play setup: how many people share the device, and the factions of players 2 and up */
+function fixHot(){
+  cfg.hot=Math.min(4,Math.max(1,cfg.hot||1));
+  if(cfg.hot-1>cfg.enemies) cfg.enemies=cfg.hot-1;
+  const used=new Set([cfg.faction]), out=[];
+  for(let i=0;i<cfg.hot-1;i++){
+    let f=(cfg.hotFac||[])[i];
+    if(!FACTIONS[f]||used.has(f)) f=Object.keys(FACTIONS).find(k=>!used.has(k));
+    used.add(f); out.push(f);
+  }
+  cfg.hotFac=out;
+}
+function renderHot(){
+  fixHot();
+  document.querySelectorAll('#hotRow .opt').forEach(o=>o.classList.toggle('sel', +o.dataset.hot===cfg.hot));
+  document.querySelectorAll('#enRow .opt').forEach(o=>{ o.classList.toggle('sel', +o.dataset.en===cfg.enemies); o.disabled=+o.dataset.en<cfg.hot-1; });
+  const box=$('hotFacs'); box.innerHTML='';
+  cfg.hotFac.forEach((f,i)=>{
+    const b=document.createElement('button'); b.className='opt'; b.style.borderLeft='4px solid '+FACTIONS[f].css;
+    b.innerHTML='Player '+(i+2)+': <b style="color:'+FACTIONS[f].css+'">'+FACTIONS[f].name+'</b><span>tap to change</span>';
+    b.onclick=()=>{
+      const keys=Object.keys(FACTIONS), taken=new Set([cfg.faction,...cfg.hotFac.filter((_,j)=>j!==i)]);
+      let k=keys.indexOf(f); do{ k=(k+1)%keys.length; }while(taken.has(keys[k]));
+      cfg.hotFac[i]=keys[k]; sfx.select(); renderHot();
+    };
+    box.appendChild(b);
+  });
+  const ai=cfg.enemies-(cfg.hot-1);
+  $('hotNote').textContent=cfg.hot>1?('Player 1 plays the faction chosen above. Take turns on this device \u2014 each player sees only their own map. '+
+    (ai>0?ai+' more rival'+(ai>1?'s are':' is')+' played by the computer.':'No computer rivals.')):'';
+}
+document.querySelectorAll('#hotRow .opt').forEach(b=>{
+  b.onclick=()=>{ cfg.hot=+b.dataset.hot; sfx.select(); renderHot(); };
+});
+document.querySelectorAll('#modeRow .opt').forEach(b=>{
+  b.onclick=()=>{
+    cfg.mode=b.dataset.mode;
+    document.querySelectorAll('#modeRow .opt').forEach(o=>o.classList.remove('sel'));
+    b.classList.add('sel');
+    sfx.select();
+  };
+});
 document.querySelectorAll('#diffRow .opt').forEach(b=>{
   b.onclick=()=>{
     cfg.diff=b.dataset.diff;
@@ -3622,6 +3958,7 @@ document.querySelectorAll('#enRow .opt').forEach(b=>{
     document.querySelectorAll('#enRow .opt').forEach(o=>o.classList.remove('sel'));
     b.classList.add('sel');
     sfx.select();
+    renderHot();
   };
 });
 $('startBtn').onclick=()=>{ if(confirmAbandon($('startBtn'))) launchSolo(false); };
@@ -3641,7 +3978,7 @@ function toast(msg,color,onTap){
   setTimeout(()=>{ t.classList.add('out'); setTimeout(()=>t.remove(),320); },3200+1200*(msg.split('\n').length-1));
 }
 function toastFromLog(who,msg){
-  const big=/ELIMINATED|NUCLEAR|ran out of time/i.test(msg);
+  const big=/ELIMINATED|SURRENDERS|NUCLEAR|COMMANDER POWER|ran out of time/i.test(msg);
   if(!big && !(who===MYSIDE||who==='sys')) return;
   if(!big && !/captured|grew to level|research|Satellite|promotion|supply drop|Nuclear/i.test(msg)) return;
   toast(msg, who===MYSIDE||who==='sys'?'var(--amber)':playerMeta[who]?meta(who).css:'var(--red)');
@@ -3718,7 +4055,7 @@ function seedTutorialVillage(){
   buildBoard(); computeVision(); refresh();
 }
 function tutStart(){
-  if(NET.on) return;
+  if(NET.on||hotOn()) return;
   Object.assign(coach,{on:true, i:0, shown:-1, flags:{}});
 }
 function tutStop(){
@@ -3802,6 +4139,7 @@ function coachTick(){
 
 /* ---- line icons for the round buttons ---- */
 const ICON={
+  bolt:'<path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/>',
   atk:'<circle cx="12" cy="12" r="6.5"/><path d="M12 2.5v5M12 16.5v5M2.5 12h5M16.5 12h5"/>',
   hold:'<path d="M9 6v12M15 6v12"/>',
   heal:'<path d="M12 5.5v13M5.5 12h13"/>',
@@ -3908,6 +4246,16 @@ function renderInfo(){
   const title=$('infoTitle'), sub=$('infoSub'), por=$('infoPor'), chips=$('infoChips'), body=$('infoBody'), train=$('train');
   train.innerHTML=''; $('forecast').innerHTML=''; chips.innerHTML=''; body.innerHTML=''; sub.textContent=''; por.innerHTML='';
   por.style.removeProperty('--fc');
+  if(sel&&sel.kind==='power'){
+    const f=meta(MYSIDE).faction, p=f.power, used=pw.used[MYSIDE];
+    por.innerHTML=svgIcon('bolt'); por.style.setProperty('--fc', f.css);
+    title.textContent=p.name;
+    sub.textContent='Commander power \u00b7 once per game';
+    body.textContent=p.desc+(used!=null?' Used on turn '+used+'.':side!==MYSIDE?' Wait for your turn.':'');
+    if(used==null) train.appendChild(actBtn({icon:'bolt', name:'Activate', cls:'more', disabled:side!==MYSIDE||gameOver||!alive[MYSIDE],
+      title:'Use '+p.name+' now \u2014 it cannot be undone', onclick:()=>{ act({t:'power'}); sel=null; refresh(); }}));
+    return;
+  }
   if(sel&&sel.kind==='unit'){
     const u=units.find(x=>x.id===sel.id);
     if(u){
@@ -4054,8 +4402,9 @@ $('endTurn').onclick=()=>{
   endGuard=performance.now()+700;
   turnSnap={hp:new Map(units.filter(q=>q.owner===MYSIDE).map(q=>[q.id,q.hp])), cities:cityCount(MYSIDE)};
   myCam=cam.target.clone();
+  if(hotOn()){ turnSnaps[MYSIDE]=turnSnap; camBy[MYSIDE]={t:cam.target.clone(), d:cam.dist}; }
   sfx.endturn();
-  if(!NET.on) log(P,'You end your turn.');
+  if(!NET.on) log(MYSIDE,'You end your turn.');
   act({t:'endturn'});
 };
 
@@ -4077,6 +4426,24 @@ function nextUnit(){
 }
 $('nextBtn').onclick=nextUnit;
 $('fitBtn').onclick=toggleFit;
+$('dangerBtn').onclick=toggleDanger;
+$('hoGo').onclick=()=>{
+  if(performance.now()<hoGuard) return;
+  $('handoff').hidden=true; curtainUp=false; sfx.select();
+  endGuard=performance.now()+700;
+  if(noticesDue){ noticesDue=false; if(side===MYSIDE&&!gameOver) myTurnNotices(); }
+  refresh();
+};
+$('powerBtn').onclick=()=>{ sel=(sel&&sel.kind==='power')?null:{kind:'power'}; sfx.select(); refresh(); };
+function syncPower(){
+  const b=$('powerBtn'), f=playerMeta[MYSIDE]&&meta(MYSIDE).faction;
+  b.hidden=!(f&&f.power)||gameOver||!alive[MYSIDE];
+  if(b.hidden) return;
+  const ready=pw.used[MYSIDE]==null;
+  b.classList.toggle('ready', ready&&side===MYSIDE);
+  b.classList.toggle('spent', !ready);
+  b.style.setProperty('--fc', f.css);
+}
 
 /* ---- mute ---- */
 function syncMute(){
@@ -4107,6 +4474,7 @@ syncMute(); syncGfx();
 window.addEventListener('keydown',e=>{
   if(e.repeat) return;
   const tg=e.target; if(tg&&(tg.tagName==='INPUT'||tg.tagName==='TEXTAREA'||tg.isContentEditable)) return;
+  if(curtainUp&&!$('setup').classList.contains('show')){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); $('hoGo').click(); } return; }
   const techOpen=$('techPanel').classList.contains('show');
   const manualOpen=$('overlay').classList.contains('manual');
   if(e.key==='Escape'&&manualOpen){ closeManual(); return; }
@@ -4121,6 +4489,8 @@ window.addEventListener('keydown',e=>{
   }
   if(e.key==='m'||e.key==='M'){ $('muteBtn').click(); return; }
   if(map&&(e.key==='v'||e.key==='V')){ toggleFit(); return; }
+  if(map&&(e.key==='d'||e.key==='D')){ toggleDanger(); return; }
+  if(map&&!gameOver&&(e.key==='p'||e.key==='P')){ $('powerBtn').click(); return; }
   if(map&&(e.key==='h'||e.key==='H')){ $('helpBtn').click(); return; }
   if(gameOver) return;
   if(!map || $('setup').classList.contains('show')) return; // no game running / setup open
@@ -4167,6 +4537,8 @@ async function keepAwake(on){
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&map&&!gameOver) keepAwake(true); });
 function endGame(winner){
   keepAwake(false);
+  $('handoff').hidden=true; curtainUp=false; noticesDue=false;
+  const firstTime=!gameOver;
   gameOver=true;
   if(NET.host) NET.winner=winner;
   if(!NET.on) clearSave();
@@ -4181,12 +4553,18 @@ function endGame(winner){
   btn.textContent='Redeploy';
   btn.onclick=()=>{ $('overlay').classList.remove('show'); NET.leave(); showSetup(); };
   const tally=` Turn ${turn} \u00b7 ${stats.kills} enemy units destroyed \u00b7 ${stats.losses} lost.`;
+  const timeUp=gameMode()==='score'&&turnOrder.filter(s=>alive[s]).length>1;
   if(winner===MYSIDE){ t.textContent='Victory'; t.className='win';
-    b.textContent=(NET.on?'All rival factions eliminated. The region is yours, Commander.'
+    b.textContent=(timeUp?'Time is up \u2014 you finished with the highest score, Commander.'
+                  :NET.on?'All rival factions eliminated. The region is yours, Commander.'
                          :'All enemy factions eliminated. The region is yours, Commander.')+tally; }
-  else { t.textContent=NET.on?'Operation Failed':'HQ Lost'; t.className='lose';
-    b.textContent=(winner&&playerMeta[winner]?meta(winner).name+' controls the region.'
+  else { t.textContent=timeUp?'Outscored':NET.on?'Operation Failed':'HQ Lost'; t.className='lose';
+    b.textContent=(timeUp?'Time is up \u2014 '+meta(winner).name+' finished with the highest score.'
+                  :winner&&playerMeta[winner]?meta(winner).name+' controls the region.'
                                                      :'Hostile forces overran your headquarters.')+tally; }
+  if(hotOn()){ t.textContent=pname(winner)+' wins'; t.className='win';
+    b.textContent=meta(winner).name+(timeUp?' finished with the highest score.':' holds the region.')+' Turn '+turn+'.'; }
+  { const d=document.createElement('div'); d.className='ovScore'; d.innerHTML=resultHtml(winner, firstTime); b.appendChild(d); }
   const alt=$('ovAlt');
   alt.hidden=false; alt.textContent='View battlefield';
   alt.onclick=()=>{
@@ -4209,6 +4587,8 @@ $('restart').onclick=()=>{ $('overlay').classList.remove('show'); NET.leave(); s
 $('helpBtn').onclick=()=>{
   const lines=[
     ['Goal','Capture every enemy HQ. Lose if your own HQ falls.'],
+    ['Game modes','Conquest: the last faction standing wins. Score attack (Menu \u2192 Custom): play 30 turns, then the highest score wins.'],
+    ['Score & medals','Cities and their levels, research, your army, enemy units destroyed and factions eliminated all score points. A solo win earns one to three stars \u2014 the faster the win, the more stars \u2014 and each faction keeps its best medal for every difficulty.'],
     ['Capturing','Move a unit onto a village or enemy city, then at the start of your next turn select it and tap Capture (it uses the unit\u2019s action). The defender gets a turn to strike back.'],
     ['Army size','Each city supports its level + 1 units. Grow and capture cities to field a bigger army.'],
     ['Develop','Spare stars? Select one of your cities and tap Develop for +1 population (4\u2605 + 2\u2605 per level, once per city each turn). A level-5 city builds Barracks instead: 20\u2605 for +1 army size, up to three per city.'],
@@ -4221,6 +4601,10 @@ $('helpBtn').onclick=()=>{
     ['City rewards','Every time a city levels up you pick one of two rewards: Workshop or Scouts, City walls or a War chest, Population boom or Wider borders, Command post or an Elite tank.'],
     ['Supply drops','Parachuted crates hide in the fog. The first unit to step on one opens it: stars, a free tech, a free Infantry, a map of the area, or settlers for your nearest city.'],
     ['Veterans','A unit with three kills can be promoted for +5 max HP and a full heal. It is free, so you can save it as an emergency heal.'],
+    ['Commander powers','Every faction has one power you can use once per game, on your own turn: tap the lightning button. Aegis heals everything \u00b7 Crimson double damage this turn \u00b7 Solaris a turn and a half of income \u00b7 Ghost +25% damage and no return fire this turn \u00b7 Iron Bastion half damage for two rounds \u00b7 Verdant +1 population in every city \u00b7 Tidewatch a free Infantry at every city. Rivals above Easy use theirs too.'],
+    ['Pass & play','Menu \u2192 Custom \u2192 Players on this device: two to four people share one phone or computer. After each turn a hand-off screen hides the board until the next player taps Start turn, and everyone sees only their own explored map. Any remaining rivals are played by the computer.'],
+    ['Danger zones','Tap the warning triangle (or press D) to shade every tile an enemy in sight could strike next turn.'],
+    ['Surrender','A computer rival that is down to its HQ and hopelessly outgunned gives up instead of dragging out the ending.'],
     ['Recon','Tap any rival unit or city to inspect it \u2014 stats, income, and the red zone shows where that unit can reach next turn. Your own units dim once they\u2019ve acted.'],
     ['Multiplayer','Host an operation from the menu to get a 5-letter room code \u2014 up to three friends join with it. The host\u2019s device referees the match, so keep it online; if the host drops, guests can Export Save and finish the campaign solo. The host can set a per-turn timer in the lobby.'],
     ['Difficulty','Menu \u2192 Custom. Easy rivals collect 60% of their income, train one unit a turn, research every other turn and are slow to attack. Normal: 80%, two units a turn. Hard: full income, three units a turn. Crazy rivals collect 70% extra, train in every city, start richer and research twice as fast.'],
@@ -4228,7 +4612,7 @@ $('helpBtn').onclick=()=>{
     ['Enemy turns','Tap the speed pill under the banner (or press F) to watch enemy turns at normal speed, fast, or skip straight to your turn. Menu \u2192 Camera chooses whether the camera follows enemy actions you can see.'],
 
     ['Tutorial','Replay the guided first game any time: Menu \u2192 How to play.'],
-    ['Hotkeys','Space/Enter end turn \u00b7 Tab/N next unit \u00b7 U or Ctrl+Z undo \u00b7 F enemy speed \u00b7 C center on HQ \u00b7 V whole map \u00b7 T tech \u00b7 H manual \u00b7 M mute \u00b7 Esc deselect.'],
+    ['Hotkeys','Space/Enter end turn \u00b7 Tab/N next unit \u00b7 U or Ctrl+Z undo \u00b7 F enemy speed \u00b7 C center on HQ \u00b7 V whole map \u00b7 D danger zones \u00b7 P commander power \u00b7 T tech \u00b7 H manual \u00b7 M mute \u00b7 Esc deselect.'],
   ];
   $('ovTitle').textContent='Field Manual';
   $('ovTitle').className='';
@@ -4270,7 +4654,7 @@ function act(a){
   if(NET.client){
     if(side!==MYSIDE) return;
     NET.sendAction(a);
-    const s={move:'move',harvest:'harvest',research:'research',hold:'select',train:'deploy',nukebuild:'deploy',promote:'level',reward:'level',capture:'capture',develop:'harvest'}[a.t];
+    const s={move:'move',harvest:'harvest',research:'research',hold:'select',train:'deploy',nukebuild:'deploy',promote:'level',reward:'level',capture:'capture',develop:'harvest',power:'level'}[a.t];
     if(s) sfx[s]();      // optimistic feedback; combat sounds arrive with the effect stream
     return;
   }
@@ -4325,6 +4709,7 @@ function doAction(s, a){
   if(T==='research'){ if(research(s,a.k)) refresh(); return; }
   if(T==='harvest'){ if(harvest(a.x,a.y,s)) refresh(); return; }
   if(T==='develop'){ if(develop(s,a.x,a.y)) refresh(); return; }
+  if(T==='power'){ if(usePower(s)) refresh(); return; }
   if(T==='reward'){ if(applyReward(s,a.x,a.y,a.pick)) refresh(); return; }
   if(T==='train'||T==='nukebuild'){
     const k=T==='nukebuild'?'NUKE':a.k;
@@ -4571,7 +4956,7 @@ const NET={
       alive:{...alive}, stars:{...stars},
       tech:Object.fromEntries(turnOrder.map(s=>[s,[...tech[s]]])),
       turn, uid, side, over:gameOver, winner:this.winner, stats:{...stats},
-      tm:this.timer, tl:this.turnEnds?Math.max(0,this.turnEnds-Date.now()):0, tc:{...turnCities}, rv:mapReveals, ln:{...lastNuke},
+      tm:this.timer, tl:this.turnEnds?Math.max(0,this.turnEnds-Date.now()):0, tc:{...turnCities}, rv:mapReveals, ln:{...lastNuke}, tl:tally, pw,
       units:units.map(u=>({...u})),
       explored:null,
       map:map.map(row=>row.map(t=>({t:t.terrain, c:packCity(t.city), r:t.resource||0, ru:t.ruin?1:0})))
@@ -4826,7 +5211,7 @@ function applyNetState(d, evts){
   side=d.side;
   NET.humansList=d.humans||[];
   NET.timer=d.tm||0; NET.turnEnds=d.tl?Date.now()+d.tl:0;
-  turnCities=d.tc||{};
+  turnCities=d.tc||{}; tally=d.tl||{}; pw=Object.assign(pw0(), d.pw||{});
   for(const r of d.rv||[]) if(r.s===MYSIDE) revealAround(r.x,r.y,r.r);
   if(terr) buildBoard();
   if(sel){
@@ -4858,6 +5243,7 @@ function replayEvts(list){
   }
 }
 function showDefeat(){
+  $('handoff').hidden=true; curtainUp=false; noticesDue=false;
   revealAll();
   if(!NET.on) clearSave();
   refresh();
@@ -4961,6 +5347,7 @@ function newGame(){
   document.body.classList.remove('nogame');
   fitSaved=null; camDistGoal=null; camPhiGoal=null; cam.phi=0.96; $('fitBtn').classList.remove('on');
   $('turnBanner').classList.remove('show');
+  pw=pw0();
   gcfg={...cfg}; blockedHint=false; lastNuke={}; nukeWarned={}; mapReveals=[]; seenBy={};
   undoStack.length=0;
   turnCities={};
@@ -4974,19 +5361,25 @@ function newGame(){
   const pool=Object.keys(FACTIONS).filter(f=>f!==cfg.faction);
   for(let i=pool.length-1;i>0;i--){const j=rnd(i+1);[pool[i],pool[j]]=[pool[j],pool[i]];}
   const chosen=[cfg.faction];
+  const hotN=(!NET.on&&cfg.hot>1)?Math.min(4,cfg.hot):1;   // people sharing this device
+  if(hotN-1>cfg.enemies) cfg.enemies=hotN-1;
   for(let i=0;i<cfg.enemies;i++){
     const s='A'+(i+1);
     enemySides.push(s);
-    let k=pool.findIndex(f=>!chosen.some(c=>(FACTION_CLASH[c]||[]).includes(f)));
+    const want=i<hotN-1?(cfg.hotFac||[])[i]:null;   // players 2+ picked their factions on the setup screen
+    let k=want&&pool.includes(want)?pool.indexOf(want):pool.findIndex(f=>!chosen.some(c=>(FACTION_CLASH[c]||[]).includes(f)));
     if(k<0) k=0;
     const fk=pool.length?pool.splice(k,1)[0]:cfg.faction; chosen.push(fk);
     playerMeta[s]=mkMeta(FACTIONS[fk]);
     alive[s]=true;
   }
   turnOrder=[P,...enemySides];
+  HOT=hotN>1?turnOrder.slice(0,hotN):[];
+  exploredBy={}; camBy={}; turnSnaps={}; curtainUp=false; noticesDue=false; $('handoff').hidden=true;
+  if(!NET.on) MYSIDE=P;
   if(NET.host&&NET.setup) NET.applySetup();  // online: chosen factions + callsigns take over the slots
   units=[]; turn=1; side=P; sel=null; gameOver=false; uid=1;
-  stats={kills:0,losses:0};
+  stats={kills:0,losses:0}; tally={};
   stars={}; tech={};
   for(const s of turnOrder){
     stars[s]=(isAI(s)?diff().start:6)+(turnOrder.indexOf(s)>0?3:0);
@@ -5027,6 +5420,7 @@ function newGame(){
   $('techPanel').classList.remove('show');
   $('turnBanner').classList.remove('show');
   startTurn(P,true);
+  if(hotOn()) showCurtain(P);
   if(NET.host) NET.sendStart();
 }
 function mkMeta(f){ return {faction:f, name:f.name, body:f.color, trim:f.trim, flag:f.color, css:f.css}; }
