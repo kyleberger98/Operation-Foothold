@@ -243,6 +243,22 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 #setupInner{background:var(--panel); border:1px solid var(--line); max-width:860px; width:100%; margin:auto 0;
   padding:22px 24px 26px; border-radius:18px; box-shadow:0 24px 70px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04)}
 #setupInner.home{max-width:440px; background:rgba(22,29,24,.9)}
+.fmed{display:flex; gap:5px; margin-top:8px}
+.md{min-width:30px; padding:1px 6px; border-radius:999px; font-size:10px; font-weight:700; text-align:center; border:1px solid var(--line); color:var(--dim)}
+.md.s1{border-color:#c08457; color:#e0a070}
+.md.s2{border-color:#c9d1d6; color:#e6ecef}
+.md.s3{border-color:var(--amber); background:rgba(240,179,92,.16); color:var(--amber)}
+#progLine{color:var(--amber)}
+.ovScore{margin-top:14px; color:var(--text); font-size:13px}
+.ovStars{font-size:34px; letter-spacing:.14em; color:var(--amber); line-height:1; text-shadow:0 0 18px rgba(240,179,92,.45)}
+.ovStars i{font-style:normal; color:#3c4a40; text-shadow:none}
+.ovBig{font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:26px; letter-spacing:.08em; margin-top:8px}
+.ovNote{color:var(--amber); font-size:12.5px; margin-top:4px}
+.ovGrid{display:grid; grid-template-columns:1fr auto; gap:3px 18px; max-width:300px; margin:10px auto 0; text-align:left; color:var(--dim)}
+.ovGrid b{color:var(--text); text-align:right; font-variant-numeric:tabular-nums}
+.ovBoard{max-width:300px; margin:12px auto 0; border-top:1px solid var(--line); padding-top:8px; display:grid; grid-template-columns:1fr auto; gap:3px 18px; text-align:left}
+.ovBoard span.out{opacity:.5; text-decoration:line-through}
+.ovBoard b{text-align:right; font-variant-numeric:tabular-nums}
 .speedMenu.install{border-color:var(--amber); color:var(--amber)}
 .speedMenu.install b{color:var(--amber)}
 #installTip{margin:10px auto 0; max-width:340px; font-size:12px; line-height:1.5; color:var(--dim); text-align:center}
@@ -522,6 +538,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
         <button id="tutBtn" class="bigbtn">How to play<span>a guided first game</span></button>
       </div>
       <div class="saveNote">Your campaign auto-saves every move on this device.</div>
+      <div class="saveNote" id="progLine" hidden></div>
       <div class="setRow"><button id="speedMenuBtn" class="speedMenu"></button><button id="soundMenuBtn" class="speedMenu"></button><button id="gfxMenuBtn" class="speedMenu"></button><button id="followMenuBtn" class="speedMenu"></button><button id="installBtn" class="speedMenu install" hidden></button></div>
       <div id="installTip" hidden>On iPhone or iPad: tap the <b>Share</b> button, then <b>Add to Home Screen</b>. Gridline Command opens full-screen from its icon and plays offline.</div>
     </div>
@@ -530,6 +547,11 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
     <h3>Custom game</h3>
     <div class="sec">Choose your faction</div>
     <div id="factionGrid"></div>
+    <div class="sec">Game mode</div>
+    <div class="optRow" id="modeRow">
+      <button class="opt sel" data-mode="conquest">Conquest<span>capture every enemy HQ</span></button>
+      <button class="opt" data-mode="score">Score attack<span>30 turns · highest score wins</span></button>
+    </div>
     <div class="sec">Map size</div>
     <div class="optRow" id="sizeRow">
       <button class="opt" data-size="9">Small<span>9×9</span></button>
@@ -836,6 +858,75 @@ function resUnlocked(s,k){ return !RES_REQ[k] || hasTech(s,RES_REQ[k]); }
 
 let map, units, stars, turn, side, sel, gameOver, uid, gen=0;
 let stats={kills:0,losses:0};
+let tally={};   // per side: kills, losses, eliminations (for the score)
+const tl=s=>tally[s]||(tally[s]={kills:0,losses:0,elims:0});
+const SCORE_TURNS=30;
+const gameMode=()=>((gcfg||cfg).mode==='score'&&!NET.on)?'score':'conquest';
+const parTurns=()=>W+6+3*enemySides.length;   // win by this turn for three stars
+function scoreParts(s){
+  let cities=0, techs=tech[s]?tech[s].size*25:0, army=0;
+  map.flat().forEach(t=>{ if(t.city&&t.city.owner===s) cities+=60+40*t.city.level; });
+  for(const u of units) if(u.owner===s&&u.type!=='NUKE') army+=4*UNIT_TYPES[u.type].cost;
+  const t=tl(s);
+  return {Cities:cities, Research:techs, Army:army, 'Enemy units destroyed':t.kills*10, 'Factions eliminated':t.elims*250};
+}
+function scoreOf(s){ return Object.values(scoreParts(s)).reduce((a,b)=>a+b,0); }
+function scoreLeader(){ return turnOrder.filter(s=>alive[s]).sort((a,b)=>scoreOf(b)-scoreOf(a))[0]; }
+/* ---- medals and records, kept on this device ---- */
+const PROG_KEY='foothold-progress';
+function loadProg(){ try{ return JSON.parse(localStorage.getItem(PROG_KEY))||{}; }catch(e){ return {}; } }
+function medalRow(fk){
+  const m=(loadProg().medals||{})[fk]||{};
+  return '<div class="fmed">'+Object.keys(DIFFS).map(d=>{ const n=m[d]||0;
+    return `<span class="md s${n}" title="${DIFFS[d].name}: ${n} of 3 stars">${DIFFS[d].name[0]} ${n?'★'.repeat(n):'–'}</span>`; }).join('')+'</div>';
+}
+function renderProgress(){
+  const p=loadProg(), el=$('progLine'); if(!el) return;
+  let stars=0; for(const f in (p.medals||{})) for(const d in p.medals[f]) stars+=p.medals[f][d];
+  el.hidden=!p.games;
+  el.textContent='★ '+stars+' of '+(Object.keys(FACTIONS).length*Object.keys(DIFFS).length*3)+' medal stars · '+(p.wins||0)+' win'+((p.wins||0)===1?'':'s')+' in '+(p.games||0)+' game'+((p.games||0)===1?'':'s');
+}
+function recordResult(won, stars, score){
+  const p=loadProg(), f=meta(MYSIDE).faction.key, d=(gcfg||cfg).diff||'normal';
+  p.games=(p.games||0)+1; if(won) p.wins=(p.wins||0)+1;
+  p.medals=p.medals||{}; p.medals[f]=p.medals[f]||{};
+  const old=p.medals[f][d]||0, up=stars>old; if(up) p.medals[f][d]=stars;
+  const bk=[gameMode(),W,enemySides.length,d].join('|'); p.best=p.best||{};
+  const ob=p.best[bk]||0, nb=score>ob; if(nb) p.best[bk]=score;
+  try{ localStorage.setItem(PROG_KEY, JSON.stringify(p)); }catch(e){}
+  return {up, old, nb, ob};
+}
+/* the result panel on the end screen: stars, score, what it is made of, and how the rivals did */
+function resultHtml(winner, firstTime){
+  const me=MYSIDE, won=winner===me, solo=!NET.on, mode=gameMode();
+  const parts=scoreParts(me);
+  let stars=0, note='';
+  if(mode==='score'){
+    const others=turnOrder.filter(s=>s!==me).map(scoreOf), second=Math.max(0,...others);
+    stars=won?((scoreOf(me)>=second*1.25||!turnOrder.some(s=>s!==me&&alive[s]))?3:2):(alive[me]?1:0);
+    note=won?(stars===3?'A commanding lead.':'Three stars need a 25% lead over the runner-up.'):(alive[me]?'One star for holding out. Finish with the top score for more.':'');
+  } else {
+    const par=parTurns();
+    if(won){
+      parts['Victory']=500; parts['Speed bonus']=30*Math.max(0,par+8-turn);
+      stars=turn<=par?3:turn<=par+8?2:1;
+      note=stars===3?'Won by turn '+par+' — a flawless campaign.':stars===2?'Three stars need a win by turn '+par+'.':'Two stars need a win by turn '+(par+8)+'.';
+    }
+  }
+  const total=Object.values(parts).reduce((a,b)=>a+b,0);
+  let rec=null;
+  if(solo&&firstTime) rec=recordResult(won, stars, total);
+  const fac=meta(me).faction, dn=(DIFFS[(gcfg||cfg).diff]||DIFFS.normal).name;
+  const board=turnOrder.map(s=>({s, v:s===me?total:scoreOf(s)})).sort((a,b)=>b.v-a.v)
+    .map(o=>`<span class="${alive[o.s]?'':'out'}" style="color:${meta(o.s).css}">${meta(o.s).name}${o.s===me?' (you)':''}</span><b>${o.v}</b>`).join('');
+  return (solo?`<div class="ovStars">${'★'.repeat(stars)}<i>${'★'.repeat(3-stars)}</i></div>`:'')+
+    `<div class="ovBig">${total} points</div>`+
+    (note&&solo?`<div class="ovNote">${note}</div>`:'')+
+    (rec&&rec.up?`<div class="ovNote">New medal: ${fac.name} · ${dn} ${'★'.repeat(stars)}</div>`:'')+
+    (rec&&rec.nb&&rec.ob?`<div class="ovNote">New best score (was ${rec.ob})</div>`:'')+
+    `<div class="ovGrid">${Object.entries(parts).filter(([,v])=>v).map(([k,v])=>`<span>${k}</span><b>${v}</b>`).join('')}</div>`+
+    `<div class="ovBoard">${board}</div>`;
+}
 
 const rnd=n=>Math.floor(Math.random()*n);
 const key=(x,y)=>x+','+y;
@@ -1032,6 +1123,15 @@ function harvest(x,y,owner){
   }
   return true;
 }
+function turnHead(s){
+  let h='Your turn \u00b7 turn '+turn+' \u00b7 +'+income(s)+'\u2605 income';
+  if(gameMode()==='score'){
+    const rk=turnOrder.filter(x=>alive[x]).sort((a,b)=>scoreOf(b)-scoreOf(a)).indexOf(s);
+    h+='\nScore '+scoreOf(s)+' \u00b7 '+['1st','2nd','3rd','4th'][rk]+
+      (turn>=SCORE_TURNS-4?' \u00b7 '+(turn===SCORE_TURNS?'final turn!':(SCORE_TURNS-turn+1)+' turns left'):'');
+  }
+  return h;
+}
 /* the notice at the start of your turn: income, what happened during the enemy turn, hints */
 function myTurnNotices(){
   const s=MYSIDE;
@@ -1062,7 +1162,7 @@ function myTurnNotices(){
       turnNotes.push('Units standing on your cities block training \u2014 move one off to recruit.');
     }
   }
-  { const at=recapAt; toast(['Your turn \u00b7 turn '+turn+' \u00b7 +'+income(s)+'\u2605 income',...turnNotes].join('\n'), turnNotes.length?'var(--amber)':meta(s).css, at?()=>panTo(at.x,at.y):null); }
+  { const at=recapAt; toast([turnHead(s),...turnNotes].join('\n'), turnNotes.length?'var(--amber)':meta(s).css, at?()=>panTo(at.x,at.y):null); }
   turnNotes.length=0;
 }
 const turnNotes=[];
@@ -1089,7 +1189,10 @@ function startTurn(s, first){
     });
   }
   units.forEach(u=>{ if(u.owner===s){u.moved=false;u.attacked=false;u.held=false;u.waited=false;u.walked=false;} });
-  if(s===turnOrder.find(x=>alive[x]) && !first) turn++;   // counts on even after the player is knocked out
+  if(s===turnOrder.find(x=>alive[x]) && !first){
+    if(gameMode()==='score'&&turn>=SCORE_TURNS){ sel=null; endGame(scoreLeader()); return; }   // time is up: the top score wins
+    turn++;   // counts on even after the player is knocked out
+  }
   undoStack.length=0;   // undo never reaches back past the start of a turn
   if(NET.host&&NET.inGame) NET.turnEnds=(NET.timer&&(s===P||NET.humans[s]))?Date.now()+NET.timer*1000:0;
   if(NET.host&&NET.inGame&&NET.humans[s]&&!NET.humans[s].conn&&alive[s]){
@@ -1226,6 +1329,8 @@ function promote(u){
 function recKill(victim, by){
   if(by===MYSIDE) stats.kills++;
   if(victim===MYSIDE) stats.losses++;
+  if(by&&playerMeta[by]) tl(by).kills++;
+  if(victim&&playerMeta[victim]) tl(victim).losses++;
   NET.evt({t:'kill',o:victim,b:by});
 }
 function calcDamage(u,d,frac){
@@ -1514,6 +1619,7 @@ function eliminate(s, by, surrendered){
     return false;
   });
   map.flat().forEach(t=>{ if(t.city&&t.city.owner===s){ t.city.owner=null; t.city.rw=[]; } });
+  if(by&&playerMeta[by]) tl(by).elims++;
   if(surrendered) log('sys',`${meta(s).name} SURRENDERS \u2014 its last troops lay down their arms.`);
   else log('sys',`${meta(s).name} has been ELIMINATED${NET.on?(by&&meta(by)?' by '+meta(by).name:''):(by===MYSIDE?' by your forces':'')}!`);
   if(!surrendered) sfx.boom(); else sfx.capture();
@@ -3301,7 +3407,7 @@ function refresh(){
   computeVision();
   $('hudStars').textContent=stars[MYSIDE];
   $('hudIncome').textContent='+'+income(MYSIDE);
-  $('hudTurn').textContent=turn;
+  $('hudTurn').textContent=gameMode()==='score'?turn+'/'+SCORE_TURNS:turn;
   const hs=$('hudSide');
   hs.textContent=side===MYSIDE?'YOU':(playerMeta[side]?meta(side).name.split(' ')[0].toUpperCase():'ENEMY');
   hs.className='v';
@@ -3438,7 +3544,7 @@ function serializeGame(){
     stars:{...stars},
     tech:Object.fromEntries(turnOrder.map(s=>[s,[...tech[s]]])),
     turn, uid, stats:{...stats},
-    tc:{...turnCities}, ln:{...lastNuke}, rv:mapReveals, me:MYSIDE,
+    tc:{...turnCities}, ln:{...lastNuke}, rv:mapReveals, me:MYSIDE, tl:tally,
     names:Object.fromEntries(turnOrder.map(s=>[s,meta(s).name])),
     units:units.map(u=>({...u})),
     explored,
@@ -3463,7 +3569,7 @@ function swapSaveSides(d, me){
   const swKeys=o=>{ if(!o) return o; const r={}; for(const k in o) r[sw(k)]=o[k]; return r; };
   d=JSON.parse(JSON.stringify(d));
   d.sides=swKeys(d.sides); d.alive=swKeys(d.alive); d.stars=swKeys(d.stars); d.tech=swKeys(d.tech);
-  d.names=swKeys(d.names); d.tc=swKeys(d.tc); d.ln=swKeys(d.ln);
+  d.names=swKeys(d.names); d.tc=swKeys(d.tc); d.ln=swKeys(d.ln); d.tl=swKeys(d.tl);
   d.enemySides=d.enemySides.map(sw);
   d.units.forEach(u=>u.owner=sw(u.owner));
   d.map.forEach(row=>row.forEach(t=>{ if(t.c&&t.c.o) t.c.o=sw(t.c.o); }));
@@ -3481,6 +3587,7 @@ function restoreGame(data, net){
     undoStack.length=0;
     turnCities={...(data.tc||{})}; lastNuke={...(data.ln||{})}; mapReveals=data.rv?data.rv.map(r=>({...r})):[];
     nukeWarned={}; blockedHint=false; seenBy={};
+    tally=data.tl?JSON.parse(JSON.stringify(data.tl)):{};
     $('endBar').hidden=true;
     if(!net) NET.leave();
     pendingAtk=null;
@@ -3566,7 +3673,7 @@ function importSave(file){
 const CFG_KEY='foothold-cfg';
 try{
   const c=JSON.parse(localStorage.getItem(CFG_KEY)||'null');
-  if(c&&FACTIONS[c.faction]) cfg={size:[9,11,13,15].includes(+c.size)?+c.size:11, enemies:Math.min(3,Math.max(1,+c.enemies||1)), faction:c.faction, diff:DIFFS[c.diff]?c.diff:'normal'};
+  if(c&&FACTIONS[c.faction]) cfg={size:[9,11,13,15].includes(+c.size)?+c.size:11, enemies:Math.min(3,Math.max(1,+c.enemies||1)), faction:c.faction, diff:DIFFS[c.diff]?c.diff:'normal', mode:c.mode==='score'?'score':'conquest'};
 }catch(e){}
 function saveCfg(){ try{ localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }catch(e){} }
 function setupView(v){
@@ -3584,7 +3691,7 @@ function showSetup(){
     const card=document.createElement('button');
     card.className='fcard'+(cfg.faction===k?' sel':'');
     card.style.borderLeftColor=f.css;
-    card.innerHTML=`<div class="fn" style="color:${f.css}">${f.name}</div><div class="fp">${f.perk}</div>`;
+    card.innerHTML=`<div class="fn" style="color:${f.css}">${f.name}</div><div class="fp">${f.perk}</div>`+medalRow(k);
     card.onclick=()=>{
       cfg.faction=k;
       grid.querySelectorAll('.fcard').forEach(c=>c.classList.remove('sel'));
@@ -3596,8 +3703,10 @@ function showSetup(){
   // sync option buttons to the current config
   document.querySelectorAll('#sizeRow .opt').forEach(o=>o.classList.toggle('sel', +o.dataset.size===cfg.size));
   document.querySelectorAll('#enRow .opt').forEach(o=>o.classList.toggle('sel', +o.dataset.en===cfg.enemies));
+  document.querySelectorAll('#modeRow .opt').forEach(o=>o.classList.toggle('sel', o.dataset.mode===(cfg.mode||'conquest')));
   document.querySelectorAll('#diffRow .opt').forEach(o=>o.classList.toggle('sel', o.dataset.diff===(DIFFS[cfg.diff]?cfg.diff:'normal')));
-  $('quickInfo').textContent=FACTIONS[cfg.faction].name+' · '+SIZE_NAME[cfg.size]+' map · '+cfg.enemies+' enem'+(cfg.enemies===1?'y':'ies')+' · '+(DIFFS[cfg.diff]||DIFFS.normal).name;
+  $('quickInfo').textContent=FACTIONS[cfg.faction].name+' · '+SIZE_NAME[cfg.size]+' map · '+cfg.enemies+' enem'+(cfg.enemies===1?'y':'ies')+' · '+(DIFFS[cfg.diff]||DIFFS.normal).name+(cfg.mode==='score'?' · score attack':'');
+  renderProgress();
   const running=!!map&&!gameOver;
   $('resumeBtn').style.display=running?'':'none';
   // continue button if a save exists and no game is running
@@ -3669,6 +3778,14 @@ document.querySelectorAll('#sizeRow .opt').forEach(b=>{
   b.onclick=()=>{
     cfg.size=+b.dataset.size;
     document.querySelectorAll('#sizeRow .opt').forEach(o=>o.classList.remove('sel'));
+    b.classList.add('sel');
+    sfx.select();
+  };
+});
+document.querySelectorAll('#modeRow .opt').forEach(b=>{
+  b.onclick=()=>{
+    cfg.mode=b.dataset.mode;
+    document.querySelectorAll('#modeRow .opt').forEach(o=>o.classList.remove('sel'));
     b.classList.add('sel');
     sfx.select();
   };
@@ -4234,6 +4351,7 @@ async function keepAwake(on){
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&map&&!gameOver) keepAwake(true); });
 function endGame(winner){
   keepAwake(false);
+  const firstTime=!gameOver;
   gameOver=true;
   if(NET.host) NET.winner=winner;
   if(!NET.on) clearSave();
@@ -4248,12 +4366,16 @@ function endGame(winner){
   btn.textContent='Redeploy';
   btn.onclick=()=>{ $('overlay').classList.remove('show'); NET.leave(); showSetup(); };
   const tally=` Turn ${turn} \u00b7 ${stats.kills} enemy units destroyed \u00b7 ${stats.losses} lost.`;
+  const timeUp=gameMode()==='score'&&turnOrder.filter(s=>alive[s]).length>1;
   if(winner===MYSIDE){ t.textContent='Victory'; t.className='win';
-    b.textContent=(NET.on?'All rival factions eliminated. The region is yours, Commander.'
+    b.textContent=(timeUp?'Time is up \u2014 you finished with the highest score, Commander.'
+                  :NET.on?'All rival factions eliminated. The region is yours, Commander.'
                          :'All enemy factions eliminated. The region is yours, Commander.')+tally; }
-  else { t.textContent=NET.on?'Operation Failed':'HQ Lost'; t.className='lose';
-    b.textContent=(winner&&playerMeta[winner]?meta(winner).name+' controls the region.'
+  else { t.textContent=timeUp?'Outscored':NET.on?'Operation Failed':'HQ Lost'; t.className='lose';
+    b.textContent=(timeUp?'Time is up \u2014 '+meta(winner).name+' finished with the highest score.'
+                  :winner&&playerMeta[winner]?meta(winner).name+' controls the region.'
                                                      :'Hostile forces overran your headquarters.')+tally; }
+  { const d=document.createElement('div'); d.className='ovScore'; d.innerHTML=resultHtml(winner, firstTime); b.appendChild(d); }
   const alt=$('ovAlt');
   alt.hidden=false; alt.textContent='View battlefield';
   alt.onclick=()=>{
@@ -4276,6 +4398,8 @@ $('restart').onclick=()=>{ $('overlay').classList.remove('show'); NET.leave(); s
 $('helpBtn').onclick=()=>{
   const lines=[
     ['Goal','Capture every enemy HQ. Lose if your own HQ falls.'],
+    ['Game modes','Conquest: the last faction standing wins. Score attack (Menu \u2192 Custom): play 30 turns, then the highest score wins.'],
+    ['Score & medals','Cities and their levels, research, your army, enemy units destroyed and factions eliminated all score points. A solo win earns one to three stars \u2014 the faster the win, the more stars \u2014 and each faction keeps its best medal for every difficulty.'],
     ['Capturing','Move a unit onto a village or enemy city, then at the start of your next turn select it and tap Capture (it uses the unit\u2019s action). The defender gets a turn to strike back.'],
     ['Army size','Each city supports its level + 1 units. Grow and capture cities to field a bigger army.'],
     ['Develop','Spare stars? Select one of your cities and tap Develop for +1 population (4\u2605 + 2\u2605 per level, once per city each turn). A level-5 city builds Barracks instead: 20\u2605 for +1 army size, up to three per city.'],
@@ -4640,7 +4764,7 @@ const NET={
       alive:{...alive}, stars:{...stars},
       tech:Object.fromEntries(turnOrder.map(s=>[s,[...tech[s]]])),
       turn, uid, side, over:gameOver, winner:this.winner, stats:{...stats},
-      tm:this.timer, tl:this.turnEnds?Math.max(0,this.turnEnds-Date.now()):0, tc:{...turnCities}, rv:mapReveals, ln:{...lastNuke},
+      tm:this.timer, tl:this.turnEnds?Math.max(0,this.turnEnds-Date.now()):0, tc:{...turnCities}, rv:mapReveals, ln:{...lastNuke}, tl:tally,
       units:units.map(u=>({...u})),
       explored:null,
       map:map.map(row=>row.map(t=>({t:t.terrain, c:packCity(t.city), r:t.resource||0, ru:t.ruin?1:0})))
@@ -4895,7 +5019,7 @@ function applyNetState(d, evts){
   side=d.side;
   NET.humansList=d.humans||[];
   NET.timer=d.tm||0; NET.turnEnds=d.tl?Date.now()+d.tl:0;
-  turnCities=d.tc||{};
+  turnCities=d.tc||{}; tally=d.tl||{};
   for(const r of d.rv||[]) if(r.s===MYSIDE) revealAround(r.x,r.y,r.r);
   if(terr) buildBoard();
   if(sel){
@@ -5055,7 +5179,7 @@ function newGame(){
   turnOrder=[P,...enemySides];
   if(NET.host&&NET.setup) NET.applySetup();  // online: chosen factions + callsigns take over the slots
   units=[]; turn=1; side=P; sel=null; gameOver=false; uid=1;
-  stats={kills:0,losses:0};
+  stats={kills:0,losses:0}; tally={};
   stars={}; tech={};
   for(const s of turnOrder){
     stars[s]=(isAI(s)?diff().start:6)+(turnOrder.indexOf(s)>0?3:0);
