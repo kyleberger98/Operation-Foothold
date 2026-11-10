@@ -753,14 +753,15 @@ const FACTION_CLASH={AEGIS:['TIDE'], TIDE:['AEGIS']};
 /* commander powers: each faction has one, usable once per game on your own turn */
 const POWERS={
   AEGIS:  {key:'triage',   name:'Field Triage',      desc:'Every unit you have is healed to full health.'},
-  CRIMSON:{key:'assault',  name:'All-Out Assault',   desc:'For the rest of this turn your units deal +50% damage.'},
-  SOLARIS:{key:'windfall', name:'Windfall',          desc:'Collect two turns of income right now (at least 12\u2605).'},
-  GHOST:  {key:'ambush',   name:'Ambush',            desc:'For the rest of this turn, enemies cannot return fire on your attackers.'},
-  BASTION:{key:'bulwark',  name:'Hold the Line',     desc:'Until your next turn, your units take half damage.'},
-  VERDANT:{key:'festival', name:'Harvest Festival',  desc:'Every city you hold gains +2 population.'},
+  CRIMSON:{key:'assault',  name:'All-Out Assault',   desc:'For the rest of this turn your units deal double damage.'},
+  SOLARIS:{key:'windfall', name:'Windfall',          desc:'Collect one and a half turns of income right now (at least 9\u2605).'},
+  GHOST:  {key:'ambush',   name:'Ambush',            desc:'For the rest of this turn your units deal +25% damage and enemies cannot return fire.'},
+  BASTION:{key:'bulwark',  name:'Hold the Line',     desc:'For two rounds, your units take half damage.'},
+  VERDANT:{key:'festival', name:'Harvest Festival',  desc:'Every city you hold gains +1 population.'},
   TIDE:   {key:'airdrop',  name:'Reinforcements',    desc:'A free Infantry lands at every city you hold.'},
 };
 for(const k in POWERS) FACTIONS[k].power=POWERS[k];
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pw0=()=>({used:{}, rage:{}, ghost:{}, shield:{}});
 let pw=pw0();   // turn each side used its power, and the effects in force
 const powerReady=s=>!!(playerMeta[s]&&meta(s).faction.power)&&pw.used[s]==null&&alive[s];
@@ -776,16 +777,16 @@ function usePower(s){
     for(const u of mine) if(u.hp<u.maxHp){ fx.popup(u.x,u.y,'+'+(u.maxHp-u.hp),'#8fd89a'); u.hp=u.maxHp; }
   } else if(p.key==='assault') pw.rage[s]=turn;
   else if(p.key==='ambush') pw.ghost[s]=turn;
-  else if(p.key==='bulwark') pw.shield[s]=true;
-  else if(p.key==='windfall'){ const g=Math.max(12, income(s)*2); stars[s]+=g; const h=cities.find(q=>q.c.capital)||cities[0]; if(h) fx.popup(h.x,h.y,'+'+g+'\u2605','#f0b35c'); }
+  else if(p.key==='bulwark') pw.shield[s]=2;   // lasts until the second time your turn comes round
+  else if(p.key==='windfall'){ const g=Math.max(9, Math.round(income(s)*1.5)); stars[s]+=g; const h=cities.find(q=>q.c.capital)||cities[0]; if(h) fx.popup(h.x,h.y,'+'+g+'\u2605','#f0b35c'); }
   else if(p.key==='festival'){
     for(const q of cities){
       const c=q.c; if(c.level>=MAX_LEVEL) continue;
-      c.pop+=2; const gained=[];
+      c.pop+=1; const gained=[];
       while(c.level<MAX_LEVEL&&c.pop>=c.level+1){ c.pop-=c.level+1; c.level++; gained.push(c.level); }
       if(c.level>=MAX_LEVEL) c.pop=0;
       if(gained.length) c.rw=(c.rw||[]).concat(gained);
-      fx.popup(q.x,q.y,gained.length?'LEVEL '+c.level+'!':'+2 POP','#8fd89a');
+      fx.popup(q.x,q.y,gained.length?'LEVEL '+c.level+'!':'+1 POP','#8fd89a');
     }
   } else if(p.key==='airdrop'){
     for(const q of cities){
@@ -806,16 +807,17 @@ function aiUsePower(me){
   if(!powerReady(me)||!diff().sharp||turn<4) return;
   const k=meta(me).faction.power.key, mine=units.filter(u=>u.owner===me&&u.type!=='NUKE');
   const foes=units.filter(e=>e.owner!==me);
-  const engaged=mine.filter(u=>foes.some(e=>cheb(e,u)<=uMove(u)+uRange(u))).length;
+  const inRange=mine.filter(u=>attackTargets(u).length).length;   // units that can strike right now
   let hq=null; for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.capital&&c.owner===me) hq={x,y}; }
   const cornered=!!hq&&foes.some(e=>cheb(e,hq)<=2);
   let go=false;
-  if(k==='triage') go=mine.reduce((n,u)=>n+(u.maxHp-u.hp),0)>=14;
-  else if(k==='assault'||k==='ambush') go=engaged>=3;
+  const hurt=mine.reduce((n,u)=>n+(u.maxHp-u.hp),0);
+  if(k==='triage') go=hurt>=14;
+  else if(k==='assault'||k==='ambush') go=inRange>=3||(inRange>=2&&mine.length<=4);
   else if(k==='windfall') go=income(me)>=8;
   else if(k==='bulwark') go=mine.filter(u=>foes.some(e=>cheb(e,u)<=3)).length>=3;
   else if(k==='festival'||k==='airdrop') go=cityCount(me)>=3;
-  if(go||(cornered&&mine.length)) usePower(me);
+  if(go||(cornered&&mine.length&&(k!=='triage'||hurt>=8))) usePower(me);
 }
 let cfg={size:11, enemies:1, faction:'AEGIS', diff:'normal'};
 /* ---------------- AI DIFFICULTY ----------------
@@ -1021,7 +1023,7 @@ function resultHtml(winner, firstTime){
   if(solo&&firstTime) rec=recordResult(won, stars, total);
   const fac=meta(me).faction, dn=(DIFFS[(gcfg||cfg).diff]||DIFFS.normal).name;
   const board=turnOrder.map(s=>({s, v:s===me?total:scoreOf(s)})).sort((a,b)=>b.v-a.v)
-    .map(o=>`<span class="${alive[o.s]?'':'out'}" style="color:${meta(o.s).css}">${meta(o.s).name}${hot?(HOT.includes(o.s)?' · '+pname(o.s):''):(o.s===me?' (you)':'')}</span><b>${o.v}</b>`).join('');
+    .map(o=>`<span class="${alive[o.s]?'':'out'}" style="color:${meta(o.s).css}">${esc(meta(o.s).name)}${hot?(HOT.includes(o.s)?' · '+pname(o.s):''):(o.s===me?' (you)':'')}</span><b>${o.v}</b>`).join('');
   return (solo?`<div class="ovStars">${'★'.repeat(stars)}<i>${'★'.repeat(3-stars)}</i></div>`:'')+
     `<div class="ovBig">${total} points</div>`+
     (note&&solo?`<div class="ovNote">${note}</div>`:'')+
@@ -1301,7 +1303,7 @@ function showCurtain(s){
 function startTurn(s, first){
   side=s;
   if(hotOn()&&HOT.includes(s)&&s!==MYSIDE) handTo(s);
-  delete pw.shield[s];   // Hold the Line lasts until your next turn
+  if(pw.shield[s]&&--pw.shield[s]<=0) delete pw.shield[s];   // Hold the Line covers two rounds
   if(meta(s).faction.walls) map.flat().forEach(t=>{ if(t.city&&t.city.owner===s) t.city.walls=true; });
   if(s===MYSIDE&&!first&&myCam&&alive[MYSIDE]){ camGoal=myCam; myCam=null; }
   if(s===MYSIDE) endGuard=performance.now()+700;
@@ -1472,7 +1474,7 @@ function calcDamage(u,d,frac){
   const AF=effAtk*(u.hp/u.maxHp);
   const DF=uDef(d)*defMult(u,d)*(d.hp/d.maxHp)*defBonus(d);
   const drill=(u.type==='INF'||u.type==='SNP')&&hasTech(u.owner,'DRILLS')?1.25:1;
-  const rage=pw.rage[u.owner]===turn&&side===u.owner?1.5:1;   // All-Out Assault
+  const rage=(pw.rage[u.owner]===turn&&side===u.owner?2:1)*(pw.ghost[u.owner]===turn&&side===u.owner?1.25:1);   // All-Out Assault, Ambush
   const dmg=Math.max(1, Math.round(AF/(AF+DF)*effAtk*4.5*(frac||1)*drill*rage*shieldMul(d.owner)));
   return {dmg, AF, DF};
 }
@@ -1752,7 +1754,7 @@ function eliminate(s, by, surrendered){
     if(!surrendered){ recKill(q.owner,by); if(visXY(q.x,q.y)) fx.boom(q.x,q.y); }
     return false;
   });
-  map.flat().forEach(t=>{ if(t.city&&t.city.owner===s){ t.city.owner=null; t.city.rw=[]; } });
+  map.flat().forEach(t=>{ if(t.city&&t.city.owner===s){ t.city.owner=null; t.city.rw=[]; t.city.capital=false; } });
   if(by&&playerMeta[by]) tl(by).elims++;
   if(surrendered) log('sys',`${meta(s).name} SURRENDERS \u2014 its last troops lay down their arms.`);
   else log('sys',`${meta(s).name} has been ELIMINATED${NET.on?(by&&meta(by)?' by '+meta(by).name:''):(by===MYSIDE?' by your forces':'')}!`);
@@ -3709,7 +3711,7 @@ function restoreGame(data, net){
     if(hotOn()){ MYSIDE=HOT.includes(data.hs)?data.hs:P; exploredBy=data.ex?JSON.parse(JSON.stringify(data.ex)):{}; }
     playerMeta={};
     for(const s of turnOrder) playerMeta[s]=mkMeta(FACTIONS[data.sides[s]]);
-    if(data.names) for(const s of turnOrder){ if(data.names[s]) playerMeta[s].name=data.names[s]; }
+    if(data.names) for(const s of turnOrder){ if(data.names[s]) playerMeta[s].name=String(data.names[s]).slice(0,24); }
     alive={...data.alive};
     stars={...data.stars};
     tech={};
@@ -4599,7 +4601,7 @@ $('helpBtn').onclick=()=>{
     ['City rewards','Every time a city levels up you pick one of two rewards: Workshop or Scouts, City walls or a War chest, Population boom or Wider borders, Command post or an Elite tank.'],
     ['Supply drops','Parachuted crates hide in the fog. The first unit to step on one opens it: stars, a free tech, a free Infantry, a map of the area, or settlers for your nearest city.'],
     ['Veterans','A unit with three kills can be promoted for +5 max HP and a full heal. It is free, so you can save it as an emergency heal.'],
-    ['Commander powers','Every faction has one power you can use once per game, on your own turn: tap the lightning button. Aegis heals everything \u00b7 Crimson +50% damage this turn \u00b7 Solaris two turns of income \u00b7 Ghost no return fire this turn \u00b7 Iron Bastion half damage until its next turn \u00b7 Verdant +2 population in every city \u00b7 Tidewatch a free Infantry at every city. Rivals above Easy use theirs too.'],
+    ['Commander powers','Every faction has one power you can use once per game, on your own turn: tap the lightning button. Aegis heals everything \u00b7 Crimson double damage this turn \u00b7 Solaris a turn and a half of income \u00b7 Ghost +25% damage and no return fire this turn \u00b7 Iron Bastion half damage for two rounds \u00b7 Verdant +1 population in every city \u00b7 Tidewatch a free Infantry at every city. Rivals above Easy use theirs too.'],
     ['Pass & play','Menu \u2192 Custom \u2192 Players on this device: two to four people share one phone or computer. After each turn a hand-off screen hides the board until the next player taps Start turn, and everyone sees only their own explored map. Any remaining rivals are played by the computer.'],
     ['Danger zones','Tap the warning triangle (or press D) to shade every tile an enemy in sight could strike next turn.'],
     ['Surrender','A computer rival that is down to its HQ and hopelessly outgunned gives up instead of dragging out the ending.'],
