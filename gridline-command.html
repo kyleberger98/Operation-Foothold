@@ -66,12 +66,14 @@ button{font:inherit; transition:background .15s ease, color .15s ease, border-co
 .rb.off{color:var(--dim)}
 #fitBtn{position:fixed; z-index:11; right:calc(env(safe-area-inset-right,0px) + 12px); top:calc(env(safe-area-inset-top,0px) + 62px)}
 #fitBtn.on{border-color:var(--amber); color:var(--amber)}
+#dangerBtn{position:fixed; z-index:11; right:calc(env(safe-area-inset-right,0px) + 12px); top:calc(env(safe-area-inset-top,0px) + 112px)}
+#dangerBtn.on{border-color:var(--red); color:var(--red)}
 #menuBtn{position:fixed; z-index:11; top:calc(env(safe-area-inset-top,0px) + 12px); left:calc(env(safe-area-inset-left,0px) + 12px)}
 #topRight{position:fixed; z-index:11; top:calc(env(safe-area-inset-top,0px) + 12px); right:calc(env(safe-area-inset-right,0px) + 12px);
   display:flex; gap:8px}
 
 /* ---- bottom dock: Tech on the left, Next unit + End turn on the right ---- */
-body.nogame #hud, body.nogame .dock, body.nogame #topRight, body.nogame #fitBtn, body.nogame #menuBtn{visibility:hidden}
+body.nogame #hud, body.nogame .dock, body.nogame #topRight, body.nogame #fitBtn, body.nogame #dangerBtn, body.nogame #menuBtn{visibility:hidden}
 .dock{position:fixed; z-index:12; bottom:calc(env(safe-area-inset-bottom,0px) + 12px);
   display:flex; flex-direction:column; align-items:center; gap:5px;
   padding:0; background:none; border:none; cursor:pointer; color:var(--text)}
@@ -460,6 +462,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
   <div class="hud-box hb-timer" id="hudTimerBox" hidden><span class="v" id="hudTimer">0:00</span><span class="k">Time</span></div>
   <div class="hud-box hb-side"><span class="v" id="hudSide">YOU</span></div>
 </div>
+<button id="dangerBtn" class="rb" title="Danger zones: where enemies in sight can strike next turn (D)" aria-label="Danger zones"><svg viewBox="0 0 24 24"><path d="M12 4 21 19.5H3z"/><path d="M12 10v4.5M12 17v.3"/></svg></button>
 <button id="fitBtn" class="rb" title="Whole map (V)" aria-label="Whole map"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
 <button id="menuBtn" class="rb" title="Menu" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h14"/></svg></button>
 <div id="topRight">
@@ -865,6 +868,16 @@ function genMap(){
   const capList=Object.values(caps);
   const villageTarget=Math.max(4, Math.round(W*H/20));
   let placed=0;
+  // every HQ gets a starter village two tiles away (diagonally inward; along alternating edges on the small map,
+  // where the diagonals would crowd the middle)
+  const starters=[];
+  Object.values(caps).forEach((c,i)=>{
+    const sx=c.x<W/2?1:-1, sy=c.y<H/2?1:-1;
+    const v=W>=11?{x:c.x+2*sx,y:c.y+2*sy}:(i<2?{x:c.x+2*sx,y:c.y}:{x:c.x,y:c.y+2*sy});
+    tileAt(v.x,v.y).terrain='plains';
+    tileAt(v.x,v.y).city={owner:null, capital:false, level:1, pop:0};
+    starters.push(v); placed++;
+  });
   // Polytopia-style spacing: every city keeps 2 clear tiles from every other,
   // so no two cities ever contest the same 3x3 territory. Greedy placement over a
   // shuffled candidate list packs far better than random darts.
@@ -876,7 +889,7 @@ function genMap(){
     cand.push({x,y});
   }
   for(let i=cand.length-1;i>0;i--){const j=rnd(i+1);[cand[i],cand[j]]=[cand[j],cand[i]];}
-  const laid=[...capList];
+  const laid=[...capList, ...starters];
   for(const p of cand){
     if(placed>=villageTarget) break;
     if(laid.some(c=>cheb(p,c)<3)) continue;
@@ -1479,17 +1492,31 @@ function captureCity(u){
   }
   return true;
 }
-function eliminate(s, by){
+/* strength of a side: its army's cost plus its cities (used for surrender) */
+function sidePower(s){
+  let p=0;
+  for(const u of units) if(u.owner===s&&u.type!=='NUKE') p+=UNIT_TYPES[u.type].cost;
+  map.flat().forEach(t=>{ if(t.city&&t.city.owner===s) p+=6*(t.city.level+1); });
+  return p;
+}
+/* an AI down to its HQ and under a quarter of the strongest rival's strength gives up (from turn 12) */
+function aiSurrenders(s){
+  if(turn<12||cityCount(s)>1) return null;
+  let top=null, tp=0;
+  for(const o of turnOrder) if(o!==s&&alive[o]){ const p=sidePower(o); if(p>tp){ tp=p; top=o; } }
+  return top&&sidePower(s)*4<tp ? top : null;
+}
+function eliminate(s, by, surrendered){
   alive[s]=false;
   units=units.filter(q=>{
     if(q.owner!==s) return true;
-    recKill(q.owner,by);
-    if(visXY(q.x,q.y)) fx.boom(q.x,q.y);
+    if(!surrendered){ recKill(q.owner,by); if(visXY(q.x,q.y)) fx.boom(q.x,q.y); }
     return false;
   });
   map.flat().forEach(t=>{ if(t.city&&t.city.owner===s){ t.city.owner=null; t.city.rw=[]; } });
-  log('sys',`${meta(s).name} has been ELIMINATED${NET.on?(by&&meta(by)?' by '+meta(by).name:''):(by===MYSIDE?' by your forces':'')}!`);
-  sfx.boom();
+  if(surrendered) log('sys',`${meta(s).name} SURRENDERS \u2014 its last troops lay down their arms.`);
+  else log('sys',`${meta(s).name} has been ELIMINATED${NET.on?(by&&meta(by)?' by '+meta(by).name:''):(by===MYSIDE?' by your forces':'')}!`);
+  if(!surrendered) sfx.boom(); else sfx.capture();
   const rem=turnOrder.filter(x=>alive[x]);
   if(rem.length<=1) endGame(rem[0]||by);
   else if(s===MYSIDE) showDefeat();   // rivals fight on; the beaten player can watch
@@ -1530,6 +1557,14 @@ setInterval(()=>{ if(!NET._lastTick||Date.now()-NET._lastTick>900) NET.timerTick
 async function aiTurn(me){
   if(gameOver||!alive[me]) return;
   const g0=gen, stale=()=>gen!==g0||gameOver;
+  if(isAI(me)){
+    const victor=aiSurrenders(me);
+    if(victor){
+      eliminate(me, victor, true); refresh();
+      if(!gameOver){ const nx=nextAlive(me); setTimeout(()=>{ if(gen===g0&&!gameOver) startTurn(nx); }, aiDelay(700)); }
+      return;
+    }
+  }
   const banner=$('turnBanner');
   banner.textContent='\u25c2 '+meta(me).name.toUpperCase()+' TURN \u25b8';
   banner.style.borderColor=meta(me).css;
@@ -2720,8 +2755,38 @@ const hlMatCap=new THREE.MeshBasicMaterial({color:0xf0b35c, transparent:true, op
 const hlMatTerr=new THREE.MeshBasicMaterial({color:0xf0b35c, transparent:true, opacity:0.14, side:THREE.DoubleSide});
 const hlMatNuke=new THREE.MeshBasicMaterial({color:0xe8625a, transparent:true, opacity:0.14, side:THREE.DoubleSide});
 const hlMatDanger=new THREE.MeshBasicMaterial({color:0xe8625a, transparent:true, opacity:0.16, side:THREE.DoubleSide});
+let dangerOn=false;
+const hlMatAllDanger=new THREE.MeshBasicMaterial({color:0xff4a3d, transparent:true, opacity:0.3, side:THREE.DoubleSide});
+function dangerTiles(){
+  const out=new Set();
+  for(const e of units){
+    if(e.owner===MYSIDE||e.type==='NUKE'||!visXY(e.x,e.y)) continue;
+    const rg=uRange({...e,walked:false}), spots=[{x:e.x,y:e.y}];
+    if(!(UNIT_TYPES[e.type].siege&&!hasTech(e.owner,'SPG'))) for(const p of reachable({...e,moved:false,attacked:false}).values()) spots.push(p);
+    for(const p of spots) for(let dy=-rg;dy<=rg;dy++)for(let dx=-rg;dx<=rg;dx++){
+      const x=p.x+dx, y=p.y+dy;
+      if(inb(x,y)&&explored[y][x]) out.add(key(x,y));
+    }
+  }
+  return out;
+}
+function toggleDanger(){
+  dangerOn=!dangerOn;
+  $('dangerBtn').classList.toggle('on',dangerOn);
+  sfx.select();
+  if(dangerOn&&!units.some(e=>e.owner!==MYSIDE&&visXY(e.x,e.y))) toast('Danger zones on \u2014 no enemy in sight right now.','var(--red)');
+  refresh();
+}
 function syncHighlights(){
   hlGroup.clear();
+  if(dangerOn&&map&&!gameOver){
+    for(const k of dangerTiles()){
+      const [x,y]=k.split(',').map(Number), tt=tileAt(x,y);
+      const m=new THREE.Mesh(hlGeoPlane,hlMatAllDanger);
+      m.rotation.x=-Math.PI/2; m.position.set(wx(x),(tt.terrain==='water'?TOP-0.14:TOP)+0.016,wz(y));
+      hlGroup.add(m);
+    }
+  }
   if(!(sel&&sel.kind==='unit')){
     if(sel&&sel.kind==='city'){
       const m=new THREE.Mesh(hlGeoRing,hlMatSel);
@@ -3641,7 +3706,7 @@ function toast(msg,color,onTap){
   setTimeout(()=>{ t.classList.add('out'); setTimeout(()=>t.remove(),320); },3200+1200*(msg.split('\n').length-1));
 }
 function toastFromLog(who,msg){
-  const big=/ELIMINATED|NUCLEAR|ran out of time/i.test(msg);
+  const big=/ELIMINATED|SURRENDERS|NUCLEAR|ran out of time/i.test(msg);
   if(!big && !(who===MYSIDE||who==='sys')) return;
   if(!big && !/captured|grew to level|research|Satellite|promotion|supply drop|Nuclear/i.test(msg)) return;
   toast(msg, who===MYSIDE||who==='sys'?'var(--amber)':playerMeta[who]?meta(who).css:'var(--red)');
@@ -4077,6 +4142,7 @@ function nextUnit(){
 }
 $('nextBtn').onclick=nextUnit;
 $('fitBtn').onclick=toggleFit;
+$('dangerBtn').onclick=toggleDanger;
 
 /* ---- mute ---- */
 function syncMute(){
@@ -4121,6 +4187,7 @@ window.addEventListener('keydown',e=>{
   }
   if(e.key==='m'||e.key==='M'){ $('muteBtn').click(); return; }
   if(map&&(e.key==='v'||e.key==='V')){ toggleFit(); return; }
+  if(map&&(e.key==='d'||e.key==='D')){ toggleDanger(); return; }
   if(map&&(e.key==='h'||e.key==='H')){ $('helpBtn').click(); return; }
   if(gameOver) return;
   if(!map || $('setup').classList.contains('show')) return; // no game running / setup open
@@ -4221,6 +4288,8 @@ $('helpBtn').onclick=()=>{
     ['City rewards','Every time a city levels up you pick one of two rewards: Workshop or Scouts, City walls or a War chest, Population boom or Wider borders, Command post or an Elite tank.'],
     ['Supply drops','Parachuted crates hide in the fog. The first unit to step on one opens it: stars, a free tech, a free Infantry, a map of the area, or settlers for your nearest city.'],
     ['Veterans','A unit with three kills can be promoted for +5 max HP and a full heal. It is free, so you can save it as an emergency heal.'],
+    ['Danger zones','Tap the warning triangle (or press D) to shade every tile an enemy in sight could strike next turn.'],
+    ['Surrender','A computer rival that is down to its HQ and hopelessly outgunned gives up instead of dragging out the ending.'],
     ['Recon','Tap any rival unit or city to inspect it \u2014 stats, income, and the red zone shows where that unit can reach next turn. Your own units dim once they\u2019ve acted.'],
     ['Multiplayer','Host an operation from the menu to get a 5-letter room code \u2014 up to three friends join with it. The host\u2019s device referees the match, so keep it online; if the host drops, guests can Export Save and finish the campaign solo. The host can set a per-turn timer in the lobby.'],
     ['Difficulty','Menu \u2192 Custom. Easy rivals collect 60% of their income, train one unit a turn, research every other turn and are slow to attack. Normal: 80%, two units a turn. Hard: full income, three units a turn. Crazy rivals collect 70% extra, train in every city, start richer and research twice as fast.'],
@@ -4228,7 +4297,7 @@ $('helpBtn').onclick=()=>{
     ['Enemy turns','Tap the speed pill under the banner (or press F) to watch enemy turns at normal speed, fast, or skip straight to your turn. Menu \u2192 Camera chooses whether the camera follows enemy actions you can see.'],
 
     ['Tutorial','Replay the guided first game any time: Menu \u2192 How to play.'],
-    ['Hotkeys','Space/Enter end turn \u00b7 Tab/N next unit \u00b7 U or Ctrl+Z undo \u00b7 F enemy speed \u00b7 C center on HQ \u00b7 V whole map \u00b7 T tech \u00b7 H manual \u00b7 M mute \u00b7 Esc deselect.'],
+    ['Hotkeys','Space/Enter end turn \u00b7 Tab/N next unit \u00b7 U or Ctrl+Z undo \u00b7 F enemy speed \u00b7 C center on HQ \u00b7 V whole map \u00b7 D danger zones \u00b7 T tech \u00b7 H manual \u00b7 M mute \u00b7 Esc deselect.'],
   ];
   $('ovTitle').textContent='Field Manual';
   $('ovTitle').className='';
