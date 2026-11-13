@@ -918,7 +918,7 @@ const UNIT_TYPES={
   ART:{key:'ART', name:'Artillery',  cost:9, hp:10,  atk:5, def:1, move:1, range:3, fly:false, siege:true, splash:0.25, desc:'Devastating at range 3. Its blast also hits enemies next to the target for 25% damage. Cannot move and fire on the same turn.'},
   AA: {key:'AA',  name:'Flak Battery', cost:4, hp:12, atk:2, def:2, move:1, range:2, fly:false, desc:'Anti-air guns that strike from 2 tiles. +75% damage vs Helicopters, and shrugs off their return fire.'},
   HEL:{key:'HEL', name:'Helicopter', cost:8, hp:14, atk:3, def:2, move:3, range:1, fly:true, desc:'Flies over water and mountains. +50% damage vs Tanks, and their guns can barely track it.'},
-  TTN:{key:'TTN', name:'Titan', cost:18, hp:30, atk:5, def:4, move:1, range:1, fly:false, super:true, desc:'Colossal war walker: slow, but it shrugs off Sniper fire and flattens anything next to it. Only a level-5 city can field one, and each level-5 city supports a single Titan.'},
+  TTN:{key:'TTN', name:'Titan', cost:18, hp:30, atk:5, def:4, move:1, range:1, fly:false, super:true, desc:'Colossal war walker: slow, but it shrugs off Sniper fire and flattens anything next to it. Only a city of level 4 or higher can field one, and each such city supports a single Titan.'},
   NUKE:{key:'NUKE', name:'Nuclear Missile', cost:15, hp:1, atk:10, def:0, move:0, range:6, fly:false, siege:true, splash:1.0, nuke:2, oneShot:true, desc:'Strategic strike: fires once at range 6 and hits every enemy unit within 2 tiles of the target. Consumed on use.'},
 };
 const TRAIN_ORDER=['INF','SNP','TNK','ART','AA','HEL'];
@@ -1224,10 +1224,11 @@ function develop(s,x,y){
   } else if(s===MYSIDE) sfx.harvest();
   return true;
 }
-/* Titans: every fully grown city you hold supports one */
-function titanCap(s){ let n=0; map.flat().forEach(t=>{ if(t.city&&t.city.owner===s&&t.city.level>=MAX_LEVEL) n++; }); return n; }
+/* Titans: every high-level city you hold supports one */
+const TITAN_LEVEL=4;
+function titanCap(s){ let n=0; map.flat().forEach(t=>{ if(t.city&&t.city.owner===s&&t.city.level>=TITAN_LEVEL) n++; }); return n; }
 function titanCount(s){ return units.filter(u=>u.owner===s&&u.type==='TTN').length; }
-function canFieldTitan(s,c){ return !!c&&c.owner===s&&c.level>=MAX_LEVEL&&titanCount(s)<titanCap(s); }
+function canFieldTitan(s,c){ return !!c&&c.owner===s&&c.level>=TITAN_LEVEL&&titanCount(s)<titanCap(s); }
 function armySize(s){ return units.filter(u=>u.owner===s&&u.type!=='NUKE').length; }
 function armyCap(s){ let n=0; map.flat().forEach(t=>{ if(t.city&&t.city.owner===s) n+=t.city.level+1+(t.city.bk||0); }); return n; }
 function harvest(x,y,owner){
@@ -1889,8 +1890,15 @@ async function aiTurn(me){
   }
   cities.sort((a,b)=>b.cap-a.cap);
   let trained=0;
+  // sharper AIs save up for a Titan once a high-level city can field one, as long as nothing threatens home
+  let saving=false;
+  if(D.sharp&&titanCount(me)<titanCap(me)&&armySize(me)<armyCap(me)){
+    const tc=unitCost(me,'TTN'), home=[];
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.owner===me) home.push({x,y}); }
+    saving=stars[me]<tc&&stars[me]>=tc/2&&armySize(me)>=3&&!units.some(q=>q.owner!==me&&home.some(h=>cheb(q,h)<=3));
+  }
   for(const c of cities){
-    if(trained>=D.train||armySize(me)>=armyCap(me)) break;
+    if(saving||trained>=D.train||armySize(me)>=armyCap(me)) break;
     // strategic: build a nuke if affordable and none in flight yet
     if(D.nukes && hasTech(me,'NUKE') && stars[me]>=UNIT_TYPES.NUKE.cost+6 && turn-(lastNuke[me]??-99)>=5 &&
        !units.some(q=>q.owner===me&&q.type==='NUKE')){
@@ -1925,7 +1933,7 @@ async function aiTurn(me){
     const full=armySize(me)>=armyCap(me);
     for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.owner===me&&canDevelop(c)&&(c.level<MAX_LEVEL||full)) own.push({x,y,c}); }
     own.sort((a,b)=>developCost(a.c)-developCost(b.c));
-    for(const o of own) if(stars[me]>=developCost(o.c)+D.reserve) develop(me,o.x,o.y);
+    for(const o of own) if(!saving&&stars[me]>=developCost(o.c)+D.reserve) develop(me,o.x,o.y);
     aiRewards(me);
   }
   // objectives: every rival's cities and units
@@ -4405,7 +4413,7 @@ function renderInfoBody(){
     sub.textContent=c.level>=MAX_LEVEL?'Fully grown':resN?'Harvest the '+resN+' resource'+(resN===1?'':'s')+' around it to grow':'No resources left nearby \u2014 Develop it to grow';
     const full=armySize(MYSIDE)>=armyCap(MYSIDE);
     chips.innerHTML+=chip('Army',armySize(MYSIDE)+'/'+armyCap(MYSIDE),full?'':'good');
-    if(c.level>=MAX_LEVEL) chips.innerHTML+=chip('Titans',titanCount(MYSIDE)+'/'+titanCap(MYSIDE),titanCount(MYSIDE)<titanCap(MYSIDE)?'good':'');
+    if(c.level>=TITAN_LEVEL) chips.innerHTML+=chip('Titans',titanCount(MYSIDE)+'/'+titanCap(MYSIDE),titanCount(MYSIDE)<titanCap(MYSIDE)?'good':'');
     if(canDevelop(c)){
       const dc=developCost(c), done=c.dev===turn, max=c.level>=MAX_LEVEL;
       train.appendChild(actBtn({icon:'house', name:max?'Barracks':'Develop', cost:dc, cls:'more', disabled:done||stars[MYSIDE]<dc||side!==MYSIDE,
@@ -4415,10 +4423,10 @@ function renderInfoBody(){
     if(unitAt(sel.x,sel.y)){ body.textContent='A unit is standing here — move it off to train.'; return; }
     let locked=0;
     if(full) body.textContent='Your army is at full strength. Grow or capture cities to support more units (each city supports its level + 1).';
-    if(c.level>=MAX_LEVEL){
+    if(c.level>=TITAN_LEVEL){
       const tc=unitCost(MYSIDE,'TTN'), have=titanCount(MYSIDE), cap=titanCap(MYSIDE);
       train.appendChild(actBtn({k:'TTN', img:unitIcon('TTN',MYSIDE), name:'Titan', cost:tc, cls:'super', disabled:stars[MYSIDE]<tc||full||have>=cap,
-        title:have>=cap?'You already field '+have+' Titan'+(have===1?'':'s')+' \u2014 each level-5 city supports one':'Titan \u2014 '+UNIT_TYPES.TTN.desc,
+        title:have>=cap?'You already field '+have+' Titan'+(have===1?'':'s')+' \u2014 each city of level 4+ supports one':'Titan \u2014 '+UNIT_TYPES.TTN.desc,
         onclick:()=>{ act({t:'train',k:'TTN',x:sel.x,y:sel.y}); sel=null; refresh(); }}));
     }
     for(const k of TRAIN_ORDER){
@@ -4647,7 +4655,7 @@ $('helpBtn').onclick=()=>{
     ['Factions','Aegis: +1 HP and heals while resting or on the march (free Field Medicine) \u00b7 Crimson: every unit 1\u2605 cheaper \u00b7 Solaris mines from the start & harvests cheaper \u00b7 Ghost sees 3 tiles, and Snipers that hold still shoot 3 tiles \u00b7 Iron Bastion: City Walls on every city it holds \u00b7 Verdant: crops give +1 population, Develop 2\u2605 cheaper \u00b7 Tidewatch: a second starting Infantry and free Field Radio.'],
     ['Tech','Combat: Sniper \u2192 Tank \u2192 Artillery, plus drills, armor and self-propelled guns. Industry: Ore \u2192 Oil \u2192 Helicopter, plus cheaper training, +1\u2605 per city and faster gunships. Support: healing, 2\u00d7 city defense, forest camouflage, field hospitals and blast protection. Intel: +1 vision, the Flak Battery and longer artillery range. Strategic: Satellite Network (reveals the map) and Manhattan Project (the Nuclear Missile — a one-use 5\u00d75 strike). A tech costs 4/6/12/18\u2605 by tier, plus its tier for every city beyond your first (counted at the start of your turn).'],
     ['City rewards','Every time a city levels up you pick one of two rewards: Workshop or Scouts, City walls or a War chest, Population boom or Wider borders, Command post or a free Titan.'],
-    ['Titans','The super unit: 30 HP, 5 attack, 4 defense, but only 1 move. Only a level-5 city can build one (18\u2605), and each level-5 city you hold supports a single Titan. Reaching level 5 can also give you one for free. Helicopters hit it for +50% and Artillery outranges it; Snipers barely scratch it. Titans cannot be promoted.'],
+    ['Titans','The super unit: 30 HP, 5 attack, 4 defense, but only 1 move. Only a city of level 4 or higher can build one (18\u2605), and each such city you hold supports a single Titan. A city that reaches level 5 can also give you one for free. Helicopters hit it for +50% and Artillery outranges it; Snipers barely scratch it. Titans cannot be promoted.'],
     ['Supply drops','Parachuted crates hide in the fog. The first unit to step on one opens it: stars, a free tech, a free Infantry, a map of the area, or settlers for your nearest city.'],
     ['Veterans','A unit with three kills can be promoted for +5 max HP and a full heal. It is free, so you can save it as an emergency heal.'],
     ['Commander powers','Every faction has one power you can use once per game, on your own turn: tap the lightning button. Aegis heals everything \u00b7 Crimson double damage this turn \u00b7 Solaris a turn and a half of income \u00b7 Ghost +25% damage and no return fire this turn \u00b7 Iron Bastion half damage for two rounds \u00b7 Verdant +1 population in every city \u00b7 Tidewatch a free Infantry at every city. Rivals above Easy use theirs too.'],
