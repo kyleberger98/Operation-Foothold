@@ -9,6 +9,7 @@ The whole game is one file, `gridline-command.html`. It also runs offline: downl
 ## What's in it
 
 - **Seven factions**, each with its own perk and a once-per-game commander power.
+- **Titans:** a super unit that only cities of level 4 or higher can field, one per city.
 - **Two modes:** Conquest (capture every HQ) and Score attack (30 turns, highest score wins).
 - **Stars and medals:** every solo win is rated one to three stars, and each faction keeps its best medal per difficulty.
 - **Pass & play:** two to four people can share one phone or computer, each with their own fog of war.
