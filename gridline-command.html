@@ -22,7 +22,7 @@
 }
 *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent}
 html,body{height:100%; overscroll-behavior:none}
-body{touch-action:manipulation; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none}
+body{touch-action:pan-x pan-y; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none}
 input{-webkit-user-select:text; user-select:text}
 [hidden]{display:none!important}
 body{
@@ -205,6 +205,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
   body.dockR #command{bottom:calc(env(safe-area-inset-bottom,0px) + 12px); right:178px}
   #command{left:104px; width:min(420px, 42vw)}
 }
+@media (pointer:coarse){ *{backdrop-filter:none !important; -webkit-backdrop-filter:none !important} }
 #train:empty{display:none}
 #train::-webkit-scrollbar{display:none}
 /* compact card (units, resources, powers, rival cities): one tight strip, actions as small pills beside the name */
@@ -2143,8 +2144,8 @@ function applyCam(){
     cam.target.z + cam.dist*Math.sin(cam.phi)*Math.cos(cam.theta)
   );
   camera.lookAt(cam.target);
+  camera.updateMatrixWorld();
 }
-let pdown=false, pmoved=0, px=0, py=0, pinchD=0;
 let camGoal=null, camDistGoal=null, fitSaved=null;
 let camPhiGoal=null;
 function fitDistance(phi){
@@ -2176,34 +2177,95 @@ function toggleFit(at){
 }
 function panTo(x,y){ camGoal=new THREE.Vector3(wx(x),0,wz(y)+(innerWidth<700?Math.min(1.6,cam.dist*0.11):0)); }
 const cvs=renderer.domElement;
-cvs.addEventListener('pointerdown',e=>{if(e.button===2) return; pdown=true;pmoved=0;px=e.clientX;py=e.clientY;cvs.setPointerCapture(e.pointerId);cvs.style.cursor='grabbing'});
-cvs.addEventListener('pointermove',e=>{
-  if(!pdown){ hoverMove(e); return; }
-  if(pinchD){ px=e.clientX; py=e.clientY; return; } // two-finger zoom in progress: don't pan
-  const dx=e.clientX-px, dy=e.clientY-py;
-  pmoved+=Math.abs(dx)+Math.abs(dy);
-  if(pmoved>6) camGoal=null; // manual control overrides auto-pan
-  // pan across the map (no rotation) — content follows the cursor
-  const k=cam.dist*0.00115, cl=W/2+2;
-  cam.target.x=Math.max(-cl,Math.min(cl, cam.target.x-dx*k));
-  cam.target.z=Math.max(-cl,Math.min(cl, cam.target.z-dy*k));
-  px=e.clientX; py=e.clientY; applyCam();
-});
-cvs.addEventListener('pointerup',e=>{
+/* ---- dragging the board: the ground you touch stays under your finger ----
+   One finger (or the mouse) drags, two fingers drag and pinch-zoom around the point between them, and a flick
+   glides to a stop. A touch only counts as a drag once it has travelled a few pixels, so a tap with a shaky
+   finger is still a tap. */
+const ptrs=new Map();                       // fingers / mouse buttons currently down on the board
+let grab=null, dragging=false, tapStart=null, pinch=null;
+let glide=null, dragV={x:0,z:0,t:0};        // momentum after a flick, and the drag speed that feeds it
+let groundPlane=null;
+const gRay=new THREE.Raycaster(), gNdc=new THREE.Vector2(), gHit=new THREE.Vector3();
+function groundAt(cx,cy,out){
+  if(!groundPlane) groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0), -TOP);
+  const r=cvs.getBoundingClientRect();
+  gNdc.set(((cx-r.left)/r.width)*2-1, -((cy-r.top)/r.height)*2+1);
+  gRay.setFromCamera(gNdc,camera);
+  const p=gRay.ray.intersectPlane(groundPlane,out);
+  return p&&p.distanceTo(camera.position)<200?p:null;   // null near the horizon, where a pixel covers miles
+}
+function clampTarget(){
+  const cl=(W||11)/2+2, x=cam.target.x, z=cam.target.z;
+  cam.target.x=Math.max(-cl,Math.min(cl,x)); cam.target.z=Math.max(-cl,Math.min(cl,z));
+  return cam.target.x!==x||cam.target.z!==z;
+}
+/* slide the camera so the held ground point sits under (cx,cy) */
+function holdGround(cx,cy){
+  const g=grab&&groundAt(cx,cy,gHit);
+  if(!g) return false;
+  cam.target.x+=grab.x-g.x; cam.target.z+=grab.z-g.z;
+  const hitEdge=clampTarget();
+  applyCam();
+  if(hitEdge){ const n=groundAt(cx,cy,gHit); if(n) grab.copy(n); }   // at the map edge, hold whatever is under the finger now
+  return true;
+}
+function grabAt(cx,cy){ grab=groundAt(cx,cy,new THREE.Vector3()); dragV={x:0,z:0,t:performance.now()}; }
+function pinchPts(){ const it=ptrs.values(), a=it.next().value, b=it.next().value; return {a,b,mx:(a.x+b.x)/2,my:(a.y+b.y)/2,d:Math.max(1,Math.hypot(a.x-b.x,a.y-b.y))}; }
+function pinchStart(){ const q=pinchPts(); pinch={d:q.d, dist:cam.dist}; grabAt(q.mx,q.my); }
+cvs.addEventListener('pointerdown',e=>{
   if(e.button===2) return;   // right button gives orders (see quickOrder)
-  pdown=false; cvs.style.cursor='grab';
-  if(pmoved<6) handleClick(e);
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  try{ cvs.setPointerCapture(e.pointerId); }catch(_){}
+  glide=null; cvs.style.cursor='grabbing';
+  if(ptrs.size===1){ tapStart={x:e.clientX,y:e.clientY,id:e.pointerId}; dragging=false; grab=null; pinch=null; }
+  else { dragging=true; tapStart=null; camGoal=null; camDistGoal=null; pinchStart(); }
 });
+cvs.addEventListener('pointermove',e=>{
+  const p=ptrs.get(e.pointerId);
+  if(!p){ if(!ptrs.size) hoverMove(e); return; }
+  const lx=p.x, ly=p.y;
+  p.x=e.clientX; p.y=e.clientY;
+  if(ptrs.size>=2){   // pinch: zoom by the change in finger spread, keeping the midpoint's ground under the fingers
+    if(!pinch) pinchStart();
+    const q=pinchPts();
+    cam.dist=pinch.dist*pinch.d/q.d; applyCam();
+    if(!holdGround(q.mx,q.my)) grabAt(q.mx,q.my);
+    return;
+  }
+  if(!dragging){
+    if(!tapStart||Math.hypot(p.x-tapStart.x,p.y-tapStart.y)<(e.pointerType==='mouse'?4:10)) return;
+    dragging=true; camGoal=null;   // manual control overrides auto-pan
+    grabAt(p.x,p.y);               // hold the ground from here, so nothing jumps when the drag begins
+    return;
+  }
+  const ox=cam.target.x, oz=cam.target.z;
+  if(!holdGround(p.x,p.y)){   // looking at the horizon: fall back to a fixed drag speed
+    const k=cam.dist*0.00115;
+    cam.target.x-=(p.x-lx)*k; cam.target.z-=(p.y-ly)*k; clampTarget(); applyCam(); grabAt(p.x,p.y);
+  }
+  const now=performance.now(), dtm=Math.max(4, now-dragV.t)/1000;
+  dragV.x=dragV.x*0.55+(cam.target.x-ox)/dtm*0.45; dragV.z=dragV.z*0.55+(cam.target.z-oz)/dtm*0.45; dragV.t=now;
+});
+function ptrEnd(e,cancelled){
+  if(!ptrs.has(e.pointerId)) return;
+  ptrs.delete(e.pointerId);
+  if(ptrs.size>=2){ pinchStart(); return; }
+  if(ptrs.size===1){ pinch=null; const q=ptrs.values().next().value; grabAt(q.x,q.y); return; }   // the finger still down carries on dragging from where it is
+  pinch=null; cvs.style.cursor='grab';
+  if(!dragging&&!cancelled&&tapStart&&tapStart.id===e.pointerId) handleClick({clientX:tapStart.x, clientY:tapStart.y});
+  else if(dragging&&!cancelled&&e.pointerType!=='mouse'&&performance.now()-dragV.t<90){
+    const sp=Math.hypot(dragV.x,dragV.z), cap=Math.min(1, 45/Math.max(sp,0.001));
+    if(sp>1.2) glide={x:dragV.x*cap, z:dragV.z*cap};
+  }
+  dragging=false; tapStart=null; grab=null;
+}
+cvs.addEventListener('pointerup',e=>{ if(e.button!==2) ptrEnd(e,false); });
+cvs.addEventListener('pointercancel',e=>ptrEnd(e,true));
+cvs.addEventListener('lostpointercapture',e=>ptrEnd(e,true));
 cvs.addEventListener('pointerleave',e=>{ if(e.pointerType==='mouse') setHover(null); });
 cvs.addEventListener('wheel',e=>{e.preventDefault(); camDistGoal=null; cam.dist+=e.deltaY*0.012; applyCam();},{passive:false});
-cvs.addEventListener('touchmove',e=>{
-  if(e.touches.length===2){
-    const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
-    if(pinchD) cam.dist-=(d-pinchD)*0.03;
-    pinchD=d; camDistGoal=null; applyCam();
-  }
-},{passive:true});
-cvs.addEventListener('touchend',()=>pinchD=0);
+/* iOS Safari would otherwise pinch-zoom the whole page when two fingers land on the HUD */
+for(const ev of ['gesturestart','gesturechange','gestureend']) document.addEventListener(ev,e=>e.preventDefault(),{passive:false});
 
 /* ---- hover feedback: tile ring + battle forecast ---- */
 let hover=null, lastHoverT=0;
@@ -2222,12 +2284,7 @@ function hoverMove(e){
   const now=performance.now();
   if(now-lastHoverT<60) return;
   lastHoverT=now;
-  const r=cvs.getBoundingClientRect();
-  ndcH.x=((e.clientX-r.left)/r.width)*2-1;
-  ndcH.y=-((e.clientY-r.top)/r.height)*2+1;
-  rayH.setFromCamera(ndcH,camera);
-  const hit=rayH.intersectObjects(pickTiles)[0];
-  setHover(hit?hit.object.userData:null);
+  setHover(pickXY(e.clientX,e.clientY));
 }
 function setHover(h){
   if(h && (!explored[h.y]||!explored[h.y][h.x])) h=null;
@@ -3403,6 +3460,12 @@ function loop(now){
     cam.phi+=(camPhiGoal-cam.phi)*Math.min(1,dt*5); applyCam();
     if(Math.abs(cam.phi-camPhiGoal)<0.004) camPhiGoal=null;
   }
+  if(glide){
+    cam.target.x+=glide.x*dt; cam.target.z+=glide.z*dt;
+    const f=Math.exp(-dt*5.5); glide.x*=f; glide.z*=f;
+    if(clampTarget()||camGoal||Math.hypot(glide.x,glide.z)<0.25) glide=null;
+    applyCam();
+  }
   if(camGoal){
     cam.target.lerp(camGoal, Math.min(1, dt*5));
     applyCam();
@@ -3447,17 +3510,44 @@ function loop(now){
 /* ---- picking ---- */
 const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
 let cardGuard=0;   // card buttons ignore clicks for a moment after a board tap
+/* What is under a screen point. A unit's body counts as that unit even where it is drawn over the tile behind it
+   (the camera looks down at an angle, so a tall unit covers part of the next tile up). */
+const pickBox=new THREE.Box3(), pickV=new THREE.Vector3();
+function pickXY(cx,cy){
+  const r=cvs.getBoundingClientRect();
+  ndc.x=((cx-r.left)/r.width)*2-1;
+  ndc.y=-((cy-r.top)/r.height)*2+1;
+  ray.setFromCamera(ndc,camera);
+  const th=ray.intersectObjects(pickTiles)[0], tile=th?th.object.userData:null;
+  // of the bodies the tap passes through, take the one whose middle is closest to it
+  let body=null, bd=Infinity;
+  if(map) for(const u of units){
+    if(u.owner!==MYSIDE&&!visXY(u.x,u.y)) continue;
+    const bx=wx(u.x), by=unitBaseY(u), bz=wz(u.y), h=(UNIT_TOP[u.type]||0.5)*0.92;
+    pickBox.min.set(bx-0.2,by,bz-0.2); pickBox.max.set(bx+0.2,by+h,bz+0.2);
+    if(!ray.ray.intersectBox(pickBox,pickV)) continue;
+    const d=ray.ray.distanceSqToPoint(pickV.set(bx,by+h/2,bz));
+    if(d<bd){ bd=d; body=u; }
+  }
+  if(!body||(tile&&tile.x===body.x&&tile.y===body.y)) return tile;
+  // with one of your units selected, its orders come first: an enemy it can hit, then a tile it can act on,
+  // even if another body is drawn across that tile
+  const su=sel&&sel.kind==='unit'&&side===MYSIDE&&!gameOver?units.find(q=>q.id===sel.id&&q.owner===MYSIDE):null;
+  if(su){
+    const targets=attackTargets(su);
+    if(targets.includes(body)) return {x:body.x, y:body.y};
+    const tu=tile?unitAt(tile.x,tile.y):null;
+    if(tile&&(tu?targets.includes(tu):reachable(su).has(key(tile.x,tile.y)))) return tile;
+  }
+  return {x:body.x, y:body.y};
+}
 function handleClick(e){
   cardGuard=performance.now()+400;
   const watching=gameOver||(map&&!alive[MYSIDE]);
   if(side!==MYSIDE&&!watching) return;
-  const r=cvs.getBoundingClientRect();
-  ndc.x=((e.clientX-r.left)/r.width)*2-1;
-  ndc.y=-((e.clientY-r.top)/r.height)*2+1;
-  ray.setFromCamera(ndc,camera);
-  const hit=ray.intersectObjects(pickTiles)[0];
+  const hit=pickXY(e.clientX,e.clientY);
   if(!hit) { sel=null; refresh(); return; }
-  const {x,y}=hit.object.userData;
+  const {x,y}=hit;
   if(fitSaved) toggleFit({x,y});   // in the whole-map view a tap zooms in on that spot, then acts as usual
   if(watching){   // look, don't touch
     const u=explored[y][x]?unitAt(x,y):null, c=explored[y][x]?tileAt(x,y).city:null;
@@ -3467,14 +3557,7 @@ function handleClick(e){
   onTileClick(x,y);
 }
 /* right-click: the selected unit moves to / fires at the tile straight away (no confirm tap) */
-function tileFromEvent(e){
-  const r=cvs.getBoundingClientRect();
-  ndc.x=((e.clientX-r.left)/r.width)*2-1;
-  ndc.y=-((e.clientY-r.top)/r.height)*2+1;
-  ray.setFromCamera(ndc,camera);
-  const hit=ray.intersectObjects(pickTiles)[0];
-  return hit?hit.object.userData:null;
-}
+function tileFromEvent(e){ return pickXY(e.clientX,e.clientY); }
 function quickOrder(x,y){
   const su=sel&&sel.kind==='unit'?byId(sel.id):null;
   if(!su||su.owner!==MYSIDE||!explored[y][x]){ sel=null; refresh(); return; }
