@@ -1,12 +1,12 @@
 # Unit models
 
-![All seven units in Aegis colours](lineup.webp)
+![All eight units in Aegis colours](lineup.webp)
 
 Low-poly unit models for Gridline Command, built in Blender from a Python script.
 
 | File | What it is |
 |---|---|
-| `units.py` | Builds all seven units (INF, SNP, TNK, ART, AA, HEL, NUKE) in Blender. Exports `units.json` and can render previews. |
+| `units.py` | Builds all eight units (INF, SNP, TNK, ART, AA, HEL, NUKE, TTN) in Blender. Exports `units.json` and can render previews. |
 | `units.blend` | The models as a Blender scene, laid out on tiles. Open it in Blender 5.x. |
 | `units.json` | The packed models the game uses. |
 | `integrate.py` | Writes `units.json` into `gridline-command.html`, replacing the unit builders. |

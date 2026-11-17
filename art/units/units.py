@@ -440,7 +440,59 @@ def nuke():
     return m
 
 
-UNITS = [infantry, sniper, tank, artillery, flak, helicopter, nuke]
+def titan():
+    """Super-heavy war walker: twice a tank's bulk, fielded only by fully grown cities."""
+    m = Model('TTN')
+    for s in (-1, 1):
+        m.box(0.17, 0.055, 0.27, 'dark', (0.165*s, 0.0275, 0.025), bevel=0.016)             # feet
+        m.box(0.13, 0.03, 0.09, 'steel', (0.165*s, 0.05, 0.13), (0.35, 0, 0), bevel=0.008)   # toe plates
+        m.box(0.07, 0.04, 0.06, 'steel', (0.165*s, 0.04, -0.12), bevel=0.01)                 # heel spurs
+        m.limb((0.165*s, 0.05, 0.0), (0.165*s, 0.25, -0.05), 0.105, 'trim', h=0.115)        # shins
+        m.box(0.115, 0.1, 0.03, 'body', (0.165*s, 0.15, 0.045), (-0.25, 0, 0), bevel=0.01)   # shin guards
+        m.cyl(0.07, 0.07, 0.13, 'metal', (0.165*s, 0.26, -0.045), (0, 0, PI/2), seg=8, bevel=0.01)   # knees
+        m.limb((0.165*s, 0.26, -0.045), (0.14*s, 0.41, 0.02), 0.115, 'body', h=0.12)        # thighs
+        m.cyl(0.05, 0.05, 0.06, 'steel', (0.2*s, 0.415, 0.0), (0, 0, PI/2), seg=8)           # hip joints
+    m.box(0.3, 0.085, 0.2, 'metal', (0, 0.42, 0), bevel=0.02)                                # pelvis
+    m.box(0.1, 0.07, 0.03, 'dark', (0, 0.4, 0.105), bevel=0.008)                             # groin plate
+    # torso: broad armoured hull leaning slightly forward
+    m.box(0.44, 0.23, 0.33, 'body', (0, 0.575, 0.0), bevel=0.045, bseg=2)
+    m.box(0.46, 0.05, 0.35, 'trim', (0, 0.475, 0.0), bevel=0.014)                            # skirt band
+    m.box(0.34, 0.15, 0.05, 'trim', (0, 0.58, 0.165), (-0.12, 0, 0), bevel=0.016)            # chest plate
+    m.box(0.2, 0.06, 0.02, 'glass', (0, 0.615, 0.196), (-0.12, 0, 0), bevel=0.006)           # cockpit slit
+    for s in (-1, 1):
+        m.box(0.045, 0.03, 0.018, 'light', (0.115*s, 0.53, 0.19), bevel=0.006)               # chest lamps
+        m.box(0.05, 0.11, 0.012, 'dark', (0.1*s, 0.6, -0.168), bevel=0.003)                  # rear vents
+        m.cyl(0.03, 0.034, 0.14, 'dark', (0.1*s, 0.745, -0.13), seg=7)                       # exhaust stacks
+        m.cyl(0.036, 0.03, 0.02, 'steel', (0.1*s, 0.82, -0.13), seg=7)
+        # shoulders: big pauldrons
+        m.box(0.13, 0.15, 0.24, 'trim', (0.285*s, 0.63, 0.0), bevel=0.035, bseg=2)
+        m.box(0.14, 0.03, 0.25, 'brass', (0.285*s, 0.585, 0.0), bevel=0.008)                 # rank stripe
+        m.cyl(0.045, 0.045, 0.05, 'metal', (0.285*s, 0.53, 0.02), seg=8)                     # arm mounts
+    # head: low sensor turret
+    m.box(0.17, 0.085, 0.17, 'trim', (0, 0.73, 0.03), bevel=0.028, bseg=2)
+    m.box(0.12, 0.028, 0.012, 'light', (0, 0.735, 0.118), bevel=0.004)                       # visor
+    m.box(0.05, 0.03, 0.05, 'metal', (0.05, 0.785, 0.0), bevel=0.008)                        # sensor box
+    m.cyl(0.005, 0.005, 0.12, 'dark', (-0.06, 0.83, -0.03), seg=4)                           # antenna
+    m.box(0.004, 0.045, 0.07, 'body', (-0.06, 0.867, -0.07), bevel=0)                        # pennant
+    # right arm: siege cannon
+    with m.at((0.285, 0.47, 0.03)):
+        m.box(0.12, 0.11, 0.2, 'metal', (0, 0, 0.0), bevel=0.02)
+        m.cyl(0.046, 0.05, 0.3, 'metal', (0, 0, 0.22), (PI/2, 0, 0), seg=8)
+        m.cyl(0.062, 0.062, 0.07, 'dark', (0, 0, 0.385), (PI/2, 0, 0), seg=8, bevel=0.01)    # muzzle brake
+        m.cyl(0.03, 0.03, 0.012, 'black', (0, 0, 0.422), (PI/2, 0, 0), seg=8)
+        m.box(0.05, 0.05, 0.1, 'wood', (0, 0.075, -0.03), bevel=0.01)                        # ammo box
+    # left arm: rocket pod
+    with m.at((-0.285, 0.47, 0.03)):
+        m.box(0.14, 0.14, 0.26, 'metal', (0, 0, 0.06), bevel=0.022)
+        m.box(0.15, 0.03, 0.27, 'trim', (0, 0.075, 0.06), bevel=0.008)
+        for xo in (-0.035, 0.035):
+            for yo in (-0.032, 0.032):
+                m.cyl(0.022, 0.022, 0.014, 'black', (xo, yo, 0.192), (PI/2, 0, 0), seg=7)
+                m.cone(0.017, 0.03, 'red', (xo, yo, 0.2), (PI/2, 0, 0), seg=6)
+    return m
+
+
+UNITS = [infantry, sniper, tank, artillery, flak, helicopter, nuke, titan]
 
 # ================================================================== scene / render
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -538,11 +590,11 @@ if DO_RENDER:
             MATS[nm].node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = rgba(h)
 
     # lineup per faction
-    cam_d.type = 'ORTHO'; cam_d.ortho_scale = 7.7
-    scn.render.resolution_x, scn.render.resolution_y = 2200, 620
+    cam_d.type = 'ORTHO'; cam_d.ortho_scale = 8.8
+    scn.render.resolution_x, scn.render.resolution_y = 2200, 680
     for fk in ([] if HEROES_ONLY else ['aegis'] if QUICK else FACTIONS):
         set_faction(fk)
-        aim((0, 0, 0.2), 0, math.radians(30), 20)
+        aim((0, 0, 0.3), 0, math.radians(30), 20)
         scn.render.filepath = os.path.join(OUT, f'lineup_{fk}.png')
         bpy.ops.render.render(write_still=True)
 
@@ -557,8 +609,8 @@ if DO_RENDER:
         for _, _, _, other in placed:
             for ob in other:
                 ob.hide_render = other is not mine
-        tz = {'HEL': 0.6, 'INF': 0.2, 'SNP': 0.19}.get(key, 0.22)
-        dist = {'INF': 1.45, 'SNP': 1.6, 'HEL': 2.25}.get(key, 1.95)
+        tz = {'HEL': 0.6, 'INF': 0.2, 'SNP': 0.19, 'TTN': 0.42}.get(key, 0.22)
+        dist = {'INF': 1.45, 'SNP': 1.6, 'HEL': 2.25, 'TTN': 2.6}.get(key, 1.95)
         for tag, az in (('front', 35), ('back', 215)):
             aim((x, 0, tz), math.radians(az), math.radians(24), dist)
             scn.render.filepath = os.path.join(OUT, f'unit_{key}_{tag}.png')
