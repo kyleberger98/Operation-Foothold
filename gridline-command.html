@@ -953,17 +953,17 @@ const UNIT_TYPES={
 Object.assign(UNIT_TYPES,{
   AMB:{key:'AMB', name:'Field Ambulance', faction:'AEGIS',   cost:5, hp:12, atk:1, def:2, move:2, range:1, fly:false, medic:3,
        desc:'Aegis only. At the start of your turn it heals every friendly unit next to it by 3 HP.'},
-  SHK:{key:'SHK', name:'Shock Troops',    faction:'CRIMSON', cost:4, hp:10, atk:3, def:1, move:2, range:1, fly:false, blitz:true,
+  SHK:{key:'SHK', name:'Shock Troops',    faction:'CRIMSON', cost:5, hp:10, atk:3, def:1, move:2, range:1, fly:false, blitz:true,
        desc:'Crimson only. Fast assault infantry that can capture a city on the same turn it moves in.'},
-  MRT:{key:'MRT', name:'Mortar Truck',    faction:'SOLARIS', cost:7, hp:10, atk:4, def:1, move:2, range:2, fly:false,
+  MRT:{key:'MRT', name:'Mortar Truck',    faction:'SOLARIS', cost:9, hp:8, atk:3, def:1, move:2, range:2, fly:false,
        desc:'Solaris only. Strikes from 2 tiles and, unlike Artillery, can move and fire in the same turn.'},
   DRN:{key:'DRN', name:'Recon Drone',     faction:'GHOST',   cost:4, hp:6,  atk:2, def:1, move:4, range:1, fly:true, sight:2,
        desc:'Ghost only. Flies 4 tiles and sees 2 tiles further than other units: the spotter your Snipers and Artillery need.'},
-  GRD:{key:'GRD', name:'Guardian',        faction:'BASTION', cost:6, hp:18, atk:2, def:4, move:1, range:1, fly:false, aura:1.3,
+  GRD:{key:'GRD', name:'Guardian',        faction:'BASTION', cost:5, hp:18, atk:3, def:4, move:1, range:1, fly:false, aura:1.3,
        desc:'Bastion only. A slow wall of armour: friendly units next to it get +30% defense.'},
-  STK:{key:'STK', name:'Forest Stalker',  faction:'VERDANT', cost:5, hp:11, atk:3, def:2, move:2, range:1, fly:false, forestAtk:1.5,
+  STK:{key:'STK', name:'Forest Stalker',  faction:'VERDANT', cost:4, hp:12, atk:3, def:2, move:2, range:1, fly:false, forestAtk:1.5,
        desc:'Verdant only. Strikes 50% harder when it attacks from a forest.'},
-  HOV:{key:'HOV', name:'Hovercraft',      faction:'TIDE',    cost:6, hp:12, atk:3, def:2, move:3, range:1, fly:false, hover:true,
+  HOV:{key:'HOV', name:'Hovercraft',      faction:'TIDE',    cost:6, hp:10, atk:3, def:2, move:3, range:1, fly:false, hover:true,
        desc:'Tidewatch only. Skims over water as easily as land (but not mountains).'},
 });
 const FACTION_UNIT={AEGIS:'AMB', CRIMSON:'SHK', SOLARIS:'MRT', GHOST:'DRN', BASTION:'GRD', VERDANT:'STK', TIDE:'HOV'};
@@ -1002,7 +1002,7 @@ const TECHS={
   NUKE: {key:'NUKE', name:'Manhattan Project',  branch:'Strategic', tier:4, req:'SIEGE', unlocks:'Unlocks the Nuclear Missile: a one-use strategic strike with a massive blast.'},
 }
 const TECH_BRANCHES=['Combat','Industry','Support','Intel','Strategic'];
-const UNIT_REQ={SNP:'MARKS', TNK:'MECH', ART:'SIEGE', AA:'AIRDEF', HEL:'AVIA', AMB:'MEDIC', SHK:'MARKS', MRT:'MECH', DRN:'RADIO', GRD:'FORT', STK:'CAMO', HOV:'RADIO'};
+const UNIT_REQ={SNP:'MARKS', TNK:'MECH', ART:'SIEGE', AA:'AIRDEF', HEL:'AVIA', AMB:'MEDIC', SHK:'MARKS', MRT:'MECH', DRN:'RADIO', GRD:'FORT', STK:'MEDIC', HOV:'RADIO'};
 const RES_REQ={ORE:'MINING', OIL:'DRILL'};
 
 let tech; // {P:Set, A:Set}
@@ -1945,10 +1945,10 @@ setInterval(()=>{ if(!NET._lastTick||Date.now()-NET._lastTick>900) NET.timerTick
 /* Counter picks: the strongest-unit rule is a good default (tests showed a cost-per-star formula made the AI weaker, by
    filling the army cap with cheap units), so only switch when the enemies near a city call for a specific answer.
    Returns null to fall back to the default. */
+const aiSupportT={};   // turn each AI last built its support unit (Ambulance / Drone)
 function counterPick(me,c,pool){
   if(pool.includes('TTN')) return 'TTN';
   const fu=FACTION_UNIT[meta(me).faction.key];
-  if(pool[0]===fu&&(UNIT_TYPES[fu].medic||UNIT_TYPES[fu].sight)) return fu;   // the one support unit asked for
   const near=units.filter(q=>q.owner!==me&&cheb(q,c)<=7), n=t=>near.filter(q=>q.type===t).length;
   const mine=units.filter(q=>q.owner===me), m=t=>mine.filter(q=>q.type===t).length;
   if(n('HEL')>m('AA')&&pool.includes('AA')) return 'AA';                       // flak against helicopters
@@ -2049,10 +2049,11 @@ async function aiTurn(me){
     const fu=FACTION_UNIT[meta(me).faction.key];
     const pool=['TTN',fu,'AA','HEL','ART','TNK','SNP','INF'].filter(ok);
     const support=fu&&(UNIT_TYPES[fu].medic||UNIT_TYPES[fu].sight);   // a unit worth having one of, not a fighter
-    if(support&&ok(fu)&&D.sharp&&mine.length>=4&&!mine.some(q=>q.type===fu)) pool.unshift(fu);
-    const pick=D.sharp ? (counterPick(me,c,pool) || pool.find(k=>k!==fu && (k!=='HEL'||Math.random()<.5) && (k!=='AA'||(enemyAir&&Math.random()<.6))))
+    const wantSupport=!!(support&&ok(fu)&&D.sharp&&mine.length>=5&&!mine.some(q=>q.type===fu)&&turn-(aiSupportT[me]??-99)>=6);
+    const pick=D.sharp ? (wantSupport?fu:null) || (counterPick(me,c,pool) || pool.find(k=>k!==fu && (k!=='HEL'||Math.random()<.5) && (k!=='AA'||(enemyAir&&Math.random()<.6))))
                        : pool[rnd(pool.length)];
-    if(pick){ stars[me]-=unitCost(me,pick); spawn(me,pick,c.x,c.y); trained++;
+    if(pick){ if(UNIT_TYPES[pick].medic||UNIT_TYPES[pick].sight) aiSupportT[me]=turn;
+      stars[me]-=unitCost(me,pick); spawn(me,pick,c.x,c.y); trained++;
       const nu=units[units.length-1]; nu.moved=true; nu.attacked=true;
       log(me,`${meta(me).name} deploys ${UNIT_TYPES[pick].name}.`);
       refresh();
@@ -2136,15 +2137,30 @@ async function aiTurn(me){
     if(UNIT_TYPES[u.type].medic){
       const hurt=units.filter(q=>q.owner===me&&q!==u&&q.type!=='NUKE').sort((a,b)=>(b.maxHp-b.hp)-(a.maxHp-a.hp)||cheb(a,u)-cheb(b,u));
       const goal=hurt.find(q=>q.hp<q.maxHp)||hurt[0];
-      if(goal&&cheb(goal,u)>1){
+      const onCity=!!tileAt(u.x,u.y).city;
+      if(goal&&(cheb(goal,u)>1||onCity)){
         let best=null, bs=1e9;
         for(const p of reachable(u).values()){
           const danger=units.filter(e=>e.owner!==me&&cheb(e,p)<=uRange(e)+1).length;
-          const sc=Math.max(0,cheb(p,goal)-1)*3+danger*2;
+          const sc=Math.max(0,cheb(p,goal)-1)*3+danger*2+(tileAt(p.x,p.y).city?20:0);
           if(sc<bs){ bs=sc; best=p; }
         }
         if(best){ const vis=visXY(u.x,u.y)||visXY(best.x,best.y); moveUnit(u,best.x,best.y); if(gameOver) break; refresh(); if(vis) await sleep(240); if(stale()) return; }
       }
+      continue;
+    }
+    if(UNIT_TYPES[u.type].sight){
+      const kill=attackTargets(u).find(t=>{ const f=forecast(u,t); return f.kills||!f.rdmg; });
+      if(kill){ attack(u,kill); refresh(); continue; }
+      const foes=units.filter(e=>e.owner!==me);
+      let best=null, bs=1e9;
+      for(const p of reachable(u).values()){
+        const near=foes.reduce((m,e)=>Math.min(m,cheb(e,p)),99);
+        const danger=foes.filter(e=>cheb(e,p)<=uRange(e)+uMove(e)).length;
+        const sc=Math.abs(near-4)+danger*3+(tileAt(p.x,p.y).city?5:0);
+        if(sc<bs){ bs=sc; best=p; }
+      }
+      if(best){ const vis=visXY(u.x,u.y)||visXY(best.x,best.y); moveUnit(u,best.x,best.y); if(gameOver) break; refresh(); if(vis) await sleep(200); if(stale()) return; }
       continue;
     }
     let tg=bestTarget(u);
@@ -5795,6 +5811,7 @@ function newGame(){
   $('turnBanner').classList.remove('show');
   pw=pw0();
   gcfg={...cfg}; blockedHint=false; lastNuke={}; nukeWarned={}; mapReveals=[]; seenBy={};
+  for(const k in aiSupportT) delete aiSupportT[k];
   undoStack.length=0;
   turnCities={};
   $('endBar').hidden=true;
