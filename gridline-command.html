@@ -768,14 +768,14 @@ const FACTIONS={
            perk:'Recon doctrine \u2014 vision range 3, starts with Marksmanship, and Ghost Snipers that haven\u2019t moved this turn shoot 3 tiles (overwatch).',
            startTech:'MARKS', vision:3, overwatch:true},
   BASTION:{key:'BASTION',name:'Iron Bastion',     color:0xefe6cc, trim:0x8c8370, css:'#efe6cc',
-           perk:'Fortress doctrine \u2014 every city you hold has City Walls (+50% defense), your HQ from the very first turn.',
-           walls:true},
+           perk:'Fortress doctrine \u2014 every city you hold has City Walls (+50% defense), your HQ from the very first turn, and Bastion starts with Fortification.',
+           startTech:'FORT', walls:true},
   VERDANT:{key:'VERDANT',name:'Verdant Collective',color:0xa6d94e, trim:0x5e8a2a, css:'#a6d94e',
            perk:'Green revolution \u2014 crop harvests give +1 extra population, and Develop costs 2\u2605 less.',
            cropBonus:1, devDiscount:2},
   TIDE:   {key:'TIDE',   name:'Tidewatch Rangers', color:0x22d3b0, trim:0x16806c, css:'#22d3b0',
-           perk:'Rapid deployment \u2014 starts with a second Infantry squad and Field Radio (+1 vision, villages revealed).',
-           startTech:'RADIO', extraInf:1},
+           perk:'Rapid deployment \u2014 starts with a second Infantry squad, Field Radio (+1 vision, villages revealed) and Marksmanship.',
+           startTech:['RADIO','MARKS'], extraInf:1},
 };
 /* factions whose colours read alike on the board are kept apart when the AI picks rivals */
 const FACTION_CLASH={AEGIS:['TIDE'], TIDE:['AEGIS']};
@@ -1435,7 +1435,7 @@ function applyReward(s,x,y,pick){
   const c=inb(x,y)?tileAt(x,y).city:null;
   if(!c||c.owner!==s||!c.rw||!c.rw.length) return false;
   const opt=(CITY_REWARDS[c.rw[0]]||[])[pick];
-  if(!opt) return false;
+  if(!opt||(opt.k==='walls'&&c.walls)) return false;   // walls can't be built twice
   c.rw.shift();
   if(opt.k==='workshop') c.bonus=(c.bonus||0)+1;
   else if(opt.k==='command') c.bonus=(c.bonus||0)+2;
@@ -1469,7 +1469,7 @@ function aiRewards(s){
     for(let g=0; c&&c.owner===s&&c.rw&&c.rw.length&&g<6; g++){
       const lvl=c.rw[0];
       let pick=0;
-      if(lvl===3) pick=c.capital?0:1;
+      if(lvl===3) pick=c.capital&&!c.walls?0:1;   // a walled city (every Iron Bastion city) takes the War chest
       else if(lvl===4){
         let n=0;
         for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)
@@ -1595,6 +1595,10 @@ function attackTargets(u){
   if(u.attacked||u.type==='NUKE') return [];   // missiles only launch with the nuke action
   if(siegeLocked(u)) return [];
   const rg=uRange(u);
+  if(u.owner!==MYSIDE&&rg>visionR(u.owner)&&!hasTech(u.owner,'SAT')){   // long-range guns need a spotter, for the computer too
+    const seen=sightOf(u.owner);
+    return units.filter(e=>e.owner!==u.owner && cheb(u,e)<=rg && seen[e.y][e.x]);
+  }
   return units.filter(e=>e.owner!==u.owner && cheb(u,e)<=rg && (u.owner!==MYSIDE || visXY(e.x,e.y)));
 }
 // detonate a nuclear missile on a target tile: full splash everywhere in radius, then consume the launcher
@@ -4310,7 +4314,9 @@ function checkRewards(){
   CITY_REWARDS[lvl].forEach((o,i)=>{
     const b=document.createElement('button');
     b.type='button'; b.className='rwopt';
-    b.innerHTML=`<span class="disc">${o.unit?`<img src="${unitIcon(o.unit,MYSIDE)}" alt="">`:svgIcon(o.icon)}</span><b>${o.name}</b><span>${o.desc}</span>`;
+    const owned=o.k==='walls'&&f.c.walls;
+    b.innerHTML=`<span class="disc">${o.unit?`<img src="${unitIcon(o.unit,MYSIDE)}" alt="">`:svgIcon(o.icon)}</span><b>${o.name}</b><span>${owned?'This city already has walls':o.desc}</span>`;
+    if(owned) b.disabled=true;
     b.onclick=()=>{ act({t:'reward',x:f.x,y:f.y,pick:i}); };
     opts.appendChild(b);
   });
@@ -4735,7 +4741,7 @@ $('helpBtn').onclick=()=>{
     ['Fog','Cloud cover hides undiscovered land. Units and cities see 2 tiles around them. Explored ground stays on the map, but enemy units only show where you can see right now \u2014 shaded tiles are out of sight.'],
     ['Economy','Crops (2\u2605), ore (4\u2605) and oil (6\u2605) sit near cities. Harvest one inside your territory to add population — fill the bar to level the city up for +1\u2605 income, permanently. Capture gray neutral cities to claim their resources.'],
     ['Counters','Snipers +25% vs Infantry \u00b7 Tanks resist Sniper fire \u00b7 Helicopters +50% vs Tanks and Titans, and resist tank guns \u00b7 Flak Batteries +75% vs Helicopters and resist their fire. Artillery blasts also hit enemies next to the target for 25%.'],
-    ['Factions','Aegis: +1 HP and heals while resting or on the march (free Field Medicine) \u00b7 Crimson: every unit 1\u2605 cheaper \u00b7 Solaris mines from the start & harvests cheaper \u00b7 Ghost sees 3 tiles, and Snipers that hold still shoot 3 tiles \u00b7 Iron Bastion: City Walls on every city it holds \u00b7 Verdant: crops give +1 population, Develop 2\u2605 cheaper \u00b7 Tidewatch: a second starting Infantry and free Field Radio.'],
+    ['Factions','Aegis: +1 HP and heals while resting or on the march (free Field Medicine) \u00b7 Crimson: every unit 1\u2605 cheaper \u00b7 Solaris mines from the start & harvests cheaper \u00b7 Ghost sees 3 tiles, and Snipers that hold still shoot 3 tiles \u00b7 Iron Bastion: City Walls on every city it holds, and free Fortification \u00b7 Verdant: crops give +1 population, Develop 2\u2605 cheaper \u00b7 Tidewatch: a second starting Infantry, free Field Radio and Marksmanship.'],
     ['Tech','Combat: Sniper \u2192 Tank \u2192 Artillery, plus drills, armor and self-propelled guns. Industry: Ore \u2192 Oil \u2192 Helicopter, plus cheaper training, +1\u2605 per city and faster gunships. Support: healing, 2\u00d7 city defense, forest camouflage, field hospitals and blast protection. Intel: +1 vision, the Flak Battery and longer artillery range. Strategic: Satellite Network (reveals the map) and Manhattan Project (the Nuclear Missile — a one-use 5\u00d75 strike). A tech costs 4/6/12/18\u2605 by tier, plus its tier for every city beyond your first (counted at the start of your turn).'],
     ['City rewards','Every time a city levels up you pick one of two rewards: Workshop or Scouts, City walls or a War chest, Population boom or Wider borders, Command post or a free Titan.'],
     ['Titans','The super unit: 36 HP, 5 attack, 4 defense, but only 1 move. Only a city of level 4 or higher can build one (18\u2605), and each such city you hold supports a single Titan. A city that reaches level 5 can also give you one for free. Helicopters hit it for +50% and Artillery outranges it; Snipers barely scratch it. Titans cannot be promoted.'],
@@ -5523,8 +5529,8 @@ function newGame(){
   stats={kills:0,losses:0}; tally={};
   stars={}; tech={};
   for(const s of turnOrder){
-    stars[s]=(isAI(s)?diff().start:6)+(turnOrder.indexOf(s)>0?3:0);
-    tech[s]=new Set(playerMeta[s].faction.startTech?[playerMeta[s].faction.startTech]:[]);
+    stars[s]=(isAI(s)?diff().start:6)+(turnOrder.indexOf(s)>0?6:0);   // moving first is worth about 6 stars
+    tech[s]=new Set([].concat(playerMeta[s].faction.startTech||[]));
   }
   for(const [,g] of unitMeshes){ unitGroup.remove(g); freeUnitMesh(g); }
   dyingUnits.forEach(d=>{ unitGroup.remove(d.g); freeUnitMesh(d.g); }); dyingUnits.length=0;
