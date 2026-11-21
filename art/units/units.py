@@ -492,7 +492,192 @@ def titan():
     return m
 
 
-UNITS = [infantry, sniper, tank, artillery, flak, helicopter, nuke, titan]
+def ambulance():
+    """Aegis Field Ambulance: a boxy medical truck with red crosses."""
+    m = Model('AMB')
+    for s in (-1, 1):
+        for z in (0.17, -0.17):
+            m.cyl(0.062, 0.062, 0.05, 'rubber', (0.15*s, 0.062, z), (0, 0, PI/2), seg=10, bevel=0.012)
+            m.cyl(0.026, 0.026, 0.056, 'steel', (0.15*s, 0.062, z), (0, 0, PI/2), seg=6)
+        m.box(0.04, 0.03, 0.014, 'light', (0.085*s, 0.15, 0.3), bevel=0.005)
+        m.box(0.012, 0.045, 0.07, 'glass', (0.128*s, 0.215, 0.215), bevel=0)               # cab side windows
+        # big red cross on each side of the box
+        m.box(0.008, 0.11, 0.035, 'red', (0.152*s, 0.255, -0.08), bevel=0)
+        m.box(0.008, 0.035, 0.11, 'red', (0.152*s, 0.255, -0.08), bevel=0)
+    m.box(0.27, 0.06, 0.6, 'dark', (0, 0.1, 0), bevel=0.01)                                 # chassis
+    m.box(0.26, 0.13, 0.15, 'body', (0, 0.2, 0.22), bevel=0.03, bseg=2)                     # cab
+    m.box(0.22, 0.05, 0.012, 'glass', (0, 0.23, 0.297), (-0.2, 0, 0), bevel=0)              # windshield
+    m.box(0.29, 0.22, 0.36, 'white', (0, 0.25, -0.08), bevel=0.03, bseg=2)                  # patient box
+    m.box(0.3, 0.035, 0.37, 'body', (0, 0.15, -0.08), bevel=0.008)                          # faction stripe
+    m.box(0.11, 0.008, 0.035, 'red', (0, 0.364, -0.08), bevel=0)                            # roof cross
+    m.box(0.035, 0.008, 0.11, 'red', (0, 0.364, -0.08), bevel=0)
+    for s in (-1, 1):
+        m.box(0.05, 0.03, 0.04, 'light', (0.06*s, 0.28, 0.22), bevel=0.006)                # light bar
+    m.box(0.1, 0.02, 0.04, 'red', (0, 0.278, 0.22), bevel=0.004)
+    return m
+
+
+def shock():
+    """Crimson Shock Troops: a charging assault trooper with a visored helmet and a submachine gun."""
+    m = Model('SHK')
+    m.box(0.066, 0.045, 0.088, 'dark', (0.05, 0.0225, 0.05), bevel=0.012)                  # front boot (striding)
+    m.box(0.066, 0.045, 0.088, 'dark', (-0.05, 0.0225, -0.04), bevel=0.012)
+    m.limb((0.05, 0.04, 0.05), (0.045, 0.11, 0.0), 0.06, 'body')
+    m.limb((-0.05, 0.04, -0.04), (-0.045, 0.11, 0.0), 0.06, 'body')
+    m.box(0.16, 0.15, 0.12, 'body', (0, 0.18, 0.01), (0.12, 0, 0), bevel=0.022)              # torso leaning in
+    m.box(0.178, 0.1, 0.135, 'dark', (0, 0.2, 0.015), (0.12, 0, 0), bevel=0.02)              # heavy armour vest
+    m.box(0.12, 0.03, 0.01, 'trim', (0, 0.235, 0.085), (0.12, 0, 0), bevel=0)                # chest stripe
+    for s in (-1, 1):
+        m.box(0.07, 0.04, 0.09, 'trim', (0.105*s, 0.255, 0.0), bevel=0.012)                 # shoulder pads
+        m.box(0.035, 0.05, 0.03, 'red', (0.04*s, 0.16, 0.085), bevel=0.006)                 # grenades
+    m.box(0.17, 0.15, 0.15, 'skin', (0, 0.335, 0.03), bevel=0.032, bseg=2)
+    m.sph(0.112, 'trim', (0, 0.4, 0.02), seg=10, rings=8, scale=(1, 0.62, 1.08))            # helmet
+    m.box(0.15, 0.04, 0.03, 'glass', (0, 0.345, 0.11), bevel=0.008)                         # visor
+    m.box(0.02, 0.06, 0.02, 'red', (0, 0.465, 0.0), bevel=0.004)                            # crest
+    with m.at((0.02, 0.215, 0.12), (0, 0, 0)):                                              # SMG pointed forward
+        m.box(0.04, 0.05, 0.16, 'metal', (0, 0, 0.02), bevel=0.008)
+        m.cyl(0.012, 0.012, 0.08, 'dark', (0, 0.005, 0.13), (PI/2, 0, 0), seg=6)
+        m.box(0.025, 0.07, 0.03, 'dark', (0, -0.05, 0.03), (0.3, 0, 0), bevel=0.005)
+    m.limb((-0.1, 0.25, 0.0), (-0.0, 0.2, 0.15), 0.05, 'body')
+    m.limb((0.1, 0.25, 0.0), (0.05, 0.215, 0.06), 0.05, 'body')
+    m.box(0.045, 0.045, 0.045, 'skin', (0.0, 0.205, 0.16), bevel=0.012)
+    m.box(0.045, 0.045, 0.045, 'skin', (0.05, 0.212, 0.075), bevel=0.012)
+    return m
+
+
+def mortar():
+    """Solaris Mortar Truck: a light pickup with a heavy mortar tube on its bed."""
+    m = Model('MRT')
+    for s in (-1, 1):
+        for z in (0.19, -0.14):
+            m.cyl(0.064, 0.064, 0.05, 'rubber', (0.155*s, 0.064, z), (0, 0, PI/2), seg=10, bevel=0.012)
+            m.cyl(0.027, 0.027, 0.056, 'steel', (0.155*s, 0.064, z), (0, 0, PI/2), seg=6)
+        m.box(0.075, 0.022, 0.16, 'trim', (0.155*s, 0.14, 0.19), bevel=0.006)
+        m.box(0.075, 0.022, 0.16, 'trim', (0.155*s, 0.14, -0.14), bevel=0.006)
+        m.box(0.04, 0.03, 0.014, 'light', (0.08*s, 0.16, 0.33), bevel=0.005)
+        m.box(0.012, 0.05, 0.07, 'glass', (0.13*s, 0.235, 0.2), bevel=0)
+    m.box(0.28, 0.06, 0.6, 'dark', (0, 0.1, 0.02), bevel=0.01)
+    m.box(0.26, 0.14, 0.15, 'body', (0, 0.2, 0.2), bevel=0.03, bseg=2)                      # cab
+    m.box(0.24, 0.07, 0.09, 'body', (0, 0.16, 0.31), bevel=0.02)                            # hood
+    m.box(0.22, 0.05, 0.012, 'glass', (0, 0.24, 0.277), (-0.25, 0, 0), bevel=0)
+    m.box(0.29, 0.05, 0.33, 'body', (0, 0.155, -0.12), bevel=0.012)                         # bed
+    for s in (-1, 1):
+        m.box(0.012, 0.07, 0.33, 'trim', (0.14*s, 0.2, -0.12), bevel=0)                    # bed sides
+    m.cyl(0.075, 0.09, 0.04, 'metal', (0, 0.2, -0.13), seg=10)                              # base plate
+    with m.at((0, 0.22, -0.13), (-0.75, 0, 0)):                                             # tube raised toward the front
+        m.cyl(0.045, 0.05, 0.3, 'metal', (0, 0.15, 0), seg=10)
+        m.cyl(0.055, 0.055, 0.03, 'dark', (0, 0.3, 0), seg=10)
+        m.cyl(0.032, 0.032, 0.005, 'black', (0, 0.316, 0), seg=10)
+    m.limb((0, 0.2, -0.03), (0, 0.31, -0.06), 0.022, 'dark', round_=True)                   # bipod leg
+    for x in (-0.07, 0.07):
+        m.cyl(0.024, 0.024, 0.07, 'brass', (x, 0.21, -0.25), seg=8)                         # shells
+    m.box(0.09, 0.05, 0.06, 'wood', (0.07, 0.205, -0.02), bevel=0.01)                       # ammo crate
+    return m
+
+
+def drone():
+    """Ghost Recon Drone: a quadcopter with a camera pod."""
+    m = Model('DRN')
+    m.box(0.15, 0.06, 0.18, 'body', (0, 0.2, 0), bevel=0.025, bseg=2)                       # hull
+    m.box(0.11, 0.03, 0.12, 'trim', (0, 0.235, -0.01), bevel=0.01)
+    m.sph(0.04, 'dark', (0, 0.155, 0.06), seg=8, rings=6)                                   # camera ball
+    m.cyl(0.02, 0.02, 0.012, 'glass', (0, 0.152, 0.098), (PI/2, 0, 0), seg=8)
+    m.box(0.02, 0.012, 0.02, 'red', (0, 0.24, -0.09), bevel=0)                              # tail light
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            x, z = 0.16*sx, 0.16*sz
+            m.limb((0.05*sx, 0.2, 0.05*sz), (x, 0.205, z), 0.026, 'dark')                   # arms
+            m.cyl(0.025, 0.025, 0.035, 'metal', (x, 0.22, z), seg=8)                        # motor
+            m.cyl(0.085, 0.085, 0.006, 'glass', (x, 0.242, z), seg=12)                      # spinning-blade blur
+            m.box(0.17, 0.006, 0.018, 'dark', (x, 0.245, z), (0, 0.6*sx*sz, 0), bevel=0)    # blade
+            m.limb((x*0.7, 0.18, z*0.7), (x*0.7, 0.1, z*0.7), 0.012, 'dark', round_=True)   # landing legs
+    return m
+
+
+def guardian():
+    """Bastion Guardian: a heavily armoured soldier behind a tower shield."""
+    m = Model('GRD')
+    for s in (-1, 1):
+        m.box(0.08, 0.05, 0.1, 'dark', (0.055*s, 0.025, 0.0), bevel=0.012)
+        m.box(0.072, 0.075, 0.075, 'trim', (0.055*s, 0.085, 0), bevel=0.012)                # greaves
+    m.box(0.2, 0.17, 0.14, 'body', (0, 0.2, -0.01), bevel=0.03)                             # torso
+    m.box(0.215, 0.11, 0.15, 'metal', (0, 0.225, -0.01), bevel=0.025)                       # breastplate
+    for s in (-1, 1):
+        m.sph(0.06, 'trim', (0.12*s, 0.29, -0.01), seg=8, rings=6, scale=(1, 0.8, 1.1))     # pauldrons
+    m.box(0.17, 0.15, 0.15, 'skin', (0, 0.36, 0.0), bevel=0.032, bseg=2)
+    m.box(0.19, 0.17, 0.17, 'metal', (0, 0.385, -0.005), bevel=0.04, bseg=2)                # closed helmet
+    m.box(0.13, 0.025, 0.02, 'black', (0, 0.375, 0.083), bevel=0.004)                       # eye slit
+    m.box(0.02, 0.07, 0.11, 'trim', (0, 0.48, -0.01), bevel=0.006)                          # helmet crest
+    # tower shield on the left arm, faction coloured with a brass boss
+    with m.at((-0.06, 0.2, 0.14), (0, 0.25, 0)):
+        m.box(0.2, 0.32, 0.03, 'body', (0, 0.0, 0), bevel=0.02)
+        m.box(0.21, 0.04, 0.035, 'trim', (0, 0.12, 0), bevel=0.006)
+        m.box(0.21, 0.04, 0.035, 'trim', (0, -0.12, 0), bevel=0.006)
+        m.cyl(0.04, 0.045, 0.025, 'brass', (0, 0, 0.025), (PI/2, 0, 0), seg=10)
+    # short rifle in the right hand, resting on the shield edge
+    with m.at((0.1, 0.22, 0.1)):
+        m.box(0.04, 0.05, 0.18, 'metal', (0, 0, 0.03), bevel=0.008)
+        m.cyl(0.012, 0.012, 0.09, 'dark', (0, 0.005, 0.16), (PI/2, 0, 0), seg=6)
+    m.limb((0.12, 0.28, 0.0), (0.1, 0.22, 0.08), 0.055, 'body')
+    m.box(0.048, 0.048, 0.048, 'skin', (0.1, 0.215, 0.09), bevel=0.012)
+    return m
+
+
+def stalker():
+    """Verdant Forest Stalker: a ghillie-cloaked hunter with a short rifle, crouched and moving."""
+    m = Model('STK')
+    m.box(0.066, 0.045, 0.09, 'dark', (0.05, 0.0225, 0.06), bevel=0.012)
+    m.box(0.066, 0.045, 0.09, 'dark', (-0.05, 0.0225, -0.05), bevel=0.012)
+    m.limb((0.05, 0.04, 0.06), (0.05, 0.12, 0.02), 0.06, 'body')
+    m.limb((-0.05, 0.04, -0.05), (-0.05, 0.11, 0.0), 0.06, 'body')
+    m.box(0.15, 0.13, 0.12, 'body', (0, 0.18, 0.0), (0.25, 0, 0), bevel=0.022)
+    m.box(0.19, 0.16, 0.15, 'leaf', (0, 0.2, -0.03), (0.25, 0, 0), bevel=0.04, bseg=2)     # ghillie cloak
+    for p, r, mt in [((0.09, 0.25, -0.04), 0.045, 'leaf2'), ((-0.09, 0.24, -0.05), 0.043, 'leaf'),
+                     ((0.0, 0.28, -0.09), 0.048, 'leaf2'), ((0.07, 0.16, -0.1), 0.04, 'leaf'),
+                     ((-0.07, 0.15, -0.09), 0.038, 'leaf2'), ((0.0, 0.2, -0.12), 0.04, 'leaf'),
+                     ((0.1, 0.12, 0.0), 0.03, 'leaf2'), ((-0.1, 0.13, 0.02), 0.03, 'leaf')]:
+        m.ico(r, mt, p, scale=(1, 0.8, 1))
+    m.box(0.16, 0.14, 0.14, 'skin', (0, 0.31, 0.04), bevel=0.03, bseg=2)
+    m.box(0.165, 0.05, 0.145, 'leaf2', (0, 0.3, 0.04), bevel=0.01)                          # face paint band
+    eyes(m, 0.318, 0.112, squint=True)
+    m.sph(0.1, 'body', (0, 0.37, 0.03), seg=10, rings=8, scale=(1, 0.55, 1.05))             # hood
+    m.ico(0.03, 'leaf', (0.06, 0.41, 0.0)); m.ico(0.026, 'leaf2', (-0.05, 0.405, 0.04))
+    with m.at((0.04, 0.215, 0.12), (0.15, 0, 0)):                                           # compact rifle
+        m.box(0.036, 0.05, 0.17, 'wood', (0, 0, 0.0), bevel=0.008)
+        m.cyl(0.011, 0.011, 0.12, 'dark', (0, 0.008, 0.14), (PI/2, 0, 0), seg=6)
+        m.cyl(0.018, 0.018, 0.07, 'dark', (0, 0.04, 0.02), (PI/2, 0, 0), seg=8)
+    m.limb((-0.09, 0.23, 0.0), (0.02, 0.2, 0.15), 0.048, 'body')
+    m.limb((0.09, 0.23, 0.0), (0.05, 0.215, 0.07), 0.048, 'body')
+    m.box(0.044, 0.044, 0.044, 'skin', (0.02, 0.2, 0.16), bevel=0.012)
+    m.box(0.044, 0.044, 0.044, 'skin', (0.05, 0.21, 0.08), bevel=0.012)
+    return m
+
+
+def hovercraft():
+    """Tidewatch Hovercraft: a rounded hull on a black skirt with a caged rear fan."""
+    m = Model('HOV')
+    m.cyl(0.25, 0.27, 0.07, 'rubber', (0, 0.05, 0), seg=14, bevel=0.025, bseg=2)           # inflated skirt
+    m.box(0.36, 0.08, 0.5, 'body', (0, 0.115, 0.0), bevel=0.06, bseg=2)                     # hull deck
+    m.box(0.3, 0.12, 0.2, 'trim', (0, 0.2, 0.06), bevel=0.04, bseg=2)                       # cabin
+    m.box(0.26, 0.05, 0.012, 'glass', (0, 0.225, 0.162), (-0.35, 0, 0), bevel=0)
+    for s in (-1, 1):
+        m.box(0.012, 0.05, 0.12, 'glass', (0.151*s, 0.215, 0.06), bevel=0)
+        m.box(0.04, 0.03, 0.014, 'light', (0.12*s, 0.135, 0.25), bevel=0.005)
+        m.box(0.012, 0.13, 0.11, 'body', (0.07*s, 0.3, -0.24), bevel=0.004)                # rudders
+    m.cyl(0.022, 0.022, 0.08, 'dark', (0.0, 0.29, 0.08), seg=6)                              # cabin gun mount
+    m.cyl(0.01, 0.01, 0.14, 'dark', (0.0, 0.325, 0.16), (PI/2, 0, 0), seg=6)
+    # rear fan in a cage
+    m.cyl(0.13, 0.13, 0.05, 'metal', (0, 0.3, -0.17), (PI/2, 0, 0), seg=14)
+    m.cyl(0.115, 0.115, 0.055, 'black', (0, 0.3, -0.17), (PI/2, 0, 0), seg=14)
+    m.box(0.22, 0.02, 0.012, 'steel', (0, 0.3, -0.14), (0, 0, 0.5), bevel=0)               # fan blades
+    m.box(0.22, 0.02, 0.012, 'steel', (0, 0.3, -0.14), (0, 0, -1.07), bevel=0)
+    m.cyl(0.03, 0.03, 0.03, 'trim', (0, 0.3, -0.135), (PI/2, 0, 0), seg=8)
+    m.limb((0, 0.22, -0.09), (0, 0.17, -0.17), 0.03, 'dark')                                 # fan pylon
+    return m
+
+
+UNITS = [infantry, sniper, tank, artillery, flak, helicopter, nuke, titan,
+         ambulance, shock, mortar, drone, guardian, stalker, hovercraft]
 
 # ================================================================== scene / render
 bpy.ops.wm.read_factory_settings(use_empty=True)
