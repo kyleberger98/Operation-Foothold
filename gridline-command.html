@@ -344,6 +344,8 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 .fcard:hover{border-color:var(--dim); transform:translateY(-2px); box-shadow:0 8px 18px rgba(0,0,0,.4)}
 .fcard.sel{border-color:var(--amber); background:#221f15; box-shadow:inset 0 0 0 1px var(--amber)}
 .optRow{display:flex; gap:8px; flex-wrap:wrap}
+.secNote{font-size:10.5px; letter-spacing:.04em; text-transform:none; color:var(--dim); margin-left:6px}
+#modRow .opt.sel, #mpModRow .opt.sel{border-color:var(--amber)}
 .opt{background:var(--panel2); border:1px solid var(--line); border-radius:9px; color:var(--text); cursor:pointer;
   font-family:'Saira Condensed',sans-serif; font-size:15px; letter-spacing:.08em; text-transform:uppercase;
   padding:8px 16px; display:flex; flex-direction:column; align-items:center; gap:1px}
@@ -580,6 +582,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
       <div class="homeBtns">
         <button id="resumeBtn" class="bigbtn primary" style="display:none">Resume<span>back to the battlefield</span></button>
         <button id="continueBtn" class="bigbtn primary" style="display:none">Continue campaign<span id="continueInfo"></span></button>
+        <button id="rejoinBtn" class="bigbtn primary" style="display:none">Rejoin online game<span id="rejoinInfo"></span></button>
         <button id="quickBtn" class="bigbtn gold">Quick play<span id="quickInfo"></span></button>
         <div class="homeRow">
           <button id="customBtn" class="bigbtn">Custom</button>
@@ -589,7 +592,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
       </div>
       <div class="saveNote">Your campaign auto-saves every move on this device.</div>
       <div class="saveNote" id="progLine" hidden></div>
-      <div class="setRow"><button id="speedMenuBtn" class="speedMenu"></button><button id="soundMenuBtn" class="speedMenu"></button><button id="gfxMenuBtn" class="speedMenu"></button><button id="followMenuBtn" class="speedMenu"></button><button id="installBtn" class="speedMenu install" hidden></button></div>
+      <div class="setRow"><button id="speedMenuBtn" class="speedMenu"></button><button id="soundMenuBtn" class="speedMenu"></button><button id="musicMenuBtn" class="speedMenu"></button><button id="gfxMenuBtn" class="speedMenu"></button><button id="followMenuBtn" class="speedMenu"></button><button id="installBtn" class="speedMenu install" hidden></button></div>
       <div id="installTip" hidden>On iPhone or iPad: tap the <b>Share</b> button, then <b>Add to Home Screen</b>. Gridline Command opens full-screen from its icon and plays offline.</div>
     </div>
     <div id="soloPane" style="display:none">
@@ -609,6 +612,10 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
       <button class="opt" data-size="13">Large<span>13×13</span></button>
       <button class="opt" data-size="15">Huge<span>15×15</span></button>
     </div>
+    <div class="sec">Map type</div>
+    <div class="optRow" id="mapRow"></div>
+    <div class="sec">Modifiers <span class="secNote">optional, any combination</span></div>
+    <div class="optRow" id="modRow"></div>
     <div class="sec">Players on this device</div>
     <div class="optRow" id="hotRow">
       <button class="opt sel" data-hot="1">Just me<span>against the computer</span></button>
@@ -668,6 +675,10 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
             <button class="opt" data-size="13">Large<span>13&times;13</span></button>
             <button class="opt" data-size="15">Huge<span>15&times;15</span></button>
           </div>
+          <div class="sec">Map type</div>
+          <div class="optRow" id="mpMapRow"></div>
+          <div class="sec">Modifiers</div>
+          <div class="optRow" id="mpModRow"></div>
           <div class="sec">Turn timer</div>
           <div class="optRow" id="mpTimerRow">
             <button class="opt sel" data-timer="0">Off<span>no limit</span></button>
@@ -701,7 +712,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 <div id="overlay">
   <h2 id="ovTitle"></h2>
   <p id="ovBody"></p>
-  <div class="ovBtns"><button id="restart">Redeploy</button><button id="ovAlt" hidden></button></div>
+  <div class="ovBtns"><button id="ovRematch" hidden>Rematch</button><button id="restart">Redeploy</button><button id="ovAlt" hidden></button></div>
 </div>
 
 <div id="netBar" style="display:none"></div>
@@ -793,7 +804,7 @@ for(const k in POWERS) FACTIONS[k].power=POWERS[k];
 const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pw0=()=>({used:{}, rage:{}, ghost:{}, shield:{}});
 let pw=pw0();   // turn each side used its power, and the effects in force
-const powerReady=s=>!!(playerMeta[s]&&meta(s).faction.power)&&pw.used[s]==null&&alive[s];
+const powerReady=s=>!mod('nopower')&&!!(playerMeta[s]&&meta(s).faction.power)&&pw.used[s]==null&&alive[s];
 const shieldMul=o=>pw.shield[o]?0.5:1;
 function usePower(s){
   if(!powerReady(s)) return false;
@@ -860,6 +871,22 @@ const DIFFS={
   hard:  {name:'Hard',   note:'a tough fight',        inc:1,   start:6, train:3,  techs:1, every:1, reserve:2, press:1,   sharp:true,  nukes:true},
   crazy: {name:'Crazy',  note:'rivals earn far more', inc:1.7, start:10, train:99, techs:2, every:1, reserve:1, press:1,   sharp:true,  nukes:true},
 };
+/* map types and optional rule modifiers (chosen in Custom setup or by the online host) */
+const MAP_TYPES={
+  classic: {name:'Classic',   note:'mixed terrain',          water:0.11, mount:0.10, forest:0.19},
+  highland:{name:'Highlands', note:'mountain passes',        water:0.06, mount:0.24, forest:0.15},
+  woods:   {name:'Woodland',  note:'forests everywhere',     water:0.07, mount:0.08, forest:0.42},
+  lakes:   {name:'Lakes',     note:'water splits the land',  water:0.08, mount:0.08, forest:0.18, lakes:true},
+  mirror:  {name:'Mirrored',  note:'fair, symmetric map',    water:0.10, mount:0.10, forest:0.19, mirror:true},
+};
+const MODS={
+  nofog:   {name:'No fog',         note:'the whole map is visible'},
+  rich:    {name:'Double income',  note:'every city pays twice as much'},
+  titans:  {name:'Early Titans',   note:'any city can field a Titan'},
+  nopower: {name:'No powers',      note:'commander powers switched off'},
+};
+const mapType=()=>MAP_TYPES[((gcfg||cfg).map)]||MAP_TYPES.classic;
+const mod=k=>{ const m=(gcfg||cfg).mods; return !!(m&&m.includes(k)); };
 let gcfg=null, blockedHint=false, lastNuke={}, nukeWarned={}, mapReveals=[];   // settings of the game being played (the menu's cfg can change underneath it)
 const diff=()=>DIFFS[(gcfg||cfg).diff]||DIFFS.normal;
 const isAI=s=>s!==P && !HOT.includes(s) && !(NET.on&&NET.humans[s]);   // the host's own side and remote humans are people
@@ -897,7 +924,7 @@ function uDef(u){
 function uMove(u){ return UNIT_TYPES[u.type].move + (u.type==='HEL'&&hasTech(u.owner,'TURBO')?1:0) + (u.type==='INF'?(meta(u.owner).faction.infMove||0):0); }
 /* artillery can't move and fire on the same turn — unless Self-Propelled Guns */
 function siegeLocked(u){ return !!UNIT_TYPES[u.type].siege && u.moved && !(u.type==='ART'&&hasTech(u.owner,'SPG')); }
-function cityIncome(c){ return (c.capital?2:1)+c.level+(c.bonus||0)+(c.owner&&hasTech(c.owner,'URBAN')?1:0); }
+function cityIncome(c){ return ((c.capital?2:1)+c.level+(c.bonus||0)+(c.owner&&hasTech(c.owner,'URBAN')?1:0))*(mod('rich')?2:1); }
 /* cities travel through saves and the network in this compact form */
 const packCity=c=>c?{o:c.owner,cap:!!c.capital,l:c.level,p:c.pop,rw:c.rw&&c.rw.length?c.rw:0,wa:c.walls?1:0,bd:c.border||0,bn:c.bonus||0,sc:c.scout?1:0,dv:c.dev||0,bk:c.bk||0}:0;
 const unpackCity=o=>o?{owner:o.o,capital:!!o.cap,level:o.l,pop:o.p,rw:o.rw||[],walls:!!o.wa,border:o.bd||1,bonus:o.bn||0,scout:!!o.sc,dev:o.dv||0,bk:o.bk||0}:null;
@@ -1050,13 +1077,15 @@ function resultHtml(winner, firstTime){
   }
   const total=Object.values(parts).reduce((a,b)=>a+b,0);
   let rec=null;
-  if(solo&&firstTime) rec=recordResult(won, stars, total);
+  const helped=['nofog','rich','titans'].filter(mod);   // modifiers that make the game easier don't count toward medals
+  if(solo&&firstTime&&!helped.length) rec=recordResult(won, stars, total);
   const fac=meta(me).faction, dn=(DIFFS[(gcfg||cfg).diff]||DIFFS.normal).name;
   const board=turnOrder.map(s=>({s, v:s===me?total:scoreOf(s)})).sort((a,b)=>b.v-a.v)
     .map(o=>`<span class="${alive[o.s]?'':'out'}" style="color:${meta(o.s).css}">${esc(meta(o.s).name)}${hot?(HOT.includes(o.s)?' · '+pname(o.s):''):(o.s===me?' (you)':'')}</span><b>${o.v}</b>`).join('');
   return (solo?`<div class="ovStars">${'★'.repeat(stars)}<i>${'★'.repeat(3-stars)}</i></div>`:'')+
     `<div class="ovBig">${total} points</div>`+
     (note&&solo?`<div class="ovNote">${note}</div>`:'')+
+    (solo&&helped.length?`<div class="ovNote">No medal with ${helped.map(k=>MODS[k].name).join(' / ')} on.</div>`:'')+
     (rec&&rec.up?`<div class="ovNote">New medal: ${fac.name} · ${dn} ${'★'.repeat(stars)}</div>`:'')+
     (rec&&rec.nb&&rec.ob?`<div class="ovNote">New best score (was ${rec.ob})</div>`:'')+
     `<div class="ovGrid">${Object.entries(parts).filter(([,v])=>v).map(([k,v])=>`<span>${k}</span><b>${v}</b>`).join('')}</div>`+
@@ -1075,12 +1104,19 @@ function genMap(){
   for(let y=0;y<H;y++){
     const row=[];
     for(let x=0;x<W;x++){
-      const r=Math.random();
+      const r=Math.random(), mt=mapType();
       let t='plains';
-      if(r<0.11) t='water'; else if(r<0.21) t='mountain'; else if(r<0.40) t='forest';
+      if(r<mt.water) t='water'; else if(r<mt.water+mt.mount) t='mountain'; else if(r<mt.water+mt.mount+mt.forest) t='forest';
       row.push({terrain:t, city:null, resource:null});
     }
     map.push(row);
+  }
+  if(mapType().lakes){   // a few blob lakes, kept away from the corners
+    const n=Math.max(2,Math.round(W*H/45));
+    for(let i=0;i<n;i++){
+      const cx=2+rnd(W-4), cy=2+rnd(H-4), r=1+rnd(2);
+      for(let y=cy-r;y<=cy+r;y++)for(let x=cx-r;x<=cx+r;x++) if(inb(x,y)&&Math.hypot(x-cx,y-cy)<=r+0.3&&Math.random()<0.85) map[y][x].terrain='water';
+    }
   }
   const corners=[{x:1,y:H-2},{x:W-2,y:1},{x:1,y:1},{x:W-2,y:H-2}];
   const caps={[P]:corners[0]};
@@ -1134,6 +1170,7 @@ function genMap(){
       laid.push(p); placed++;
     }
   }
+  linkHQs(caps);
   // ---- resources: 2 in every city's territory, plus a few scattered ----
   const cityList=[];
   for(let y=0;y<H;y++)for(let x=0;x<W;x++) if(tileAt(x,y).city) cityList.push({x,y});
@@ -1175,7 +1212,39 @@ function genMap(){
     if(cityList.some(c=>cheb({x,y},c)<2)) continue;
     t.ruin=true; drops++;
   }
+  if(mapType().mirror){ mirrorMap(caps); linkHQs(caps); }
   return caps;
+}
+/* every HQ must be reachable on foot from every other: carve a plains path through water and mountains where needed */
+function linkHQs(caps){
+  const list=Object.values(caps), home=list[0];
+  const walk=(x,y)=>{ const t=tileAt(x,y).terrain; return t!=='water'&&t!=='mountain'; };
+  for(const c of list.slice(1)){
+    const seen=new Set([key(home.x,home.y)]), q=[home];
+    while(q.length){ const p=q.shift(); for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){ const x=p.x+dx,y=p.y+dy; if(inb(x,y)&&!seen.has(key(x,y))&&walk(x,y)){ seen.add(key(x,y)); q.push({x,y}); } } }
+    if(seen.has(key(c.x,c.y))) continue;
+    let x=c.x, y=c.y;
+    while(!seen.has(key(x,y))){ x+=Math.sign(home.x-x); y+=Math.sign(home.y-y); const t=tileAt(x,y); if(!walk(x,y)){ t.terrain='plains'; t.resource=null; } }
+  }
+}
+/* Mirrored maps: the second half of the board is the first half turned 180 degrees, so both corners get the same land */
+function mirrorMap(caps){
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const mx=W-1-x, my=H-1-y;
+    if(y*W+x<=my*W+mx) continue;   // keep the first half
+    const src=tileAt(mx,my);
+    map[y][x]={terrain:src.terrain, resource:src.resource||null, ruin:!!src.ruin, city:src.city?{...src.city, owner:null, capital:false}:null};
+  }
+  for(const s in caps){ const c=caps[s]; tileAt(c.x,c.y).city={owner:s, capital:true, level:1, pop:0}; }
+  // the seam in the middle can put two villages side by side: drop one of each such pair (and its mirror)
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const c=tileAt(x,y).city; if(!c||c.capital) continue;
+    for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+      const nx=x+dx, ny=y+dy; if((!dx&&!dy)||!inb(nx,ny)) continue;
+      const o=tileAt(nx,ny).city;
+      if(o&&!o.capital&&tileAt(x,y).city){ tileAt(nx,ny).city=null; const m=tileAt(W-1-nx,H-1-ny); if(m.city&&!m.city.capital&&!(W-1-nx===x&&H-1-ny===y)) m.city=null; }
+    }
+  }
 }
 
 function spawn(owner,type,x,y){
@@ -1227,9 +1296,10 @@ function develop(s,x,y){
 }
 /* Titans: every high-level city you hold supports one */
 const TITAN_LEVEL=4;
-function titanCap(s){ let n=0; map.flat().forEach(t=>{ if(t.city&&t.city.owner===s&&t.city.level>=TITAN_LEVEL) n++; }); return n; }
+const titanLevel=()=>mod('titans')?1:TITAN_LEVEL;
+function titanCap(s){ let n=0; map.flat().forEach(t=>{ if(t.city&&t.city.owner===s&&t.city.level>=titanLevel()) n++; }); return n; }
 function titanCount(s){ return units.filter(u=>u.owner===s&&u.type==='TTN').length; }
-function canFieldTitan(s,c){ return !!c&&c.owner===s&&c.level>=TITAN_LEVEL&&titanCount(s)<titanCap(s); }
+function canFieldTitan(s,c){ return !!c&&c.owner===s&&c.level>=titanLevel()&&titanCount(s)<titanCap(s); }
 function armySize(s){ return units.filter(u=>u.owner===s&&u.type!=='NUKE').length; }
 function armyCap(s){ let n=0; map.flat().forEach(t=>{ if(t.city&&t.city.owner===s) n+=t.city.level+1+(t.city.bk||0); }); return n; }
 function harvest(x,y,owner){
@@ -1322,7 +1392,7 @@ function handTo(s){
   if(cb){ cam.target.copy(cb.t); cam.dist=cb.d; }
   else for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const c=tileAt(x,y).city;
-    if(c&&c.capital&&c.owner===s){ const k=innerWidth<700?0.72:0.65; cam.target.set(wx(x)*k,0,wz(y)*k); }
+    if(c&&c.capital&&c.owner===s) homeCam(x,y);
   }
   applyCam();
   showCurtain(s);
@@ -1595,7 +1665,7 @@ function attackTargets(u){
   if(u.attacked||u.type==='NUKE') return [];   // missiles only launch with the nuke action
   if(siegeLocked(u)) return [];
   const rg=uRange(u);
-  if(u.owner!==MYSIDE&&rg>visionR(u.owner)&&!hasTech(u.owner,'SAT')){   // long-range guns need a spotter, for the computer too
+  if(u.owner!==MYSIDE&&rg>visionR(u.owner)&&!hasTech(u.owner,'SAT')&&!mod('nofog')){   // long-range guns need a spotter, for the computer too
     const seen=sightOf(u.owner);
     return units.filter(e=>e.owner!==u.owner && cheb(u,e)<=rg && seen[e.y][e.x]);
   }
@@ -2179,6 +2249,21 @@ function toggleFit(at){
   $('fitBtn').classList.toggle('on',!!fitSaved);
   sfx.select();
 }
+/* opening view of your HQ. On a tall phone screen the view slides so the near edge of the island sits just above
+   the buttons, instead of leaving the bottom third of the screen to the sea. */
+function homeCam(x,y){
+  cam.dist=camera.aspect<0.75?13.5:camera.aspect<1?12:9;
+  const k=innerWidth<700?0.72:0.65;
+  cam.target.set(wx(x)*k,0,wz(y)*k); applyCam();
+  if(camera.aspect<0.75&&y>=H/2){   // an HQ near the top already has the island below it
+    const v=new THREE.Vector3(), nearZ=wz(H-1)+0.5, want=innerHeight-210;
+    for(let i=0;i<40;i++){
+      v.set(wx(x),TOP,nearZ).project(camera);
+      if((1-v.y)/2*innerHeight>=want) break;
+      cam.target.z-=0.1; applyCam();
+    }
+  }
+}
 function panTo(x,y){ camGoal=new THREE.Vector3(wx(x),0,wz(y)+(innerWidth<700?Math.min(1.6,cam.dist*0.11):0)); }
 const cvs=renderer.domElement;
 /* ---- dragging the board: the ground you touch stays under your finger ----
@@ -2513,8 +2598,9 @@ function revealAround(x,y,r){
 /* the host keeps a record of what each remote player has seen, to refuse attacks into their fog */
 let seenBy={};
 function sightOf(s){
-  const g=Array.from({length:H},()=>Array(W).fill(hasTech(s,'SAT')));
-  if(hasTech(s,'SAT')) return g;
+  const sees=hasTech(s,'SAT')||mod('nofog');
+  const g=Array.from({length:H},()=>Array(W).fill(sees));
+  if(sees) return g;
   const rev=(x,y,r)=>{ for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++) if(inb(x+dx,y+dy)) g[y+dy][x+dx]=true; };
   const vr=visionR(s);
   for(const u of units) if(u.owner===s) rev(u.x,u.y,vr);
@@ -2535,7 +2621,7 @@ function markSeen(s){
 }
 function computeVision(){
   if(!map||!H) return;
-  const sat=hasTech(MYSIDE,'SAT'), all=sat||gameOver||!alive[MYSIDE];   // satellites, spectators and the end screen see everything
+  const sat=hasTech(MYSIDE,'SAT')||mod('nofog'), all=sat||gameOver||!alive[MYSIDE];   // satellites, spectators and the end screen see everything
   visNow=Array.from({length:H},()=>Array(W).fill(all));
   if(sat) for(let y=0;y<H;y++)for(let x=0;x<W;x++) explored[y][x]=true;
   if(!all){
@@ -3873,8 +3959,7 @@ function restoreGame(data, net){
       const c=tileAt(x,y).city;
       if(c&&c.capital&&c.owner===MYSIDE) pc={x,y};
     }
-    cam.target.set(pc?wx(pc.x):0, 0, pc?wz(pc.y):0);
-    applyCam();
+    if(pc) homeCam(pc.x,pc.y); else { cam.target.set(0,0,0); applyCam(); }
     if($('log')) $('log').innerHTML='';
     log('sys', net?('\u2014 OPERATION LIVE \u00b7 turn '+turn+' \u00b7 '+W+'\u00d7'+H+' \u2014')
                   :('\u2014 CAMPAIGN RESTORED \u00b7 turn '+turn+' \u00b7 '+W+'\u00d7'+H+' \u2014'));
@@ -3953,7 +4038,8 @@ function showSetup(){
   document.querySelectorAll('#enRow .opt').forEach(o=>o.classList.toggle('sel', +o.dataset.en===cfg.enemies));
   document.querySelectorAll('#modeRow .opt').forEach(o=>o.classList.toggle('sel', o.dataset.mode===(cfg.mode||'conquest')));
   document.querySelectorAll('#diffRow .opt').forEach(o=>o.classList.toggle('sel', o.dataset.diff===(DIFFS[cfg.diff]?cfg.diff:'normal')));
-  $('quickInfo').textContent=FACTIONS[cfg.faction].name+' · '+SIZE_NAME[cfg.size]+' map · '+cfg.enemies+' enem'+(cfg.enemies===1?'y':'ies')+' · '+(DIFFS[cfg.diff]||DIFFS.normal).name+(cfg.mode==='score'?' · score attack':'');
+  renderMapOpts('mapRow','modRow',cfg,()=>{});
+  $('quickInfo').textContent=FACTIONS[cfg.faction].name+' · '+SIZE_NAME[cfg.size]+((MAP_TYPES[cfg.map]&&cfg.map!=='classic')?' '+MAP_TYPES[cfg.map].name.toLowerCase():'')+' map · '+cfg.enemies+' enem'+(cfg.enemies===1?'y':'ies')+' · '+(DIFFS[cfg.diff]||DIFFS.normal).name+(cfg.mode==='score'?' · score attack':'');
   renderProgress();
   renderHot();
   if(cfg.hot>1) $('quickInfo').textContent+=' · pass & play ('+cfg.hot+' players)';
@@ -3969,6 +4055,7 @@ function showSetup(){
     }catch(e){ $('continueInfo').textContent='saved campaign'; }
   } else cb.style.display='none';
   disarm();
+  syncRejoin();
   setupView(NET.on?'mp':'home');
   $('setup').classList.add('show');
 }
@@ -4043,6 +4130,24 @@ function fixHot(){
     used.add(f); out.push(f);
   }
   cfg.hotFac=out;
+}
+/* map type and modifier buttons, shared by Custom setup and the online lobby */
+function renderMapOpts(mapId,modId,o,changed){
+  const mr=$(mapId), dr=$(modId); if(!mr||!dr) return;
+  mr.innerHTML=''; dr.innerHTML='';
+  for(const [k,m] of Object.entries(MAP_TYPES)){
+    const b=document.createElement('button'); b.className='opt'+((o.map||'classic')===k?' sel':''); b.dataset.map=k;
+    b.innerHTML=m.name+'<span>'+m.note+'</span>';
+    b.onclick=()=>{ if(changed()===false) return; o.map=k; sfx.select(); renderMapOpts(mapId,modId,o,changed); changed(true); };
+    mr.appendChild(b);
+  }
+  for(const [k,m] of Object.entries(MODS)){
+    const on=(o.mods||[]).includes(k);
+    const b=document.createElement('button'); b.className='opt'+(on?' sel':''); b.dataset.mod=k; b.setAttribute('aria-pressed',on);
+    b.innerHTML=(on?'\u2713 ':'')+m.name+'<span>'+m.note+'</span>';
+    b.onclick=()=>{ if(changed()===false) return; const s=new Set(o.mods||[]); s.has(k)?s.delete(k):s.add(k); o.mods=[...s]; sfx.select(); renderMapOpts(mapId,modId,o,changed); changed(true); };
+    dr.appendChild(b);
+  }
 }
 function renderHot(){
   fixHot();
@@ -4295,7 +4400,7 @@ Object.assign(ICON,{
 });
 /* on your turn, any of your cities waiting on a reward asks you to pick one */
 let rwOpen=null;
-let rwWait=null, rwAt=0;
+let rwWait=null, rwAt=0, rwShownAt=0;
 function checkRewards(){
   const box=$('rewardBox');
   const close=()=>{ if(!box.hidden){ box.hidden=true; } rwOpen=null; };
@@ -4305,9 +4410,11 @@ function checkRewards(){
   if(!f) return close();
   const key=f.x+','+f.y+':'+f.c.rw.length+':'+f.c.level;
   if(rwOpen===key) return;
-  if(rwWait!==key){ rwWait=key; rwAt=performance.now()+700; setTimeout(checkRewards,720); return; }
+  // the choice opens almost at once, as a direct result of the tap that levelled the city, so it is on screen before the
+  // next tap (a longer delay let it pop up under a finger that was already tapping something else)
+  if(rwWait!==key){ rwWait=key; rwAt=performance.now()+150; setTimeout(checkRewards,170); return; }
   if(performance.now()<rwAt) return;
-  rwOpen=key;
+  rwOpen=key; rwShownAt=performance.now();
   const lvl=f.c.rw[0];
   $('rwEyebrow').textContent=(f.c.capital?'Headquarters':'City')+' reached level '+lvl;
   const opts=$('rwOpts'); opts.innerHTML='';
@@ -4317,7 +4424,7 @@ function checkRewards(){
     const owned=o.k==='walls'&&f.c.walls;
     b.innerHTML=`<span class="disc">${o.unit?`<img src="${unitIcon(o.unit,MYSIDE)}" alt="">`:svgIcon(o.icon)}</span><b>${o.name}</b><span>${owned?'This city already has walls':o.desc}</span>`;
     if(owned) b.disabled=true;
-    b.onclick=()=>{ act({t:'reward',x:f.x,y:f.y,pick:i}); };
+    b.onclick=()=>{ if(performance.now()-rwShownAt<300) return; act({t:'reward',x:f.x,y:f.y,pick:i}); };   // ignore a tap that began before the box appeared
     opts.appendChild(b);
   });
   box.hidden=false;
@@ -4502,7 +4609,7 @@ function renderInfoBody(){
     sub.textContent=c.level>=MAX_LEVEL?'Fully grown':resN?'Harvest the '+resN+' resource'+(resN===1?'':'s')+' around it to grow':'No resources left nearby \u2014 Develop it to grow';
     const full=armySize(MYSIDE)>=armyCap(MYSIDE);
     chips.innerHTML+=chip('Army',armySize(MYSIDE)+'/'+armyCap(MYSIDE),full?'':'good');
-    if(c.level>=TITAN_LEVEL) chips.innerHTML+=chip('Titans',titanCount(MYSIDE)+'/'+titanCap(MYSIDE),titanCount(MYSIDE)<titanCap(MYSIDE)?'good':'');
+    if(c.level>=titanLevel()) chips.innerHTML+=chip('Titans',titanCount(MYSIDE)+'/'+titanCap(MYSIDE),titanCount(MYSIDE)<titanCap(MYSIDE)?'good':'');
     if(canDevelop(c)){
       const dc=developCost(c), done=c.dev===turn, max=c.level>=MAX_LEVEL;
       train.appendChild(actBtn({icon:'house', name:max?'Barracks':'Develop', cost:dc, cls:'more', disabled:done||stars[MYSIDE]<dc||side!==MYSIDE,
@@ -4512,7 +4619,7 @@ function renderInfoBody(){
     if(unitAt(sel.x,sel.y)){ body.textContent='A unit is standing here — move it off to train.'; return; }
     let locked=0;
     if(full) body.textContent='Your army is at full strength. Grow or capture cities to support more units (each city supports its level + 1).';
-    if(c.level>=TITAN_LEVEL){
+    if(c.level>=titanLevel()){
       const tc=unitCost(MYSIDE,'TTN'), have=titanCount(MYSIDE), cap=titanCap(MYSIDE);
       train.appendChild(actBtn({k:'TTN', img:unitIcon('TTN',MYSIDE), name:'Titan', cost:tc, cls:'super', disabled:stars[MYSIDE]<tc||full||have>=cap,
         title:have>=cap?'You already field '+have+' Titan'+(have===1?'':'s')+' \u2014 each city of level 4+ supports one':'Titan \u2014 '+UNIT_TYPES.TTN.desc,
@@ -4582,7 +4689,7 @@ $('hoGo').onclick=()=>{
 $('powerBtn').onclick=()=>{ sel=(sel&&sel.kind==='power')?null:{kind:'power'}; sfx.select(); refresh(); };
 function syncPower(){
   const b=$('powerBtn'), f=playerMeta[MYSIDE]&&meta(MYSIDE).faction;
-  b.hidden=!(f&&f.power)||gameOver||!alive[MYSIDE];
+  b.hidden=!(f&&f.power)||mod('nopower')||gameOver||!alive[MYSIDE];
   if(b.hidden) return;
   const ready=pw.used[MYSIDE]==null;
   b.classList.toggle('ready', ready&&side===MYSIDE);
@@ -4600,10 +4707,66 @@ function syncMute(){
 }
 $('muteBtn').onclick=()=>{
   muted=!muted;
-  syncMute();
+  syncMute(); MUSIC.apply();
   if(!muted) sfx.select();
 };
 $('soundMenuBtn').onclick=()=>$('muteBtn').click();
+/* ---- music: a calm, original ambient score generated live with Web Audio (no audio files) ----
+   Slow pad chords with a soft bass and a few scattered bell notes. Three levels: Off, Low (default) and On. */
+const MUSIC={
+  level:'low', master:null, timer:null, next:0, step:0, started:false,
+  // A minor: Am - F - C - G, then Am - F - G - Em; frequencies of the chord tones (two octaves) and the bass root
+  chords:[[220,261.63,329.63],[174.61,220,261.63],[130.81,164.81,196],[196,246.94,293.66],
+          [220,261.63,329.63],[174.61,220,261.63],[196,246.94,293.66],[164.81,196,246.94]],
+  bars:8, beat:0.9,   // 8 beats of 0.9 s per chord
+  vol(){ return muted?0:this.level==='on'?0.16:this.level==='low'?0.07:0; },
+  ensure(){
+    if(this.master) return true;
+    try{ const a=ac(); this.master=a.createGain(); this.master.gain.value=0; const f=a.createBiquadFilter(); f.type='lowpass'; f.frequency.value=2200;
+      this.master.connect(f).connect(a.destination); return true; }catch(e){ return false; }
+  },
+  apply(){
+    if(!this.ensure()) return;
+    const a=ac(), v=this.vol();
+    this.master.gain.cancelScheduledValues(a.currentTime);
+    this.master.gain.setTargetAtTime(v, a.currentTime, 0.6);
+    if(v>0&&document.visibilityState==='visible'&&this.started){ if(!this.timer){ this.next=Math.max(this.next,a.currentTime+0.1); this.timer=setInterval(()=>this.tick(),250); } }
+    else if(this.timer){ clearInterval(this.timer); this.timer=null; }
+  },
+  note(f,t,dur,vol,type){
+    const a=ac(), o=a.createOscillator(), g=a.createGain();
+    o.type=type||'sine'; o.frequency.value=f;
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+Math.min(1.2,dur*0.3));
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g).connect(this.master); o.start(t); o.stop(t+dur+0.05);
+  },
+  tick(){
+    try{
+      const a=ac();
+      while(this.next<a.currentTime+1.2){
+        const t=this.next, ci=Math.floor(this.step/this.bars)%this.chords.length, beat=this.step%this.bars, ch=this.chords[ci];
+        if(beat===0){
+          const len=this.bars*this.beat+0.6;
+          for(const f of ch){ this.note(f,t,len,0.09,'triangle'); this.note(f*1.003,t,len,0.05,'sine'); }   // pad, slightly detuned
+          this.note(ch[0]/2,t,len,0.12,'sine');                                                               // bass
+        }
+        // scattered bells on the pentatonic notes of the chord, a different pattern every chord
+        const h=(this.step*2654435761>>>0)%100;
+        if(beat%2===1&&h<45){ const f=ch[h%3]*2*(h%7===0?2:1); this.note(f,t,2.4,0.035,'sine'); }
+        this.next+=this.beat; this.step++;
+      }
+    }catch(e){}
+  },
+  start(){ if(this.started) return; this.started=true; this.apply(); },
+};
+try{ const m=localStorage.getItem('foothold-music'); if(m==='off'||m==='low'||m==='on') MUSIC.level=m; }catch(e){}
+function syncMusic(){ const b=$('musicMenuBtn'); if(b){ b.innerHTML='Music: <b>'+({off:'Off',low:'Low',on:'On'})[MUSIC.level]+'</b>'; b.title='Background music \u2014 tap to change'; } MUSIC.apply(); }
+$('musicMenuBtn').onclick=()=>{ MUSIC.level={off:'low',low:'on',on:'off'}[MUSIC.level]; try{ localStorage.setItem('foothold-music',MUSIC.level); }catch(e){} MUSIC.start(); syncMusic(); sfx.select(); };
+// browsers only allow sound after a tap: start the music on the first one
+document.addEventListener('pointerdown',()=>MUSIC.start(),{once:true,capture:true});
+document.addEventListener('keydown',()=>MUSIC.start(),{once:true,capture:true});
+document.addEventListener('visibilitychange',()=>MUSIC.apply());
+syncMusic();
 function syncFollow(){ $('followMenuBtn').innerHTML='Camera: <b>'+(followAI?'Follows enemies':'Stays put')+'</b>'; $('followMenuBtn').title=followAI?'During enemy turns the camera glides to actions you can see':'The camera stays where you leave it during enemy turns'; }
 $('followMenuBtn').onclick=()=>{ followAI=!followAI; try{ localStorage.setItem('foothold-follow', followAI?'on':'off'); }catch(e){} syncFollow(); sfx.select(); };
 syncFollow();
@@ -4696,7 +4859,7 @@ function endGame(winner){
   b.style.textAlign=''; b.style.maxWidth='';
   const btn=$('restart');
   btn.textContent='Redeploy';
-  btn.onclick=()=>{ $('overlay').classList.remove('show'); NET.leave(); showSetup(); };
+  btn.onclick=()=>{ $('overlay').classList.remove('show'); rejoinInfo(null); NET.leave(); showSetup(); };
   const tally=` Turn ${turn} \u00b7 ${stats.kills} enemy units destroyed \u00b7 ${stats.losses} lost.`;
   const timeUp=gameMode()==='score'&&turnOrder.filter(s=>alive[s]).length>1;
   if(winner===MYSIDE){ t.textContent='Victory'; t.className='win';
@@ -4710,6 +4873,12 @@ function endGame(winner){
   if(hotOn()){ t.textContent=pname(winner)+' wins'; t.className='win';
     b.textContent=meta(winner).name+(timeUp?' finished with the highest score.':' holds the region.')+' Turn '+turn+'.'; }
   { const d=document.createElement('div'); d.className='ovScore'; d.innerHTML=resultHtml(winner, firstTime); b.appendChild(d); }
+  // online: the host can take everyone straight back to the lobby for another game
+  const rm=$('ovRematch');
+  rm.hidden=!(NET.on&&NET.host);
+  rm.onclick=()=>NET.rematch();
+  if(NET.on&&NET.client){ const d=document.createElement('div'); d.className='ovNote'; d.textContent='The host can start a rematch \u2014 stay on this screen to be pulled back into the lobby.'; b.appendChild(d); }
+  if(NET.client) rejoinInfo(null);
   const alt=$('ovAlt');
   alt.hidden=false; alt.textContent='View battlefield';
   alt.onclick=()=>{
@@ -4748,6 +4917,10 @@ $('helpBtn').onclick=()=>{
     ['Supply drops','Parachuted crates hide in the fog. The first unit to step on one opens it: stars, a free tech, a free Infantry, a map of the area, or settlers for your nearest city.'],
     ['Veterans','A unit with three kills can be promoted for +5 max HP and a full heal. It is free, so you can save it as an emergency heal.'],
     ['Commander powers','Every faction has one power you can use once per game, on your own turn: tap the lightning button. Aegis heals everything \u00b7 Crimson double damage this turn \u00b7 Solaris a turn and a half of income \u00b7 Ghost +25% damage and no return fire this turn \u00b7 Iron Bastion half damage for two rounds \u00b7 Verdant +1 population in every city \u00b7 Tidewatch a free Infantry at every city. Rivals above Easy use theirs too.'],
+    ['Map types','Custom setup: Classic, Highlands (mountain passes), Woodland (forest everywhere, so +50% defense is easy to find), Lakes (water splits the land) or Mirrored (both corners get the same land, the fairest choice for friends).'],
+    ['Modifiers','Custom setup or the online host can add No fog, Double income, Early Titans (any city can field one) or No powers. Games with No fog, Double income or Early Titans don\u2019t earn medals.'],
+    ['Online rematch','When an online game ends the host can tap Rematch to bring everyone back to the lobby with the same factions and settings.'],
+    ['Reconnecting','If a guest drops out the game retries on its own. A guest who reloads the page or reopens the app gets a Rejoin button on the title screen for the next six hours; the host keeps their seat until the host replaces them with the AI.'],
     ['Pass & play','Menu \u2192 Custom \u2192 Players on this device: two to four people share one phone or computer. After each turn a hand-off screen hides the board until the next player taps Start turn, and everyone sees only their own explored map. Any remaining rivals are played by the computer.'],
     ['Danger zones','Tap the warning triangle (or press D) to shade every tile an enemy in sight could strike next turn.'],
     ['Surrender','A computer rival that is down to its HQ and hopelessly outgunned gives up instead of dragging out the ending.'],
@@ -4755,6 +4928,7 @@ $('helpBtn').onclick=()=>{
     ['Multiplayer','Host an operation from the menu to get a 5-letter room code \u2014 up to three friends join with it. The host\u2019s device referees the match, so keep it online; if the host drops, guests can Export Save and finish the campaign solo. The host can set a per-turn timer in the lobby.'],
     ['Difficulty','Menu \u2192 Custom. Easy rivals collect 60% of their income, train one unit a turn, research every other turn and are slow to attack. Normal: 80%, two units a turn. Hard: full income, three units a turn. Crazy rivals collect 70% extra, train in every city, start richer and research twice as fast.'],
     ['Undo','Single player: step back through this turn\u2019s moves, training, harvests and holds. Attacks, captures, supply drops, research and ending the turn are final.'],
+    ['Music','Menu \u2192 Music switches the background music between Low, On and Off. The sound button mutes music and effects together.'],
     ['Enemy turns','Tap the speed pill under the banner (or press F) to watch enemy turns at normal speed, fast, or skip straight to your turn. Menu \u2192 Camera chooses whether the camera follows enemy actions you can see.'],
 
     ['Tutorial','Replay the guided first game any time: Menu \u2192 How to play.'],
@@ -4776,7 +4950,7 @@ function closeManual(){ $('overlay').classList.remove('show','manual'); resetOve
 $('overlay').addEventListener('click',e=>{ if(e.target===$('overlay')&&$('overlay').classList.contains('manual')) closeManual(); });
 function resetOverlayButton(){
   $('overlay').classList.remove('manual');
-  $('ovAlt').hidden=true;
+  $('ovAlt').hidden=true; $('ovRematch').hidden=true;
   const btn=$('restart');
   btn.textContent='Redeploy';
   btn.onclick=()=>{ $('overlay').classList.remove('show'); NET.leave(); showSetup(); };
@@ -4903,7 +5077,7 @@ const NET={
   on:false, host:false, client:false, inGame:false,
   peer:null, hconn:null, mySlot:null,
   humans:{},              // host: side -> {name, conn|null}
-  slots:null, size:11,    // lobby
+  slots:null, size:11, opts:{map:'classic', mods:[]},    // lobby
   timer:0, turnEnds:0,    // optional per-turn limit in seconds; turnEnds is a local clock deadline
   code:'', myName:'', setup:null,
   evts:[], winner:null, humansList:[],
@@ -4919,7 +5093,7 @@ const NET={
     this.humans={}; this.slots=null; this.setup=null;
     this.on=false; this.host=false; this.client=false; this.inGame=false;
     this.timer=0; this.turnEnds=0;
-    this.evts.length=0; this.winner=null; this.humansList=[]; this._retry=0; this._lastSide=null;
+    this.evts.length=0; this.winner=null; this.humansList=[]; this._retry=0; this._lastSide=null; this.rejoining=false;
     clearTimeout(this._syncTimer); this._syncTimer=null;
     clearTimeout(this._takeT); this._takeT=null;
     clearTimeout(this._yourTurnT); this._yourTurnT=null;
@@ -4973,7 +5147,11 @@ const NET={
       if(this.inGame){
         let slot=null;
         for(const s in this.humans){ if(!this.humans[s].conn && this.humans[s].name===nm){ slot=s; break; } }
+        // a guest who reloaded can come back before the old connection has timed out: the newer connection takes the seat
+        if(!slot&&m.rejoin) for(const s in this.humans){ if(this.humans[s].name===nm){ slot=s; break; } }
         if(!slot){ try{conn.send({t:'deny',m:'Operation already underway.'});}catch(e){} setTimeout(()=>{try{conn.close();}catch(e){}},400); return; }
+        const old=this.humans[slot].conn;
+        if(old&&old!==conn){ old._side=null; try{ old.close(); }catch(e){} }
         this.humans[slot].conn=conn; conn._side=slot;
         clearTimeout(this._takeT); this._takeT=null; netBar(null);
         log('sys', nm+' reconnected.');
@@ -5024,6 +5202,22 @@ const NET={
     netBar('\u26a0 '+h.name+' disconnected \u2014 they can rejoin with the room code', 'Replace with AI', takeover);
     if(side===s&&alive[s]&&!gameOver){ clearTimeout(this._takeT); this._takeT=setTimeout(takeover, 30000); }
   },
+  /* back to the lobby with the same players, factions and settings */
+  rematch(){
+    if(!this.host||!this.on||!gameOver) return;
+    const slots=[{s:P, kind:'host', name:this.myName, fac:meta(P).faction.key}];
+    for(const s of ['A1','A2','A3']){
+      if(!enemySides.includes(s)){ slots.push({s, kind:'off', name:null, fac:null}); continue; }
+      const h=this.humans[s], fac=meta(s).faction.key;
+      if(h&&h.conn&&h.conn.open) slots.push({s, kind:'human', name:h.name, fac});
+      else { if(h) delete this.humans[s]; slots.push({s, kind:'ai', name:null, fac}); }   // dropped players' seats go to the AI; the host can reopen them
+    }
+    this.slots=slots; this.inGame=false; this.winner=null; this.evts.length=0;
+    clearTimeout(this._takeT); this._takeT=null; this.turnEnds=0; netBar(null);
+    $('overlay').classList.remove('show'); resetOverlayButton(); $('endBar').hidden=true;
+    showSetup(); mpShowLobby(); this.renderLobby(); this.lobbySync();
+    sfx.select();
+  },
   aiTakeover(s){
     if(!this.host||!this.humans[s]) return;
     const nm=this.humans[s].name;
@@ -5039,7 +5233,7 @@ const NET={
     const slots=this.slots.map(x=>({s:x.s,kind:x.kind,name:x.name,fac:x.fac}));
     for(const s in this.humans){
       const c=this.humans[s].conn;
-      if(c&&c.open){ try{ c.send({t:'lobby', slots, size:this.size, timer:this.timer, you:s}); }catch(e){} }
+      if(c&&c.open){ try{ c.send({t:'lobby', slots, size:this.size, timer:this.timer, opts:this.opts, you:s}); }catch(e){} }
     }
   },
   launch(){
@@ -5056,7 +5250,7 @@ const NET={
     const taken=new Set(this.slots.map(x=>x.fac).filter(Boolean));
     const pool=Object.keys(FACTIONS).filter(f=>!taken.has(f));
     for(const sl of [this.slots[0],...opp]) if(!sl.fac) sl.fac=pool.shift();
-    cfg.size=this.size; cfg.enemies=opp.length; cfg.faction=this.slots[0].fac;
+    cfg.size=this.size; cfg.enemies=opp.length; cfg.faction=this.slots[0].fac; cfg.map=this.opts.map; cfg.mods=[...this.opts.mods];
     this.setup={
       host:{fac:this.slots[0].fac, name:this.slots[0].name},
       opp:opp.map(x=>({fac:x.fac, name:x.name, human:x.kind==='human'})),
@@ -5166,7 +5360,7 @@ const NET={
     catch(e){ this.clientDrop(); return; }
     this.hconn=conn;
     conn.on('open', ()=>{
-      try{ conn.send({t:'hello', name:this.myName, v:1, rejoin:this.inGame}); }catch(e){}
+      try{ conn.send({t:'hello', name:this.myName, v:1, rejoin:this.inGame||this.rejoining}); }catch(e){}
       if(this.inGame) netBar('\u21bb Reconnecting\u2026');
     });
     conn.on('data', m=>{ try{ this.clientData(m); }catch(e){ console.error('net',e); } });
@@ -5178,7 +5372,12 @@ const NET={
     this._retry=0;
     if(m.t==='deny'){ const dm='\u26a0 '+(m.m||'The host declined the connection.'); this.leave(); mpMsg(dm); return; }
     if(m.t==='lobby'){
-      this.slots=m.slots; this.size=m.size; this.timer=m.timer||0;
+      if(this.inGame){   // the host called a rematch: back to the lobby
+        this.inGame=false; netBar(null);
+        $('overlay').classList.remove('show'); resetOverlayButton(); $('endBar').hidden=true; $('handoff').hidden=true;
+        showSetup();
+      }
+      this.slots=m.slots; this.size=m.size; this.timer=m.timer||0; this.opts={map:MAP_TYPES[m.opts&&m.opts.map]?m.opts.map:'classic', mods:Array.isArray(m.opts&&m.opts.mods)?m.opts.mods.filter(k=>MODS[k]):[]};
       if(m.you) this.mySlot=m.you;
       mpShowLobby(); this.renderLobby();
       return;
@@ -5186,6 +5385,7 @@ const NET={
     if(m.t==='start'){
       MYSIDE=m.you;
       this.inGame=true;
+      rejoinInfo({code:this.code, name:this.myName});
       netBar(null);
       $('mpLobby').style.display='none';
       mpMsg('Operation underway \u00b7 room '+this.code);
@@ -5209,7 +5409,7 @@ const NET={
         else this.newClientPeer();
       }, 2500);
     } else {
-      netBar('\u2716 Host unreachable. Export the save to keep this campaign.', 'Export Save', exportSave);
+      netBar('\u2716 Host unreachable \u2014 check your connection (you can also export the save from the menu).', 'Try again', ()=>{ this._retry=0; netBar(null); this.clientDrop(); });
     }
   },
   sendAction(a){
@@ -5313,7 +5513,9 @@ const NET={
     }
     if(this.host) document.querySelectorAll('#mpSizeRow .opt').forEach(o=>o.classList.toggle('sel', +o.dataset.size===this.size));
     if(this.host) document.querySelectorAll('#mpTimerRow .opt').forEach(o=>o.classList.toggle('sel', +o.dataset.timer===this.timer));
-    else $('mpWait').textContent='Waiting for the host to launch\u2026 \u00b7 turn timer '+(this.timer?(this.timer/60)+' min':'off');
+    else $('mpWait').textContent='Waiting for the host to launch\u2026 \u00b7 turn timer '+(this.timer?(this.timer/60)+' min':'off')+
+      ' \u00b7 '+(MAP_TYPES[this.opts.map]||MAP_TYPES.classic).name+' map'+(this.opts.mods.length?' \u00b7 '+this.opts.mods.map(k=>MODS[k].name).join(', '):'');
+    if(this.host) renderMapOpts('mpMapRow','mpModRow',this.opts,done=>{ if(!NET.host||NET.inGame) return false; if(done){ NET.lobbySync(); } });
   },
 };
 
@@ -5471,10 +5673,28 @@ function netBar(msg, btnLabel, btnFn){
   b.style.display='flex';
 }
 function mpTab(mp){ setupView(mp?'mp':'solo'); }
+/* a guest who reloads the page (or whose phone closed the app) can jump back into the same online game */
+function rejoinInfo(v){
+  try{
+    if(v===undefined){ const r=JSON.parse(localStorage.getItem('foothold-rejoin')||'null'); return r&&Date.now()-r.t<6*3600e3?r:null; }
+    if(v) localStorage.setItem('foothold-rejoin', JSON.stringify({...v, t:Date.now()})); else localStorage.removeItem('foothold-rejoin');
+  }catch(e){ return null; }
+}
+function syncRejoin(){
+  const b=$('rejoinBtn'); if(!b) return;
+  const r=!NET.on&&rejoinInfo();
+  b.style.display=r?'':'none';
+  if(r) $('rejoinInfo').textContent='room '+r.code+' \u00b7 as '+r.name;
+}
+$('rejoinBtn').onclick=()=>{
+  const r=rejoinInfo(); if(!r) return syncRejoin();
+  $('mpCode').value=r.code; $('mpName').value=r.name;
+  setupView('mp'); NET.join(); NET.rejoining=true;
+};
 $('mpHostBtn').onclick=()=>NET.startHost();
 $('mpJoinBtn').onclick=()=>NET.join();
 $('mpCode').addEventListener('keydown',e=>{ if(e.key==='Enter') NET.join(); });
-$('mpLeaveBtn').onclick=()=>{ sfx.select(); NET.leave(); };
+$('mpLeaveBtn').onclick=()=>{ sfx.select(); rejoinInfo(null); NET.leave(); };
 $('mpStartBtn').onclick=()=>NET.launch();
 document.querySelectorAll('#mpSizeRow .opt').forEach(b=>{
   b.onclick=()=>{ if(!NET.host||NET.inGame) return; NET.size=+b.dataset.size; sfx.select(); NET.renderLobby(); NET.lobbySync(); };
@@ -5555,9 +5775,7 @@ function newGame(){
   sun.shadow.camera.top=sb; sun.shadow.camera.bottom=-sb;
   sun.shadow.camera.updateProjectionMatrix();
   camGoal=null;
-  cam.dist=camera.aspect<0.75?13.5:camera.aspect<1?12:9;
-  { const k=innerWidth<700?0.72:0.65; cam.target.set(wx(caps[P].x)*k, 0, wz(caps[P].y)*k); }
-  applyCam();
+  homeCam(caps[P].x, caps[P].y);
   if($('log')) $('log').innerHTML='';
   log('sys','\u2014 GRIDLINE COMMAND \u00b7 '+W+'\u00d7'+H+' \u00b7 '+(NET.on?cfg.enemies+' rival'+(cfg.enemies===1?'':'s'):cfg.enemies+' enem'+(cfg.enemies===1?'y':'ies'))+' \u2014');
   log('sys','You command '+meta(P).name+(NET.on?' \u2014 '+meta(P).faction.name:'')+': '+meta(P).faction.perk);
