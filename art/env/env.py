@@ -20,6 +20,11 @@ PALETTE.update({
     'wood': 0x8f5d38, 'woodD': 0x6a4428, 'metal': 0x4f585f, 'steel': 0x8a959c, 'dark': 0x2c3136,
     'ore': 0xe3a344, 'oreG': 0x7fd0c0, 'red': 0xd8483b, 'white': 0xeceff1, 'yellow': 0xf2c94c,
     'canvas': 0xe9e4d4, 'oil': 0x1d1f22, 'grass': 0x5f8f48,
+    # cities: 'team' is swapped in game for the owner's colour (grey while neutral)
+    'team': 0x4f86c6, 'wall': 0xe2d9c6, 'wall2': 0xb7bec4, 'wall3': 0xcfa98a, 'glass': 0x86bfd6, 'lit': 0xffd98e,
+    'pave': 0x9a958a, 'pave2': 0x7e796f, 'stone': 0x9d978c, 'roofG': 0x5d646b,
+    # shores
+    'reed': 0x6b9440, 'cattail': 0x6a4a2c, 'lily': 0x4f9a4a, 'pink': 0xf2a7c8,
 })
 MATLIST[:] = list(PALETTE.keys())
 
@@ -187,9 +192,156 @@ def supplydrop(key):
     return m
 
 
+def gable(m, w, d, h, mat, loc, rot=(0, 0, 0)):
+    """pitched roof: a wedge running along x"""
+    m.box(w, h, d, mat, loc, rot, bevel=0.004, taper=(1, 0.04, 0))
+
+
+def windows(m, x0, x1, y0, rows, dy, z, n, mat='glass', ww=0.022, wh=0.03, face=1):
+    """a grid of window panes on a wall facing +z (face=1) or +x (face=2)"""
+    for r in range(rows):
+        for i in range(n):
+            t = (i+0.5)/n
+            a = x0+(x1-x0)*t
+            if face == 1:
+                m.box(ww, wh, 0.006, mat, (a, y0+r*dy, z), bevel=0)
+            else:
+                m.box(0.006, wh, ww, mat, (z, y0+r*dy, a), bevel=0)
+
+
+def plaza(key):
+    m = Model(key)
+    m.box(0.86, 0.014, 0.86, 'pave2', (0, 0.007, 0), bevel=0.004)
+    m.box(0.8, 0.006, 0.8, 'pave', (0, 0.016, 0), bevel=0)
+    for i in range(-3, 4):                     # paving joints
+        m.box(0.8, 0.002, 0.008, 'pave2', (0, 0.0195, i*0.1), bevel=0)
+    for x, z in [(-0.36, 0.36), (0.36, -0.36)]:
+        m.cyl(0.04, 0.045, 0.03, 'stone', (x, 0.03, z), seg=8)      # planters
+        m.ico(0.045, 'leaf', (x, 0.07, z), sub=1, scale=(1, 0.8, 1))
+    for x, z in [(0.38, 0.38), (-0.38, -0.12)]:
+        m.cyl(0.005, 0.006, 0.12, 'dark', (x, 0.08, z), seg=5)       # street lamps
+        m.sph(0.014, 'lit', (x, 0.145, z), seg=6, rings=4)
+    return m
+
+
+def townhall(key):
+    """level-1 city centre: a civic hall with columns, pediment and a clock tower"""
+    m = Model(key)
+    m.box(0.3, 0.025, 0.24, 'stone', (0, 0.0125, 0), bevel=0.005)    # plinth
+    m.box(0.28, 0.17, 0.2, 'wall', (0, 0.11, -0.02), bevel=0.008)
+    windows(m, -0.12, 0.12, 0.09, 2, 0.065, 0.081, 4, ww=0.03, wh=0.038)
+    for i in range(4):
+        m.cyl(0.011, 0.012, 0.15, 'white', (-0.09+i*0.06, 0.1, 0.105), seg=6)   # columns
+    m.box(0.27, 0.02, 0.05, 'white', (0, 0.185, 0.1), bevel=0.003)
+    gable(m, 0.3, 0.27, 0.08, 'team', (0, 0.235, 0))
+    m.box(0.07, 0.12, 0.07, 'wall', (0, 0.31, -0.04), bevel=0.006)    # clock tower
+    m.cyl(0.022, 0.022, 0.006, 'white', (0, 0.33, -0.004), (PI/2, 0, 0), seg=10)
+    m.cyl(0.0, 0.06, 0.08, 'team', (0, 0.41, -0.04), (0, PI/4, 0), seg=4)
+    m.box(0.05, 0.08, 0.008, 'woodD', (0, 0.065, 0.081), bevel=0)    # door
+    return m
+
+
+def hq(key):
+    """capital: a stepped command headquarters with a comms mast, dish and beacon"""
+    m = Model(key)
+    m.box(0.38, 0.03, 0.32, 'stone', (0, 0.015, 0), bevel=0.006)
+    m.box(0.34, 0.3, 0.26, 'wall2', (0, 0.18, -0.02), bevel=0.01)
+    windows(m, -0.15, 0.15, 0.09, 4, 0.06, 0.111, 6, ww=0.032, wh=0.034)
+    windows(m, -0.12, 0.08, 0.09, 4, 0.06, 0.171, 4, ww=0.03, wh=0.034, face=2)
+    m.box(0.35, 0.03, 0.27, 'team', (0, 0.345, -0.02), bevel=0.006)   # coloured crown
+    m.box(0.2, 0.12, 0.16, 'wall2', (-0.04, 0.42, -0.04), bevel=0.008)
+    windows(m, -0.12, 0.04, 0.42, 1, 0, 0.041, 3, wh=0.05)
+    m.box(0.21, 0.02, 0.17, 'team', (-0.04, 0.49, -0.04), bevel=0.004)
+    m.cyl(0.007, 0.01, 0.26, 'dark', (-0.08, 0.63, -0.06), seg=5)      # mast
+    m.sph(0.02, 'lit', (-0.08, 0.77, -0.06), seg=8, rings=5)
+    m.sph(0.05, 'steel', (0.06, 0.53, -0.06), (0.9, 0.5, 0), seg=10, rings=4, scale=(1, 0.35, 1))   # dish
+    m.box(0.12, 0.09, 0.012, 'glass', (0, 0.075, 0.112), bevel=0)     # glazed entrance
+    m.box(0.16, 0.012, 0.05, 'team', (0, 0.125, 0.13), bevel=0.003)   # canopy
+    return m
+
+
+def house(key, two=False):
+    m = Model(key)
+    h = 0.15 if two else 0.09
+    m.box(0.14, h, 0.12, 'wall3' if two else 'wall', (0, h/2, 0), bevel=0.006)
+    windows(m, -0.05, 0.05, 0.05, 2 if two else 1, 0.06, 0.061, 2, ww=0.024, wh=0.026)
+    m.box(0.03, 0.05, 0.006, 'woodD', (0.0 if two else 0.035, 0.025, 0.061), bevel=0)
+    if two:
+        m.box(0.155, 0.065, 0.135, 'team', (0, h+0.03, 0), bevel=0.006, taper=(0.55, 0.45, 0))   # hipped roof
+    else:
+        gable(m, 0.16, 0.14, 0.07, 'team', (0, h+0.035, 0))
+    m.box(0.022, 0.05, 0.022, 'stone', (-0.04, h+0.05, -0.03), bevel=0.003)                     # chimney
+    return m
+
+
+def flats(key):
+    m = Model(key)
+    m.box(0.16, 0.24, 0.15, 'wall2', (0, 0.12, 0), bevel=0.008)
+    windows(m, -0.06, 0.06, 0.05, 4, 0.052, 0.076, 3)
+    windows(m, -0.055, 0.055, 0.05, 4, 0.052, 0.081, 3, face=2)
+    m.box(0.17, 0.02, 0.16, 'team', (0, 0.25, 0), bevel=0.004)
+    m.box(0.05, 0.03, 0.05, 'roofG', (0.03, 0.275, -0.03), bevel=0.004)
+    return m
+
+
+def tower(key):
+    m = Model(key)
+    m.box(0.15, 0.4, 0.15, 'glass', (0, 0.2, 0), bevel=0.006)
+    for y in range(1, 8):
+        m.box(0.155, 0.01, 0.155, 'wall2', (0, y*0.05, 0), bevel=0)  # floor bands
+    m.box(0.12, 0.05, 0.12, 'team', (0, 0.425, 0), bevel=0.008)
+    m.cyl(0.004, 0.006, 0.1, 'dark', (0.03, 0.5, 0.03), seg=5)
+    return m
+
+
+def citywalls(key):
+    """city walls: a low crenellated ring round the tile with coloured corner towers and a gate at the front"""
+    m = Model(key)
+    R = 0.43
+    for side in range(4):
+        with m.at((0, 0, 0), (0, side*PI/2, 0)):
+            segs = [(-0.3, -0.07), (0.07, 0.3)] if side == 0 else [(-0.3, 0.3)]
+            for a, b in segs:
+                m.box(b-a, 0.07, 0.035, 'stone', ((a+b)/2, 0.035, R), bevel=0)
+                n = max(1, int((b-a)/0.05))
+                for i in range(n):
+                    m.box(0.022, 0.02, 0.04, 'stone', (a+(i+0.5)*(b-a)/n, 0.08, R), bevel=0)
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            m.cyl(0.05, 0.055, 0.12, 'stone', (R*sx, 0.06, R*sz), seg=7)
+            m.cyl(0.0, 0.065, 0.07, 'team', (R*sx, 0.155, R*sz), seg=7)
+    for sx in (-1, 1):
+        m.box(0.04, 0.11, 0.05, 'stone', (0.09*sx, 0.055, R), bevel=0.004)   # gatehouse
+    m.box(0.22, 0.03, 0.05, 'team', (0, 0.12, R), bevel=0.004)
+    return m
+
+
+def reeds(key):
+    m = Model(key)
+    import random
+    R = random.Random(3)
+    for i in range(7):
+        x, z = R.uniform(-0.06, 0.06), R.uniform(-0.05, 0.05)
+        h = R.uniform(0.08, 0.15)
+        m.limb((x, -0.02, z), (x+R.uniform(-0.015, 0.015), h, z), 0.008, 'reed', round_=True, seg=4)
+        if i % 2 == 0:
+            m.cyl(0.008, 0.008, 0.03, 'cattail', (x, h-0.01, z), seg=5)
+    return m
+
+
+def lilies(key):
+    m = Model(key)
+    for x, z, r in [(0, 0, 0.045), (0.07, 0.03, 0.035), (-0.04, 0.06, 0.03)]:
+        m.cyl(r, r, 0.006, 'lily', (x, 0.003, z), seg=9)
+    m.ico(0.016, 'pink', (0.005, 0.014, -0.004), sub=1, scale=(1, 0.7, 1))
+    return m
+
+
 MODELS = [pine('PINE'), pine('PINE2', tiers=2, h=0.4, r=0.15, cols=('pine2', 'pine')), pine('FIR', tiers=4, h=0.54, r=0.14, cols=('pine3', 'pine', 'pine2')),
           broadleaf('OAK'), bush('BUSH'), mountain('MTN1', 1), mountain('MTN2', 7), boulders('ROCKS'),
-          crop('CROP'), ore('ORE'), pumpjack('PUMP'), oilrig('RIG'), supplydrop('DROP')]
+          crop('CROP'), ore('ORE'), pumpjack('PUMP'), oilrig('RIG'), supplydrop('DROP'),
+          plaza('PLAZA'), townhall('HALL'), hq('HQ'), house('HOUSE'), house('HOUSE2', two=True), flats('FLATS'), tower('TOWER'),
+          citywalls('WALLS'), reeds('REEDS'), lilies('LILY')]
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else 'out'
 os.makedirs(OUT, exist_ok=True)
@@ -209,7 +361,7 @@ if 'render' in sys.argv:
     scn = bpy.context.scene; col = scn.collection
     tile_mat = bpy.data.materials.new('tile'); tile_mat.use_nodes = True; tile_mat.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = rgba(0x4d6a45)
     for i, mdl in enumerate(MODELS):
-        x = (i % 7-3)*1.1; z = (i//7)*1.2
+        x = (i % 8-3.5)*1.1; z = (i//8)*1.2
         root, objs = mdl.build(col, (x, 0, z))
         bm = bmesh.new(); bmesh.ops.create_cube(bm, size=1.0); bmesh.ops.transform(bm, matrix=T((0, 0, -0.06)) @ S((0.96, 0.96, 0.12)), verts=bm.verts)
         me = bpy.data.meshes.new('t'); bm.to_mesh(me); me.materials.append(tile_mat); ob = bpy.data.objects.new('t', me); col.objects.link(ob); ob.location = G2B @ Vector((x, 0, z))
@@ -217,9 +369,9 @@ if 'render' in sys.argv:
     so.rotation_euler = (Vector((8, -6, 14)).to_track_quat('Z', 'Y')).to_euler()
     w = bpy.data.worlds.new('w'); scn.world = w; w.use_nodes = True; w.node_tree.nodes['Background'].inputs['Strength'].default_value = 1.2
     scn.render.engine = 'CYCLES'; scn.cycles.samples = 48; scn.cycles.use_denoising = True; scn.render.film_transparent = True
-    scn.render.resolution_x, scn.render.resolution_y = 1800, 700
-    cd = bpy.data.cameras.new('c'); cd.type = 'ORTHO'; cd.ortho_scale = 8.6; cam = bpy.data.objects.new('c', cd); col.objects.link(cam); scn.camera = cam
-    t = Vector((0, -0.6, 0.2)); p = t+Vector((0, -math.cos(0.55), math.sin(0.55)))*20; cam.location = p; cam.rotation_euler = (t-p).to_track_quat('-Z', 'Y').to_euler()
+    scn.render.resolution_x, scn.render.resolution_y = 1800, 1000
+    cd = bpy.data.cameras.new('c'); cd.type = 'ORTHO'; cd.ortho_scale = 9.6; cam = bpy.data.objects.new('c', cd); col.objects.link(cam); scn.camera = cam
+    t = Vector((0, -1.2, 0.2)); p = t+Vector((0, -math.cos(0.55), math.sin(0.55)))*20; cam.location = p; cam.rotation_euler = (t-p).to_track_quat('-Z', 'Y').to_euler()
     scn.render.filepath = os.path.join(OUT, 'env_lineup.png'); bpy.ops.render.render(write_still=True)
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, 'env.blend'))
 print('done')

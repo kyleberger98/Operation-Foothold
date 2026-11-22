@@ -15,6 +15,7 @@ const ENV_MODELS=""" + json.dumps(data['models'], separators=(',', ':')) + """;
 const ENV_PAL=""" + json.dumps(data['palette'], separators=(',', ':')) + """;
 const ENV_MATS={}, envGeoCache={};
 for(const k in ENV_PAL) ENV_MATS[k]=new THREE.MeshLambertMaterial({color:new THREE.Color(ENV_PAL[k])});
+ENV_MATS.lit.emissive.setHex(0xb08a3a); ENV_MATS.glass.emissive.setHex(0x22404c);   // lamps and windows glow a little
 function envGeo(name,piece,mat){
   const ck=name+'|'+piece+'|'+mat;
   if(!envGeoCache[ck]){
@@ -29,19 +30,20 @@ function envGeo(name,piece,mat){
   return envGeoCache[ck];
 }
 /* a model as a group (animated pieces become child groups found in userData[piece]) */
-function envModel(name, shadow=true){
+/* team: the material that replaces the 'team' colour (a city's owner) */
+function envModel(name, shadow=true, team=null){
   const g=new THREE.Group();
   for(const piece in ENV_MODELS[name]){
     const pd=ENV_MODELS[name][piece];
     let holder=g;
     if(piece!=='main'){ holder=new THREE.Group(); holder.position.fromArray(pd.p); g.add(holder); g.userData[piece]=holder; }
-    for(const mat in pd.m){ const m=new THREE.Mesh(envGeo(name,piece,mat), ENV_MATS[mat]); m.castShadow=shadow; m.receiveShadow=true; holder.add(m); }
+    for(const mat in pd.m){ const m=new THREE.Mesh(envGeo(name,piece,mat), mat==='team'&&team?team:ENV_MATS[mat]); m.castShadow=shadow; m.receiveShadow=true; holder.add(m); }
   }
   return g;
 }
 /* drop a static model straight into a tile group as loose meshes, so the tile's static merge can batch them */
-function envPlace(g, name, x, y, z, rot=0, sc=1, shadow=true){
-  const tmp=envModel(name, shadow); tmp.position.set(x,y,z); tmp.rotation.y=rot; tmp.scale.setScalar(sc); tmp.updateMatrix();
+function envPlace(g, name, x, y, z, rot=0, sc=1, shadow=true, team=null){
+  const tmp=envModel(name, shadow, team); tmp.position.set(x,y,z); tmp.rotation.y=rot; tmp.scale.setScalar(sc); tmp.updateMatrix();
   for(const m of [...tmp.children]){ m.applyMatrix4(tmp.matrix); g.add(m); }
 }
 """ + END
