@@ -362,6 +362,8 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 #campCard h4{margin:0 0 2px; font-family:'Saira Condensed',sans-serif; font-size:18px; letter-spacing:.06em; text-transform:uppercase}
 #campCard .cs{color:var(--dim)}
 #campCard .bigbtn{margin-top:10px}
+#campCard .cperk{margin-top:6px; color:var(--amber)}
+#campCard .cbn{margin-top:6px}
 #campLog{margin-top:10px; font-size:11.5px; color:var(--dim); line-height:1.6; max-height:120px; overflow-y:auto}
 #campLog div::before{content:'\25b8 '; color:var(--amber)}
 .campFoot{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:12px; font-size:11px; color:var(--dim)}
@@ -4260,6 +4262,38 @@ const SIZE_NAME={9:'small',11:'standard',13:'large',15:'huge'};
    A random region map. Only who owns which region carries between battles: every battle is a normal game. */
 const CAMP_KEY='foothold-campaign';
 const CAMP_TERRAIN={classic:'Plains', highland:'Highlands', woods:'Woodland', lakes:'Lakes', sea:'Coast'};
+/* every region gives one perk in battles fought next to it: you get your bordering regions' perks, the defender gets
+   theirs plus the contested region's own */
+const CAMP_BONUS={
+  stars: {name:'Supply depot',      icon:'\u2605', desc:'+3 starting stars'},
+  tech:  {name:'Research station',  icon:'\u269b', desc:'a free starting tech'},
+  vet:   {name:'Veteran garrison',  icon:'\u2694', desc:'an extra veteran Infantry at the HQ'},
+  walls: {name:'Fortress',          icon:'\u26ca', desc:'City Walls on the HQ'},
+  income:{name:'Factory town',      icon:'\u2699', desc:'+1\u2605 income at the HQ'},
+  scout: {name:'Watchtower',        icon:'\u25ce', desc:'the HQ sees 4 tiles'},
+};
+const CAMP_TECHS=['MARKS','MINING','MEDIC','RADIO'];
+const campBonusText=r=>{ const b=CAMP_BONUS[r.bonus]; return b?b.name+': '+(r.bonus==='tech'?'starts with '+TECHS[r.tech].name:b.desc):''; };
+/* the perks each side brings to a battle over region r */
+function campBonuses(c, r, me, enemy){
+  const near=r.nb.map(k=>c.regions[k]);
+  return {me:near.filter(q=>q.owner===me), enemy:[...near.filter(q=>q.owner===enemy), r]};
+}
+function campApplyBonuses(side, regs){
+  let hq=null; for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const t=tileAt(x,y); if(t.city&&t.city.capital&&t.city.owner===side) hq={x,y,c:t.city}; }
+  for(const r of regs){
+    if(r.bonus==='stars') stars[side]+=3;
+    else if(r.bonus==='tech'&&r.tech) tech[side].add(r.tech);
+    else if(r.bonus==='walls'&&hq) hq.c.walls=true;
+    else if(r.bonus==='income'&&hq) hq.c.bonus=(hq.c.bonus||0)+1;
+    else if(r.bonus==='scout'&&hq) hq.c.scout=true;
+    else if(r.bonus==='vet'&&hq){
+      const spot=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1],[2,0],[0,2],[-2,0],[0,-2]].map(([dx,dy])=>({x:hq.x+dx,y:hq.y+dy}))
+        .find(t=>inb(t.x,t.y)&&!unitAt(t.x,t.y)&&!tileAt(t.x,t.y).city&&!tileAt(t.x,t.y).ruin&&tileAt(t.x,t.y).terrain!=='water'&&tileAt(t.x,t.y).terrain!=='mountain');
+      if(spot){ spawn(side,'INF',spot.x,spot.y); const u=units[units.length-1]; u.vet=true; u.kills=3; u.maxHp+=5; u.hp=u.maxHp; }
+    }
+  }
+}
 let campSel=null, campNewCfg={fac:'AEGIS', n:14, diff:'normal'};
 function campLoad(){ try{ const c=JSON.parse(localStorage.getItem(CAMP_KEY)||'null'); return c&&c.v===1?c:null; }catch(e){ return null; } }
 function campSave(c){ try{ if(c) localStorage.setItem(CAMP_KEY, JSON.stringify(c)); else localStorage.removeItem(CAMP_KEY); }catch(e){} }
@@ -4299,6 +4333,7 @@ function genCampaign(seed, n, fac, diffKey){
     const edge=Math.min(r.x, r.y, CAMP_W-r.x, CAMP_H-r.y);
     r.terrain=edge<11&&R()<0.55?pick(['sea','lakes']):pick(['classic','classic','highland','woods','lakes']);
     r.size=R()<0.55?9:11; r.owner=null; r.capital=false;
+    r.bonus=pick(Object.keys(CAMP_BONUS)); if(r.bonus==='tech') r.tech=pick(CAMP_TECHS);
   });
   // four factions start in the four corners, then grow outward in turn until the map is claimed
   const rivals=Object.keys(FACTIONS).filter(f=>f!==fac);
@@ -4336,7 +4371,12 @@ function campBattle(kind, regionId, enemy){
   NET.leave(); sfx.capture();
   newGame(); tutStop();
   cfg=keep;
-  toast((kind==='attack'?'Assault on ':'Defend ')+r.name+' \u2014 '+FACTIONS[enemy].name+'. Take their HQ to win the region.','var(--amber)');
+  const bon=campBonuses(c, r, c.fac, enemy);
+  campApplyBonuses(P, bon.me); campApplyBonuses(enemySides[0], bon.enemy);
+  computeVision(); refresh(); autoSave();
+  toast((kind==='attack'?'Assault on ':'Defend ')+r.name+' \u2014 '+FACTIONS[enemy].name+'. Take their HQ to win the region.'+
+    (bon.me.length?'\nYour perks: '+bon.me.map(q=>CAMP_BONUS[q.bonus].name).join(', ')+'.':'')+
+    (bon.enemy.length?'\nTheir perks: '+bon.enemy.map(q=>CAMP_BONUS[q.bonus].name).join(', ')+'.':''),'var(--amber)');
 }
 /* called once when a campaign battle ends; returns a line for the end screen */
 function campaignResult(info, won){
@@ -4472,17 +4512,23 @@ function renderCampaign(){
     else btn('Fight the battle','it was interrupted \u2014 start it again',()=>campBattle(c.battle.kind,c.battle.region,c.battle.enemy));
   } else if(c.defend){
     const r=c.regions[c.defend.region];
-    card.innerHTML='<h4>'+esc(r.name)+' is under attack</h4><div class="cs">'+FACTIONS[c.defend.enemy].name+' is marching in. Fight them off, or give the region up.'+(r.capital?' <b>This is your capital: lose it and the campaign is over.</b>':'')+'</div>';
+    const bd=campBonuses(c,r,c.defend.enemy,c.fac), lst=a=>a.length?a.map(q=>CAMP_BONUS[q.bonus].name).join(', '):'none';
+    card.innerHTML='<h4>'+esc(r.name)+' is under attack</h4><div class="cs">Your perks: <b>'+lst(bd.enemy)+'</b> \u00b7 theirs: <b>'+lst(bd.me)+'</b></div><div class="cs">'+FACTIONS[c.defend.enemy].name+' is marching in. Fight them off, or give the region up.'+(r.capital?' <b>This is your capital: lose it and the campaign is over.</b>':'')+'</div>';
     btn('Defend '+esc(r.name),CAMP_TERRAIN[r.terrain]+' \u00b7 '+r.size+'\u00d7'+r.size,()=>{ const d=c.defend; c.defend=null; campSave(c); campBattle('defend',d.region,d.enemy); });
     if(!r.capital) btn('Give it up','the region falls without a fight',()=>{ r.owner=c.defend.enemy; c.log.unshift('Turn '+c.turn+': '+r.name+' abandoned to '+FACTIONS[c.defend.enemy].name+'.'); c.defend=null; campEliminations(c); if(!campCheckEnd(c)) campRivals(c); campSave(c); renderCampaign(); },'');
   } else if(campSel!=null){
     const r=c.regions[campSel];
     const owner=r.owner===c.fac?'yours':FACTIONS[r.owner].name;
-    card.innerHTML='<h4>'+esc(r.name)+(r.capital?' \u2605':'')+'</h4><div class="cs">'+owner+' \u00b7 '+CAMP_TERRAIN[r.terrain]+' \u00b7 battle map '+r.size+'\u00d7'+r.size+(r.capital?' \u00b7 capital':'')+'</div>';
+    card.innerHTML='<h4>'+esc(r.name)+(r.capital?' \u2605':'')+'</h4><div class="cs">'+owner+' \u00b7 '+CAMP_TERRAIN[r.terrain]+' \u00b7 battle map '+r.size+'\u00d7'+r.size+(r.capital?' \u00b7 capital':'')+'</div>'+
+      (r.bonus?'<div class="cperk">'+CAMP_BONUS[r.bonus].icon+' '+esc(campBonusText(r))+'</div>':'');
+    if(campCanAttack(c,r)){
+      const bn=campBonuses(c,r,c.fac,r.owner), list=a=>a.length?a.map(q=>CAMP_BONUS[q.bonus].icon+' '+CAMP_BONUS[q.bonus].name).join(', '):'none';
+      card.innerHTML+='<div class="cs cbn">You bring: <b>'+list(bn.me)+'</b><br>They bring: <b>'+list(bn.enemy)+'</b></div>';
+    }
     if(campCanAttack(c,r)) btn('Attack '+esc(r.name),'a normal game against '+FACTIONS[r.owner].name,()=>campBattle('attack',r.id,r.owner));
     else if(r.owner!==c.fac){ const d=document.createElement('div'); d.className='cs'; d.style.marginTop='6px'; d.textContent='Not next to any of your regions yet.'; card.appendChild(d); }
   } else {
-    card.innerHTML='<div class="cs">Tap a region with a dashed ring to attack it. \u2605 marks a capital; \u25b2 highlands, \u2663 woodland and \u2248 water decide the battle map.</div>';
+    card.innerHTML='<div class="cs">Tap a region with a dashed ring to attack it. \u2605 marks a capital; \u25b2 highlands, \u2663 woodland and \u2248 water decide the battle map. Every region has a perk: in a battle you get the perks of your regions next to it, and the defender gets theirs plus the contested region\u2019s.</div>';
   }
   campDraw();
 }
@@ -5435,7 +5481,7 @@ $('helpBtn').onclick=()=>{
     ['Modifiers','Custom setup or the online host can add No fog, Double income, Early Titans (any city can field one) or No powers. Games with No fog, Double income or Early Titans don\u2019t earn medals.'],
     ['Online rematch','When an online game ends the host can tap Rematch to bring everyone back to the lobby with the same factions and settings.'],
     ['Reconnecting','If a guest drops out the game retries on its own. A guest who reloads the page or reopens the app gets a Rejoin button on the title screen for the next six hours; the host keeps their seat until the host replaces them with the AI.'],
-    ['Campaign','Title screen \u2192 Campaign: a random map of 10, 14 or 20 regions shared between you and three rival factions. Each campaign turn you attack one region next to yours; the battle is a normal game against that region\u2019s owner, on a map that matches the region (highlands, woodland, lakes or coast; capitals are bigger). Win and the region is yours; take a rival\u2019s capital (\u2605) and its whole faction surrenders to you. Then the rivals move: they fight each other, and sometimes attack one of your regions, which you can defend in a battle or give up (never your capital: lose that and the campaign is over). Nothing else carries over between battles. Hold every region to win; a map code lets a friend play the same map.'],
+    ['Campaign','Title screen \u2192 Campaign: a random map of 10, 14 or 20 regions shared between you and three rival factions. Each campaign turn you attack one region next to yours; the battle is a normal game against that region\u2019s owner, on a map that matches the region (highlands, woodland, lakes or coast; capitals are bigger). Win and the region is yours; take a rival\u2019s capital (\u2605) and its whole faction surrenders to you. Every region has a perk (Supply depot +3 stars, Research station a free tech, Veteran garrison an extra veteran Infantry, Fortress walls on the HQ, Factory town +1 income, Watchtower longer sight): in a battle you get the perks of your regions bordering the contested one, and the defender gets theirs plus the contested region\u2019s own. Then the rivals move: they fight each other, and sometimes attack one of your regions, which you can defend in a battle or give up (never your capital: lose that and the campaign is over). Nothing else carries over between battles. Hold every region to win; a map code lets a friend play the same map.'],
     ['Pass & play','Menu \u2192 Custom \u2192 Players on this device: two to four people share one phone or computer. After each turn a hand-off screen hides the board until the next player taps Start turn, and everyone sees only their own explored map. Any remaining rivals are played by the computer.'],
     ['Danger zones','Tap the warning triangle (or press D) to shade every tile an enemy in sight could strike next turn.'],
     ['Surrender','A computer rival that is down to its HQ and hopelessly outgunned gives up instead of dragging out the ending.'],
