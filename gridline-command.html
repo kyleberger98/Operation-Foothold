@@ -352,7 +352,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 #campSeed{width:150px; text-transform:uppercase; letter-spacing:.2em; text-align:center; font-weight:600; margin-bottom:12px; display:block}
 #campStatus{font-size:12.5px; color:var(--dim); margin:2px 0 8px; line-height:1.5}
 #campStatus b{color:var(--text)}
-#campCanvasWrap{position:relative; width:100%; border-radius:12px; overflow:hidden; border:1px solid var(--line); background:#0f2a33}
+#campCanvasWrap{position:relative; width:100%; border-radius:12px; overflow:hidden; border:1px solid #3c4a42; background:#16404f; box-shadow:0 8px 24px rgba(0,0,0,.45)}
 #campCanvas{display:block; width:100%; height:auto; touch-action:manipulation; cursor:pointer}
 #campLegend{display:flex; flex-wrap:wrap; gap:6px 12px; margin:8px 0 2px; font-size:11.5px; color:var(--dim)}
 #campLegend i{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; vertical-align:-1px}
@@ -693,7 +693,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
       </div>
       <div id="campMap" style="display:none">
         <div id="campStatus"></div>
-        <div id="campCanvasWrap"><canvas id="campCanvas" width="800" height="496" aria-label="Campaign map"></canvas></div>
+        <div id="campCanvasWrap"><canvas id="campCanvas" width="900" height="558" aria-label="Campaign map"></canvas></div>
         <div id="campLegend"></div>
         <div id="campCard"></div>
         <div id="campLog"></div>
@@ -4299,13 +4299,31 @@ function campLoad(){ try{ const c=JSON.parse(localStorage.getItem(CAMP_KEY)||'nu
 function campSave(c){ try{ if(c) localStorage.setItem(CAMP_KEY, JSON.stringify(c)); else localStorage.removeItem(CAMP_KEY); }catch(e){} }
 function campRng(seed){ let a=seed>>>0; return ()=>{ a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 const CAMP_W=100, CAMP_H=62;
-function campOwnerGrid(c){   // which region every cell of the map belongs to (nearest centre)
-  const g=new Int16Array(CAMP_W*CAMP_H);
-  for(let y=0;y<CAMP_H;y++)for(let x=0;x<CAMP_W;x++){
+/* smooth value noise for wobbly borders and coastlines */
+function campNoise(seed){
+  const h=(x,y)=>{ let n=(Math.imul(x,374761393)+Math.imul(y,668265263)+Math.imul(seed,1442695041))|0; n=Math.imul(n^(n>>>13),1274126177); return ((n^(n>>>16))>>>0)/4294967296; };
+  const sm=t=>t*t*(3-2*t);
+  return (x,y)=>{ const xi=Math.floor(x), yi=Math.floor(y), u=sm(x-xi), v=sm(y-yi); const a=h(xi,yi), b=h(xi+1,yi), c=h(xi,yi+1), d=h(xi+1,yi+1); return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v; };
+}
+/* where a map point "really" sits after the border wobble, which region owns it, and whether it is land */
+function campGeo(c){
+  const n1=campNoise(c.seed^0x51ed), n2=campNoise(c.seed^0x2b9d), n3=campNoise(c.seed^0x7f4a);
+  const spacing=Math.sqrt(CAMP_W*CAMP_H/c.regions.length);
+  return (x,y)=>{
+    const wx=x+(n1(x*0.11,y*0.11)-0.5)*7+(n1(x*0.31+40,y*0.31)-0.5)*2.4;
+    const wy=y+(n2(x*0.11,y*0.11)-0.5)*7+(n2(x*0.31,y*0.31+40)-0.5)*2.4;
     let b=0, bd=1e9;
-    c.regions.forEach((r,i)=>{ const d=(r.x-x-0.5)**2+(r.y-y-0.5)**2; if(d<bd){ bd=d; b=i; } });
-    g[y*CAMP_W+x]=b;
-  }
+    for(let i=0;i<c.regions.length;i++){ const r=c.regions[i], d=(r.x-wx)**2+(r.y-wy)**2; if(d<bd){ bd=d; b=i; } }
+    // land: near a region centre and away from the frame, both with a ragged edge
+    const coast=(n3(x*0.09,y*0.09)-0.5)*0.9+(n3(x*0.27+9,y*0.27)-0.5)*0.35;
+    const edge=Math.min(x,y,CAMP_W-x,CAMP_H-y);
+    const land=Math.sqrt(bd)<spacing*(0.68+coast*0.6) && edge>3+coast*3;
+    return {r:b, land};
+  };
+}
+function campOwnerGrid(c){   // which region every cell of the map belongs to (land and sea), for working out neighbours
+  const g=new Int16Array(CAMP_W*CAMP_H), geo=campGeo(c);
+  for(let y=0;y<CAMP_H;y++)for(let x=0;x<CAMP_W;x++) g[y*CAMP_W+x]=geo(x+0.5,y+0.5).r;
   return g;
 }
 function genCampaign(seed, n, fac, diffKey){
@@ -4317,18 +4335,32 @@ function genCampaign(seed, n, fac, diffKey){
   }
   const c={v:1, seed, fac, diff:diffKey, turn:1, regions, log:[], battle:null, over:null};
   // neighbours: regions whose cells touch
-  const g=campOwnerGrid(c), nb=regions.map(()=>new Set());
-  for(let y=0;y<CAMP_H;y++)for(let x=0;x<CAMP_W;x++){
-    const a=g[y*CAMP_W+x];
-    if(x+1<CAMP_W){ const b=g[y*CAMP_W+x+1]; if(a!==b){ nb[a].add(b); nb[b].add(a); } }
-    if(y+1<CAMP_H){ const b=g[(y+1)*CAMP_W+x]; if(a!==b){ nb[a].add(b); nb[b].add(a); } }
+  // neighbours: regions sharing a land border, or facing each other across a short stretch of sea (a sea lane)
+  const nb=regions.map(()=>new Set()), lanes=regions.map(()=>new Set());
+  {
+    const geo=campGeo(c), G=2, gw=CAMP_W*G, gh=CAMP_H*G, gr=new Int16Array(gw*gh), gl=new Uint8Array(gw*gh);
+    for(let y=0;y<gh;y++)for(let x=0;x<gw;x++){ const q=geo((x+0.5)/G,(y+0.5)/G); gr[y*gw+x]=q.r; gl[y*gw+x]=q.land?1:0; }
+    const landPair=new Set(), seaPair=new Set();
+    for(let y=0;y<gh;y++)for(let x=0;x<gw;x++){ const p=y*gw+x;
+      for(const q of [x+1<gw?p+1:-1, y+1<gh?p+gw:-1]){ if(q<0||gr[q]===gr[p]) continue;
+        const k=Math.min(gr[p],gr[q])+','+Math.max(gr[p],gr[q]);
+        if(gl[p]&&gl[q]) landPair.add(k); else seaPair.add(k); } }
+    const wetShare=(a,b)=>{ let w=0; for(let t=1;t<20;t++){ const x=a.x+(b.x-a.x)*t/20, y=a.y+(b.y-a.y)*t/20; if(!gl[Math.floor(y*G)*gw+Math.floor(x*G)]) w++; } return w/19; };
+    const link=(k,sea)=>{ const [a,b]=k.split(',').map(Number); nb[a].add(b); nb[b].add(a); if(sea){ lanes[a].add(b); lanes[b].add(a); } };
+    landPair.forEach(k=>link(k,false));
+    const spare=[];
+    seaPair.forEach(k=>{ if(landPair.has(k)) return; const [a,b]=k.split(',').map(Number); if(wetShare(regions[a],regions[b])>=0.3) link(k,true); else spare.push(k); });
+    // the map must stay in one piece: add the shortest remaining crossings until it is
+    const connected=()=>{ const seen=new Set([0]), q=[0]; while(q.length){ const i=q.shift(); for(const k of nb[i]) if(!seen.has(k)){ seen.add(k); q.push(k); } } return seen.size===regions.length; };
+    spare.sort((p,q)=>{ const d=k=>{ const [a,b]=k.split(',').map(Number); return Math.hypot(regions[a].x-regions[b].x,regions[a].y-regions[b].y); }; return d(p)-d(q); });
+    while(!connected()&&spare.length) link(spare.shift(),true);
   }
   // names and terrain
   const A=['Kessel','Varn','Ostra','Brenn','Halden','Corvo','Lumen','Marrow','Tessa','Dunmore','Iver','Kael','Sorrel','Vesk','Ardent','Pell','Rook','Saxe','Talon','Ember','Grist','Holt','Juno','Nadir'];
   const B=['Ridge','Point','Flats','Hollow','Reach','Gate','Fields','Crossing','Heights','Basin','Bay','Vale','Marsh','Pass','Shore','Downs'];
   const used=new Set();
   regions.forEach((r,i)=>{
-    r.id=i; r.nb=[...nb[i]];
+    r.id=i; r.nb=[...nb[i]]; r.lane=[...lanes[i]];
     let nm; do{ nm=pick(A)+' '+pick(B); }while(used.has(nm)); used.add(nm); r.name=nm;
     const edge=Math.min(r.x, r.y, CAMP_W-r.x, CAMP_H-r.y);
     r.terrain=edge<11&&R()<0.55?pick(['sea','lakes']):pick(['classic','classic','highland','woods','lakes']);
@@ -4445,37 +4477,115 @@ function campRivals(c){
   if(c.log.length>40) c.log.length=40;
 }
 /* ---- drawing the map ---- */
+let campGeoCache=null;   // per-pixel region and land, recomputed only for a new map or canvas size
 function campDraw(){
   const c=campLoad(), cv=$('campCanvas'); if(!c||!cv) return;
-  const ctx=cv.getContext('2d'), sx=cv.width/CAMP_W, sy=cv.height/CAMP_H, cw=cv.width, ch=cv.height;
-  const rgb=f=>{ const h=f?FACTIONS[f].css:'#5b6b62'; return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]; };
-  const idx=new Int16Array(cw*ch), xs=c.regions.map(r=>r.x*sx), ys=c.regions.map(r=>r.y*sy);
-  for(let y=0;y<ch;y++)for(let x=0;x<cw;x++){ let b=0, bd=1e18; for(let i=0;i<xs.length;i++){ const d=(xs[i]-x)**2+(ys[i]-y)**2; if(d<bd){ bd=d; b=i; } } idx[y*cw+x]=b; }
+  const ctx=cv.getContext('2d'), cw=cv.width, ch=cv.height, sx=cw/CAMP_W, sy=ch/CAMP_H;
+  const key=c.seed+'|'+c.regions.length+'|'+cw;
+  if(!campGeoCache||campGeoCache.key!==key){
+    const geo=campGeo(c), idx=new Int16Array(cw*ch), land=new Uint8Array(cw*ch);
+    for(let y=0;y<ch;y++)for(let x=0;x<cw;x++){ const g=geo(x/sx,y/sy), p=y*cw+x; idx[p]=g.r; land[p]=g.land?1:0; }
+    // which neighbouring regions share a coastline-free land border (the rest are linked across water)
+    const touch=new Set();
+    for(let y=0;y<ch-1;y++)for(let x=0;x<cw-1;x++){ const p=y*cw+x; if(!land[p]) continue;
+      for(const q of [p+1,p+cw]) if(land[q]&&idx[q]!==idx[p]){ const a=Math.min(idx[p],idx[q]), b=Math.max(idx[p],idx[q]); touch.add(a+','+b); } }
+    // a little paper grain, fixed per map
+    const grain=new Uint8Array(cw*ch), rn=campRng(c.seed^0xabc); for(let p=0;p<grain.length;p++) grain[p]=rn()*255;
+    campGeoCache={key, idx, land, touch, grain};
+  }
+  const {idx, land, touch, grain}=campGeoCache;
+  const hex=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+  const PAPER=[232,220,190];
+  const tint=c.regions.map(r=>{
+    const o=hex(r.owner?FACTIONS[r.owner].css:'#8a948c'), mix=r.owner===c.fac?0.62:0.52;
+    const k=0.93+((r.id*37)%7)/7*0.12, dim=(c.battle||c.defend||c.over)?0.92:campSel===r.id?1.08:1;
+    return PAPER.map((v,i)=>Math.min(255,(v*(1-mix)+o[i]*mix)*k*dim));
+  });
   const img=ctx.createImageData(cw,ch), px=img.data;
-  const shade=c.regions.map(r=>{ const k=0.84+((r.id*37)%9)/9*0.2, dim=(campSel===r.id)?1.12:(c.battle||c.defend||c.over||!campCanAttack(c,r))&&r.owner!==c.fac?0.78:1; return rgb(r.owner).map(v=>Math.min(255,v*k*dim)); });
   for(let y=0;y<ch;y++)for(let x=0;x<cw;x++){
-    const p=y*cw+x, a=idx[p], o=p*4;
-    let col=shade[a], edge=0;
-    const r1=x+1<cw?idx[p+1]:a, d1=y+1<ch?idx[p+cw]:a, l1=x>0?idx[p-1]:a, u1=y>0?idx[p-cw]:a;
-    for(const b of [r1,d1,l1,u1]) if(b!==a) edge=Math.max(edge, c.regions[a].owner!==c.regions[b].owner?2:1);
-    const m=edge===2?0.25:edge===1?0.62:1;
-    px[o]=col[0]*m; px[o+1]=col[1]*m; px[o+2]=col[2]*m; px[o+3]=255;
+    const p=y*cw+x, o=p*4;
+    if(!land[p]){
+      // ocean: deep in the middle of the water, lighter in the shallows next to a coast
+      let near=0; for(const d of [3,7,12]){ if((x>=d&&land[p-d])||(x+d<cw&&land[p+d])||(y>=d&&land[p-d*cw])||(y+d<ch&&land[p+d*cw])){ near=d; break; } }
+      const sh=near===3?1:near===7?0.6:near===12?0.3:0, wave=((x*0.9+y*1.7+Math.sin(x*0.05)*18)%22<1.2)?10:0;
+      px[o]=22+sh*34+wave*0.4; px[o+1]=62+sh*52+wave; px[o+2]=84+sh*48+wave; px[o+3]=255; continue;
+    }
+    const a=idx[p], col=tint[a], g=(grain[p]-128)/128*7;
+    // borders: coast darkest, rival frontiers dark and thick, borders inside one realm faint
+    let m=1;
+    const nb=[x+1<cw?p+1:p, y+1<ch?p+cw:p, x>0?p-1:p, y>0?p-cw:p, x+2<cw?p+2:p, y+2<ch?p+2*cw:p];
+    for(let k=0;k<nb.length;k++){
+      const q=nb[k], far=k>=4;
+      if(!land[q]){ m=Math.min(m, far?0.62:0.3); continue; }
+      const b=idx[q]; if(b===a) continue;
+      const rival=c.regions[a].owner!==c.regions[b].owner;
+      m=Math.min(m, rival?(far?0.55:0.28):(far?1:0.66));
+    }
+    px[o]=col[0]*m+g; px[o+1]=col[1]*m+g; px[o+2]=col[2]*m+g; px[o+3]=255;
   }
   ctx.putImageData(img,0,0);
-  // markers: capitals, terrain glyph, attackable rings
-  const glyph={classic:'\u2022', highland:'\u25b2', woods:'\u2663', lakes:'\u2248', sea:'\u2248'};
+  const K=Math.max(1, cw/(cv.getBoundingClientRect().width||cw)*0.8);   // markings keep a readable size on a small screen
+  // terrain marks scattered inside each region
+  const rn=campRng(c.seed^0x9e3);
+  ctx.lineWidth=1.3*K; ctx.lineCap='round';
+  for(const r of c.regions){
+    const mk={highland:'hill', woods:'tree', lakes:'wave', sea:'wave'}[r.terrain]; if(!mk) continue;
+    for(let t=0;t<7;t++){
+      const ax=(r.x+(rn()-0.5)*10)*sx, ay=(r.y+(rn()-0.5)*8)*sy, p=Math.round(ay)*cw+Math.round(ax);
+      if(ax<0||ay<0||ax>=cw||ay>=ch||!land[p]||idx[p]!==r.id||Math.hypot(ax-r.x*sx,ay-r.y*sy)<26*K) continue;
+      ctx.strokeStyle='rgba(40,34,22,.42)'; ctx.fillStyle='rgba(40,60,30,.38)';
+      ctx.beginPath();
+      if(mk==='hill'){ ctx.moveTo(ax-5*K,ay+3*K); ctx.lineTo(ax,ay-4*K); ctx.lineTo(ax+5*K,ay+3*K); ctx.stroke(); }
+      else if(mk==='tree'){ ctx.arc(ax,ay,3*K,0,7); ctx.fill(); }
+      else { ctx.moveTo(ax-5*K,ay); ctx.quadraticCurveTo(ax-2.5*K,ay-3*K,ax,ay); ctx.quadraticCurveTo(ax+2.5*K,ay+3*K,ax+5*K,ay); ctx.stroke(); }
+    }
+  }
+  // sea lanes: neighbours that only meet across water
+  ctx.setLineDash([6*K,5*K]); ctx.lineWidth=2*K; ctx.strokeStyle='rgba(230,240,235,.55)';
+  for(const r of c.regions) for(const k of (r.lane||r.nb)){ if(k<r.id) continue; if(!r.lane&&touch.has(r.id+','+k)) continue;
+    const q=c.regions[k], mx=(r.x+q.x)/2*sx, my=(r.y+q.y)/2*sy-12*K;
+    ctx.beginPath(); ctx.moveTo(r.x*sx,r.y*sy); ctx.quadraticCurveTo(mx,my,q.x*sx,q.y*sy); ctx.stroke(); }
+  ctx.setLineDash([]);
+  // game-piece badges: owner colour, the region's perk inside, a star for capitals
   ctx.textAlign='center'; ctx.textBaseline='middle';
   for(const r of c.regions){
-    const px=r.x*sx, py=r.y*sy;
-    const can=!c.battle&&!c.defend&&!c.over&&campCanAttack(c,r);
-    const K=Math.max(1, cw/(cv.getBoundingClientRect().width||cw)*0.8);   // markers keep a readable size on a small screen
-    if(can){ ctx.strokeStyle='rgba(255,255,255,.92)'; ctx.setLineDash([5*K,4*K]); ctx.lineWidth=2.5*K; ctx.beginPath(); ctx.arc(px,py,17*K,0,7); ctx.stroke(); ctx.setLineDash([]); }
-    if(c.defend&&c.defend.region===r.id){ ctx.strokeStyle='#ff5a4d'; ctx.lineWidth=4*K; ctx.beginPath(); ctx.arc(px,py,18*K,0,7); ctx.stroke(); }
-    ctx.fillStyle='rgba(10,16,14,.8)'; ctx.beginPath(); ctx.arc(px,py,12*K,0,7); ctx.fill();
-    ctx.fillStyle=r.capital?'#ffd27a':'#e8efe9'; ctx.font='800 '+Math.round((r.capital?17:15)*K)+'px Nunito, sans-serif';
-    ctx.fillText(r.capital?'\u2605':glyph[r.terrain], px, py+K);
-    if(campSel===r.id){ ctx.strokeStyle='#ffd27a'; ctx.lineWidth=3*K; ctx.beginPath(); ctx.arc(px,py,14*K,0,7); ctx.stroke(); }
+    const x=r.x*sx, y=r.y*sy, can=!c.battle&&!c.defend&&!c.over&&campCanAttack(c,r);
+    if(can){ ctx.strokeStyle='rgba(255,255,255,.95)'; ctx.setLineDash([5*K,4*K]); ctx.lineWidth=2.5*K; ctx.beginPath(); ctx.arc(x,y,19*K,0,7); ctx.stroke(); ctx.setLineDash([]); }
+    if(c.defend&&c.defend.region===r.id){ ctx.strokeStyle='#ff5a4d'; ctx.lineWidth=4*K; ctx.beginPath(); ctx.arc(x,y,19*K,0,7); ctx.stroke(); }
+    ctx.fillStyle='rgba(0,0,0,.35)'; ctx.beginPath(); ctx.arc(x+1.5*K,y+2*K,13*K,0,7); ctx.fill();   // shadow
+    ctx.fillStyle=r.owner?FACTIONS[r.owner].css:'#8a948c'; ctx.beginPath(); ctx.arc(x,y,13*K,0,7); ctx.fill();
+    ctx.lineWidth=2.2*K; ctx.strokeStyle=campSel===r.id?'#ffd27a':'#f6f1e2'; ctx.stroke();
+    ctx.fillStyle='#14201a'; ctx.font='800 '+Math.round(13*K)+'px Nunito, sans-serif';
+    ctx.fillText(r.bonus?CAMP_BONUS[r.bonus].icon:'', x, y+K);
+    if(r.capital){ ctx.fillStyle='#ffd27a'; ctx.strokeStyle='#3a2a08'; ctx.lineWidth=1.2*K; ctx.font='900 '+Math.round(16*K)+'px Nunito, sans-serif';
+      ctx.strokeText('★',x+11*K,y-11*K); ctx.fillText('★',x+11*K,y-11*K); }
+    if(campSel===r.id){ ctx.strokeStyle='#ffd27a'; ctx.lineWidth=3*K; ctx.beginPath(); ctx.arc(x,y,16.5*K,0,7); ctx.stroke(); }
   }
+  // names in small caps under the pieces
+  ctx.font='800 '+Math.round(8.5*K)+'px Nunito, sans-serif';
+  // each name goes under its piece, or above it if that would overlap a name already placed; it stays inside the frame
+  const placed=[], hh=6*K;
+  for(const r of [...c.regions].sort((p,q)=>(q.id===campSel)-(p.id===campSel)||p.y-q.y)){
+    const t=r.name.toUpperCase(), hw=ctx.measureText(t).width/2+3*K;
+    let spot=null;
+    for(const dy of [21,-22,30,-31]){
+      const x=Math.min(cw-hw-6*K, Math.max(hw+6*K, r.x*sx)), y=Math.min(ch-10*K, Math.max(12*K, r.y*sy+dy*K));
+      if(!placed.some(b=>Math.abs(b.x-x)<b.hw+hw&&Math.abs(b.y-y)<hh*2)){ spot={x,y,hw}; break; }
+    }
+    if(!spot) continue;   // no room: the region card still shows its name
+    placed.push(spot);
+    ctx.lineWidth=3*K; ctx.strokeStyle='rgba(244,238,220,.85)'; ctx.strokeText(t,spot.x,spot.y);
+    ctx.fillStyle='#2a2414'; ctx.fillText(t,spot.x,spot.y);
+  }
+  // compass rose in whichever corner has the most open sea, and a double frame
+  const corners=[[cw-30*K,ch-30*K],[30*K,ch-30*K],[cw-30*K,30*K],[30*K,30*K]];
+  const landNear=([x,y])=>{ let n=0; for(let dy=-24;dy<=24;dy+=6)for(let dx=-24;dx<=24;dx+=6){ const px2=Math.round(x+dx*K), py2=Math.round(y+dy*K); if(px2>=0&&py2>=0&&px2<cw&&py2<ch&&land[py2*cw+px2]) n++; } return n; };
+  const [cx,cy]=corners.slice().sort((a,b)=>landNear(a)-landNear(b))[0];
+  ctx.save(); ctx.translate(cx,cy); ctx.fillStyle='rgba(240,232,210,.85)'; ctx.strokeStyle='rgba(20,30,28,.7)'; ctx.lineWidth=1*K;
+  for(let a=0;a<4;a++){ ctx.rotate(Math.PI/2); ctx.beginPath(); ctx.moveTo(0,-15*K); ctx.lineTo(4*K,0); ctx.lineTo(-4*K,0); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+  ctx.fillStyle='rgba(240,232,210,.95)'; ctx.font='800 '+Math.round(9*K)+'px Nunito, sans-serif'; ctx.fillText('N',0,-21*K); ctx.restore();
+  ctx.strokeStyle='rgba(232,220,190,.55)'; ctx.lineWidth=2*K; ctx.strokeRect(4*K,4*K,cw-8*K,ch-8*K);
+  ctx.strokeStyle='rgba(232,220,190,.3)'; ctx.lineWidth=1*K; ctx.strokeRect(9*K,9*K,cw-18*K,ch-18*K);
 }
 function renderCampaign(){
   const c=campLoad();
@@ -4528,14 +4638,17 @@ function renderCampaign(){
     if(campCanAttack(c,r)) btn('Attack '+esc(r.name),'a normal game against '+FACTIONS[r.owner].name,()=>campBattle('attack',r.id,r.owner));
     else if(r.owner!==c.fac){ const d=document.createElement('div'); d.className='cs'; d.style.marginTop='6px'; d.textContent='Not next to any of your regions yet.'; card.appendChild(d); }
   } else {
-    card.innerHTML='<div class="cs">Tap a region with a dashed ring to attack it. \u2605 marks a capital; \u25b2 highlands, \u2663 woodland and \u2248 water decide the battle map. Every region has a perk: in a battle you get the perks of your regions next to it, and the defender gets theirs plus the contested region\u2019s.</div>';
+    card.innerHTML='<div class="cs">Tap a region with a dashed ring to attack it. Each piece shows the region\u2019s perk and \u2605 marks a capital; hills, trees and waves on the land decide the battle map; dashed lines across the sea link neighbours. Every region has a perk: in a battle you get the perks of your regions next to it, and the defender gets theirs plus the contested region\u2019s.</div>';
   }
   campDraw();
 }
 $('campCanvas').addEventListener('click',e=>{
   const c=campLoad(); if(!c) return;
   const r=e.target.getBoundingClientRect(), x=(e.clientX-r.left)/r.width*CAMP_W, y=(e.clientY-r.top)/r.height*CAMP_H;
-  let b=0, bd=1e9; c.regions.forEach((q,i)=>{ const d=(q.x-x)**2+(q.y-y)**2; if(d<bd){ bd=d; b=i; } });
+  // the region drawn under the finger (borders wobble, so this is not simply the nearest centre)
+  const cv=$('campCanvas'), px2=Math.floor(x/CAMP_W*cv.width), py2=Math.floor(y/CAMP_H*cv.height);
+  let b=campGeoCache&&campGeoCache.idx[py2*cv.width+px2];
+  if(b==null){ let bd=1e9; c.regions.forEach((q,i)=>{ const d=(q.x-x)**2+(q.y-y)**2; if(d<bd){ bd=d; b=i; } }); }
   campSel=campSel===b?null:b; sfx.select(); renderCampaign();
 });
 document.querySelectorAll('#campLenRow .opt').forEach(b=>b.onclick=()=>{ campNewCfg.n=+b.dataset.n; sfx.select(); renderCampaign(); });
