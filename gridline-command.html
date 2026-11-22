@@ -4358,16 +4358,17 @@ function genCampaign(seed, n, fac, diffKey){
   // names and terrain
   // names that sound like real countries, provinces and states, each a little off; one part of the world per map
   const NAME_SETS=[
-    ['Nebraskia','Montara','Dakotah','Ontarion','Quebeck','Albertia','Kentuckia','Virginna','Carolinia','Floridia','Texara','Arizonne',
-     'Nevadia','Oregonne','Coloradia','Missora','Ohiona','Vermonte','Alaskia','Manitova','Saskatia','Minnesoda','Peruna','Chilera',
-     'Patagona','Argentia','Brazilla','Venezula','Colombra','Bolivra','Cubaro'],
-    ['Normandi','Bavarra','Prussa','Saxonna','Tuscara','Lombarda','Castilo','Andalusa','Galicca','Bretonia','Flandria','Hollandt',
-     'Swedonia','Norvia','Finnlund','Denmora','Polania','Bohemora','Moravin','Silesca','Hungra','Austrava','Helvetta','Portugo',
-     'Grecca','Albanor','Serbana','Croatya','Romanya','Bulgara','Latvenia','Estonne','Ukrayna','Belarra','Crimeo','Icelund',
-     'Scotlund','Walesse','Irelan','Kernowa','Sicillo','Sardinna','Corsicca','Bosnara','Moldavo'],
-    ['Anatola','Armenna','Siberra','Mongola','Manchura','Kamchatta','Yakutsa','Persana','Arabba','Egypta','Libyra','Kenyara',
-     'Congora','Angolla','Namiba','Madagasca','Kazakha','Tibetta','Nepala','Burmah','Siamo','Bengara','Punjara','Ceylona',
-     'Ethiopa','Sudana','Morocca','Tunisa','Somalla','Zambeza'],
+    ['Montaven','Dakotoba','Upper Ontaro','Kebecque','Albertine','Kentmoor','West Virgil','Carolind','Floressa','Texmark',
+     'Arizal','Nevaro','Oregund','Colorrad','Misouria','Ohiro','Vermark','Alyaska','Manitobe','Saskavia','Minnetara',
+     'Peruvia','Chilecco','Patagonne','Brasilund','Venaruel','Colombre','Cubesta','Yucatar','Panamor','Hondaras','Nova Albion'],
+    ['Normark','Bavaren','Prusskov','Saxenburg','Tuscanno','Lombrecht','Castilmar','Andalur','Galisse','Brettany',
+     'Flandeur','Hollmark','Sveamark','Norrvik','Finnholm','Danreich','Polskar','Bohemund','Moravec','Silesk',
+     'Magyarna','Ostrevia','Helvetor','Portavel','Hellenor','Albasco','Serbovar','Croatheim','Rumelor','Bulgrad',
+     'Letavia','Estmark','Ruthenor','Belovia','Tauriga','Iceholm','Caledor','Cymrin','Eirland','Kernmoor',
+     'Sicanor','Sardona','Corsaro','Bosnovar','Moldenburg','Upper Rhenia'],
+    ['Anatolar','Armenor','Sibirion','Mongorod','Manchoria','Kamchador','Yakutorn','Persepol','Arabesh','Nilustan',
+     'Libyrene','Kenwara','Congoleth','Angorra','Namaqar','Madagor','Kazakhar','Tibesh','Nepalgar','Burmandu',
+     'Siamar','Bengalia','Punjistan','Ceylor','Abyssor','Sudanor','Moroqqa','Tunissar','Somalor','Zambezor','Outer Mongor'],
   ];
   const NAMES=pick(NAME_SETS);
   const used=new Set();
