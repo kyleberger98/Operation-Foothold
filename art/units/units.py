@@ -676,8 +676,84 @@ def hovercraft():
     return m
 
 
+def hull(m, L, Wd, Hh, mat='body', y=0.04, deck='trim'):
+    """a simple boat hull: boxy middle, tapered bow wedge, flat deck plate on top"""
+    m.box(Wd, Hh, L*0.72, mat, (0, y+Hh/2, -L*0.08), bevel=min(0.03, Wd*0.15))
+    m.box(Wd, Hh, L*0.3, mat, (0, y+Hh/2, L*0.43), taper=(0.15, 0.55, 0.06), bevel=0.01)
+    m.box(Wd*0.94, 0.02, L*0.78, deck, (0, y+Hh+0.01, -0.02), bevel=0.006)
+    m.box(Wd*1.02, 0.03, L*0.74, 'dark', (0, y+0.015, -0.06), bevel=0.008)               # waterline stripe
+
+
+def patrolboat():
+    """Patrol Boat: a small fast gunboat."""
+    m = Model('PTB')
+    hull(m, 0.62, 0.22, 0.09)
+    m.box(0.15, 0.1, 0.16, 'body', (0, 0.19, -0.04), bevel=0.025)                         # wheelhouse
+    m.box(0.13, 0.04, 0.012, 'glass', (0, 0.21, 0.042), (-0.3, 0, 0), bevel=0)
+    m.cyl(0.006, 0.006, 0.16, 'dark', (0.0, 0.31, -0.06), seg=4)                           # radio mast
+    m.box(0.004, 0.04, 0.06, 'trim', (0.0, 0.37, -0.09), bevel=0)                          # pennant
+    m.cyl(0.03, 0.035, 0.03, 'metal', (0, 0.155, 0.16), seg=8)                             # bow gun
+    m.cyl(0.01, 0.01, 0.14, 'dark', (0, 0.17, 0.24), (PI/2, 0, 0), seg=6)
+    for s in (-1, 1):
+        m.cyl(0.02, 0.02, 0.05, 'red', (0.1*s, 0.15, -0.2), (PI/2, 0, 0), seg=8)            # life rings
+    return m
+
+
+def landingcraft():
+    """Landing Craft: a flat open-decked barge with a bow ramp."""
+    m = Model('LND')
+    m.box(0.3, 0.1, 0.56, 'body', (0, 0.09, -0.02), bevel=0.02)
+    m.box(0.32, 0.03, 0.58, 'dark', (0, 0.055, -0.02), bevel=0.008)
+    m.box(0.26, 0.012, 0.44, 'metal', (0, 0.142, 0.0), bevel=0)                             # open deck
+    for s in (-1, 1):
+        m.box(0.02, 0.08, 0.5, 'trim', (0.145*s, 0.17, -0.02), bevel=0.004)                 # gunwales
+    m.box(0.28, 0.12, 0.03, 'trim', (0, 0.14, 0.27), (0.35, 0, 0), bevel=0.006)             # bow ramp, raised
+    m.box(0.16, 0.12, 0.1, 'body', (0, 0.2, -0.24), bevel=0.02)                             # pilot house at the stern
+    m.box(0.13, 0.04, 0.012, 'glass', (0, 0.225, -0.188), bevel=0)
+    m.box(0.07, 0.05, 0.07, 'canvas', (0.06, 0.17, 0.04), bevel=0.01)                       # cargo crates
+    m.box(0.06, 0.04, 0.06, 'wood', (-0.07, 0.165, -0.06), bevel=0.01)
+    return m
+
+
+def destroyer():
+    """Destroyer: a lean warship with two gun turrets and a funnel."""
+    m = Model('DST')
+    hull(m, 0.82, 0.24, 0.1, y=0.03)
+    m.box(0.15, 0.12, 0.18, 'body', (0, 0.2, -0.02), bevel=0.02)                            # superstructure
+    m.box(0.12, 0.05, 0.12, 'trim', (0, 0.285, -0.02), bevel=0.012)                         # bridge
+    m.box(0.11, 0.025, 0.012, 'glass', (0, 0.29, 0.042), bevel=0)
+    m.cyl(0.035, 0.04, 0.1, 'dark', (0, 0.27, -0.14), seg=8)                                # funnel
+    m.cyl(0.006, 0.006, 0.18, 'dark', (0, 0.38, -0.03), seg=4)                              # mast
+    m.box(0.08, 0.012, 0.012, 'dark', (0, 0.43, -0.03), bevel=0)
+    for z in (0.22, -0.28):
+        m.cyl(0.05, 0.055, 0.04, 'metal', (0, 0.17, z), seg=10)                             # turrets
+        m.cyl(0.011, 0.011, 0.14, 'dark', (0, 0.185, z+0.1*(1 if z > 0 else -1)), (PI/2, 0, 0), seg=6)
+    return m
+
+
+def battleship():
+    """Battleship: a long heavy ship with three big gun turrets."""
+    m = Model('BTL')
+    hull(m, 0.96, 0.3, 0.12, y=0.02)
+    m.box(0.2, 0.14, 0.24, 'body', (0, 0.22, -0.04), bevel=0.025)                           # citadel
+    m.box(0.15, 0.08, 0.14, 'trim', (0, 0.33, -0.02), bevel=0.02)                           # tower
+    m.box(0.12, 0.04, 0.09, 'body', (0, 0.39, -0.02), bevel=0.012)
+    m.box(0.13, 0.025, 0.012, 'glass', (0, 0.34, 0.052), bevel=0)
+    m.cyl(0.045, 0.05, 0.12, 'dark', (0, 0.33, -0.18), seg=8)                               # funnel
+    m.cyl(0.006, 0.006, 0.2, 'dark', (0, 0.5, -0.02), seg=4)
+    for z, back in ((0.3, False), (0.18, False), (-0.32, True)):
+        y = 0.19 if z != 0.18 else 0.225
+        m.cyl(0.065, 0.07, 0.05, 'metal', (0, y, z), seg=10)                                # big turrets
+        for x in (-0.022, 0.022):
+            m.cyl(0.012, 0.012, 0.18, 'dark', (x, y+0.015, z+(-0.12 if back else 0.12)), (PI/2, 0, 0), seg=6)
+    for s in (-1, 1):
+        m.cyl(0.02, 0.022, 0.04, 'metal', (0.12*s, 0.18, -0.12), seg=8)                     # secondary guns
+    return m
+
+
 UNITS = [infantry, sniper, tank, artillery, flak, helicopter, nuke, titan,
-         ambulance, shock, mortar, drone, guardian, stalker, hovercraft]
+         ambulance, shock, mortar, drone, guardian, stalker, hovercraft,
+         patrolboat, landingcraft, destroyer, battleship]
 
 # ================================================================== scene / render
 bpy.ops.wm.read_factory_settings(use_empty=True)
