@@ -346,6 +346,25 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 .optRow{display:flex; gap:8px; flex-wrap:wrap}
 .secNote{font-size:10.5px; letter-spacing:.04em; text-transform:none; color:var(--dim); margin-left:6px}
 #modRow .opt.sel, #mpModRow .opt.sel{border-color:var(--amber)}
+/* ---- campaign map ---- */
+.campIntro{color:var(--dim); font-size:12.5px; line-height:1.55; margin:0 0 6px}
+#campFacRow .opt{border-left:4px solid var(--fc)}
+#campSeed{width:150px; text-transform:uppercase; letter-spacing:.2em; text-align:center; font-weight:600; margin-bottom:12px; display:block}
+#campStatus{font-size:12.5px; color:var(--dim); margin:2px 0 8px; line-height:1.5}
+#campStatus b{color:var(--text)}
+#campCanvasWrap{position:relative; width:100%; border-radius:12px; overflow:hidden; border:1px solid var(--line); background:#0f2a33}
+#campCanvas{display:block; width:100%; height:auto; touch-action:manipulation; cursor:pointer}
+#campLegend{display:flex; flex-wrap:wrap; gap:6px 12px; margin:8px 0 2px; font-size:11.5px; color:var(--dim)}
+#campLegend i{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; vertical-align:-1px}
+#campLegend .out{text-decoration:line-through; opacity:.55}
+#campCard{margin:10px 0 0; padding:12px 14px; border-radius:12px; background:var(--panel2); border:1px solid var(--line); font-size:12.5px; line-height:1.5}
+#campCard:empty{display:none}
+#campCard h4{margin:0 0 2px; font-family:'Saira Condensed',sans-serif; font-size:18px; letter-spacing:.06em; text-transform:uppercase}
+#campCard .cs{color:var(--dim)}
+#campCard .bigbtn{margin-top:10px}
+#campLog{margin-top:10px; font-size:11.5px; color:var(--dim); line-height:1.6; max-height:120px; overflow-y:auto}
+#campLog div::before{content:'\25b8 '; color:var(--amber)}
+.campFoot{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:12px; font-size:11px; color:var(--dim)}
 .opt{background:var(--panel2); border:1px solid var(--line); border-radius:9px; color:var(--text); cursor:pointer;
   font-family:'Saira Condensed',sans-serif; font-size:15px; letter-spacing:.08em; text-transform:uppercase;
   padding:8px 16px; display:flex; flex-direction:column; align-items:center; gap:1px}
@@ -467,10 +486,10 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 }
 
 /* ---- multiplayer ---- */
-#mpName,#mpCode{background:var(--panel2); border:1px solid var(--line); color:var(--text);
+#mpName,#mpCode,#campSeed{background:var(--panel2); border:1px solid var(--line); color:var(--text);
   font-family:'Nunito',system-ui,sans-serif; font-size:13px; letter-spacing:.12em; padding:10px 12px;
   border-radius:9px; outline:none; text-transform:uppercase}
-#mpName:focus,#mpCode:focus{border-color:var(--amber)}
+#mpName:focus,#mpCode:focus,#campSeed:focus{border-color:var(--amber)}
 #mpName{width:100%; margin-bottom:12px}
 #mpEntry{display:flex; gap:10px; flex-wrap:wrap; align-items:stretch}
 #mpHostBtn{flex:1 1 180px}
@@ -584,6 +603,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
         <button id="continueBtn" class="bigbtn primary" style="display:none">Continue campaign<span id="continueInfo"></span></button>
         <button id="rejoinBtn" class="bigbtn primary" style="display:none">Rejoin online game<span id="rejoinInfo"></span></button>
         <button id="quickBtn" class="bigbtn gold">Quick play<span id="quickInfo"></span></button>
+        <button id="campBtn" class="bigbtn">Campaign<span id="campInfo">conquer a region map, one battle at a time</span></button>
         <div class="homeRow">
           <button id="customBtn" class="bigbtn">Custom</button>
           <button id="mpOpenBtn" class="bigbtn">Online</button>
@@ -644,6 +664,39 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
       <button id="importBtn" class="opt">⬆ Import Save<span>load from file</span></button>
       <input type="file" id="importFile" accept=".json,application/json" style="display:none">
     </div>
+    </div>
+    <div id="campPane" style="display:none">
+      <button class="backBtn" data-back>◂ Back</button>
+      <h3>Campaign</h3>
+      <div id="campNew">
+        <p class="campIntro">A random theatre of war split into regions held by you and three rival factions. Each turn you attack a region next to yours, which is fought as a normal game; win it and the region is yours. Take a rival&rsquo;s capital &#9733; and its whole faction surrenders. Between your battles the rivals fight each other, and sometimes come for you. Hold every region to win; lose your own capital and the campaign is over.</p>
+        <div class="sec">Your faction</div>
+        <div class="optRow" id="campFacRow"></div>
+        <div class="sec">Campaign length</div>
+        <div class="optRow" id="campLenRow">
+          <button class="opt" data-n="10">Short<span>10 regions</span></button>
+          <button class="opt sel" data-n="14">Standard<span>14 regions</span></button>
+          <button class="opt" data-n="20">Long<span>20 regions</span></button>
+        </div>
+        <div class="sec">Difficulty</div>
+        <div class="optRow" id="campDiffRow">
+          <button class="opt" data-diff="easy">Easy</button>
+          <button class="opt sel" data-diff="normal">Normal</button>
+          <button class="opt" data-diff="hard">Hard</button>
+          <button class="opt" data-diff="crazy">Crazy</button>
+        </div>
+        <div class="sec">Map code <span class="secNote">optional: share it to play the same map</span></div>
+        <input id="campSeed" maxlength="8" placeholder="random" autocomplete="off" spellcheck="false">
+        <button id="campStart" class="bigbtn primary">Start campaign<span>generate the map</span></button>
+      </div>
+      <div id="campMap" style="display:none">
+        <div id="campStatus"></div>
+        <div id="campCanvasWrap"><canvas id="campCanvas" width="800" height="496" aria-label="Campaign map"></canvas></div>
+        <div id="campLegend"></div>
+        <div id="campCard"></div>
+        <div id="campLog"></div>
+        <div class="campFoot"><span id="campCode"></span><button id="campQuit" class="opt">Abandon campaign</button></div>
+      </div>
     </div>
     <div id="mpPane" style="display:none">
       <button class="backBtn" data-back>◂ Back</button>
@@ -4104,6 +4157,7 @@ function restoreGame(data, net){
     if(!net) NET.leave();
     pendingAtk=null;
     cfg={...data.cfg}; gcfg={...data.cfg};
+    delete cfg.campaign; delete cfg.enemyFacs;   // the menu's settings never inherit a campaign battle
     setBoardSize(data.W);
     enemySides=[...data.enemySides];
     turnOrder=[P,...enemySides];
@@ -4198,8 +4252,263 @@ function setupView(v){
   $('homePane').style.display=v==='home'?'':'none';
   $('soloPane').style.display=v==='solo'?'':'none';
   $('mpPane').style.display=v==='mp'?'':'none';
+  $('campPane').style.display=v==='camp'?'':'none';
+  if(v==='camp') renderCampaign();
 }
 const SIZE_NAME={9:'small',11:'standard',13:'large',15:'huge'};
+/* ================= CAMPAIGN =================
+   A random region map. Only who owns which region carries between battles: every battle is a normal game. */
+const CAMP_KEY='foothold-campaign';
+const CAMP_TERRAIN={classic:'Plains', highland:'Highlands', woods:'Woodland', lakes:'Lakes', sea:'Coast'};
+let campSel=null, campNewCfg={fac:'AEGIS', n:14, diff:'normal'};
+function campLoad(){ try{ const c=JSON.parse(localStorage.getItem(CAMP_KEY)||'null'); return c&&c.v===1?c:null; }catch(e){ return null; } }
+function campSave(c){ try{ if(c) localStorage.setItem(CAMP_KEY, JSON.stringify(c)); else localStorage.removeItem(CAMP_KEY); }catch(e){} }
+function campRng(seed){ let a=seed>>>0; return ()=>{ a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+const CAMP_W=100, CAMP_H=62;
+function campOwnerGrid(c){   // which region every cell of the map belongs to (nearest centre)
+  const g=new Int16Array(CAMP_W*CAMP_H);
+  for(let y=0;y<CAMP_H;y++)for(let x=0;x<CAMP_W;x++){
+    let b=0, bd=1e9;
+    c.regions.forEach((r,i)=>{ const d=(r.x-x-0.5)**2+(r.y-y-0.5)**2; if(d<bd){ bd=d; b=i; } });
+    g[y*CAMP_W+x]=b;
+  }
+  return g;
+}
+function genCampaign(seed, n, fac, diffKey){
+  const R=campRng(seed), pick=a=>a[Math.floor(R()*a.length)];
+  const regions=[]; const minD=Math.sqrt(CAMP_W*CAMP_H/n)*0.78;
+  for(let g=0; regions.length<n&&g<20000; g++){
+    const p={x:5+R()*(CAMP_W-10), y:5+R()*(CAMP_H-10)};
+    if(regions.every(q=>Math.hypot(q.x-p.x,q.y-p.y)>=minD*(g>8000?0.8:1))) regions.push(p);
+  }
+  const c={v:1, seed, fac, diff:diffKey, turn:1, regions, log:[], battle:null, over:null};
+  // neighbours: regions whose cells touch
+  const g=campOwnerGrid(c), nb=regions.map(()=>new Set());
+  for(let y=0;y<CAMP_H;y++)for(let x=0;x<CAMP_W;x++){
+    const a=g[y*CAMP_W+x];
+    if(x+1<CAMP_W){ const b=g[y*CAMP_W+x+1]; if(a!==b){ nb[a].add(b); nb[b].add(a); } }
+    if(y+1<CAMP_H){ const b=g[(y+1)*CAMP_W+x]; if(a!==b){ nb[a].add(b); nb[b].add(a); } }
+  }
+  // names and terrain
+  const A=['Kessel','Varn','Ostra','Brenn','Halden','Corvo','Lumen','Marrow','Tessa','Dunmore','Iver','Kael','Sorrel','Vesk','Ardent','Pell','Rook','Saxe','Talon','Ember','Grist','Holt','Juno','Nadir'];
+  const B=['Ridge','Point','Flats','Hollow','Reach','Gate','Fields','Crossing','Heights','Basin','Bay','Vale','Marsh','Pass','Shore','Downs'];
+  const used=new Set();
+  regions.forEach((r,i)=>{
+    r.id=i; r.nb=[...nb[i]];
+    let nm; do{ nm=pick(A)+' '+pick(B); }while(used.has(nm)); used.add(nm); r.name=nm;
+    const edge=Math.min(r.x, r.y, CAMP_W-r.x, CAMP_H-r.y);
+    r.terrain=edge<11&&R()<0.55?pick(['sea','lakes']):pick(['classic','classic','highland','woods','lakes']);
+    r.size=R()<0.55?9:11; r.owner=null; r.capital=false;
+  });
+  // four factions start in the four corners, then grow outward in turn until the map is claimed
+  const rivals=Object.keys(FACTIONS).filter(f=>f!==fac);
+  for(let i=rivals.length-1;i>0;i--){ const j=Math.floor(R()*(i+1)); [rivals[i],rivals[j]]=[rivals[j],rivals[i]]; }
+  const sides=[fac, ...rivals.filter(f=>!(FACTION_CLASH[fac]||[]).includes(f)).slice(0,3)];
+  const corners=[[0,CAMP_H],[CAMP_W,0],[0,0],[CAMP_W,CAMP_H]];
+  sides.forEach((f,i)=>{
+    const [cx,cy]=corners[i];
+    const r=regions.filter(q=>!q.owner).sort((a,b)=>Math.hypot(a.x-cx,a.y-cy)-Math.hypot(b.x-cx,b.y-cy))[0];
+    r.owner=f; r.capital=true; r.size=11;
+  });
+  for(let guard=0; regions.some(r=>!r.owner)&&guard<500; guard++){
+    for(const f of sides){
+      const front=regions.filter(r=>!r.owner&&r.nb.some(k=>regions[k].owner===f));
+      if(front.length) pick(front).owner=f;
+    }
+    if(guard>200) regions.filter(r=>!r.owner).forEach(r=>{ const o=r.nb.map(k=>regions[k].owner).find(Boolean); if(o) r.owner=o; });
+  }
+  c.sides=sides;
+  c.log.unshift('Campaign begins: '+FACTIONS[fac].name+' against '+sides.slice(1).map(f=>FACTIONS[f].name).join(', ')+'.');
+  return c;
+}
+const campOwned=(c,f)=>c.regions.filter(r=>r.owner===f);
+const campCanAttack=(c,r)=>r.owner!==c.fac&&r.nb.some(k=>c.regions[k].owner===c.fac);
+/* launch the battle for a region: a normal game against the region's owner, on a map that matches its terrain */
+function campBattle(kind, regionId, enemy){
+  const c=campLoad(); if(!c) return;
+  const r=c.regions[regionId];
+  c.battle={id:Math.floor(Math.random()*1e9), kind, region:regionId, enemy};
+  campSave(c);
+  const keep=cfg;
+  cfg={size:r.size, enemies:1, faction:c.fac, diff:c.diff, mode:'conquest', map:r.terrain, mods:[], hot:1, hotFac:[], enemyFacs:[enemy],
+       campaign:{id:c.battle.id, kind, region:regionId, name:r.name}};
+  $('setup').classList.remove('show');
+  NET.leave(); sfx.capture();
+  newGame(); tutStop();
+  cfg=keep;
+  toast((kind==='attack'?'Assault on ':'Defend ')+r.name+' \u2014 '+FACTIONS[enemy].name+'. Take their HQ to win the region.','var(--amber)');
+}
+/* called once when a campaign battle ends; returns a line for the end screen */
+function campaignResult(info, won){
+  const c=campLoad();
+  if(!c||!c.battle||c.battle.id!==info.id) return null;
+  const r=c.regions[c.battle.region], enemy=c.battle.enemy, kind=c.battle.kind;
+  let line;
+  if(kind==='attack'){
+    if(won){ line=campTake(c, r, c.fac) || r.name+' is yours.'; }
+    else line='The assault on '+r.name+' failed.';
+  } else {
+    if(won) line=r.name+' holds.';
+    else { line=campTake(c, r, enemy) || r.name+' falls to '+FACTIONS[enemy].name+'.'; }
+  }
+  c.log.unshift('Turn '+c.turn+': '+line);
+  c.battle=null;
+  campEliminations(c);
+  // the rivals move after your attack; a defence is their move, so it doesn't trigger another round
+  if(!campCheckEnd(c)&&kind==='attack') campRivals(c);
+  campSave(c);
+  return line;
+}
+/* hand a region over; a captured capital takes its whole faction with it. Returns a log line for a capital, else null. */
+function campTake(c, r, to){
+  const from=r.owner; r.owner=to;
+  if(!r.capital||from===to) return null;
+  r.capital=false;
+  let n=0; for(const q of c.regions) if(q.owner===from){ q.owner=to; n++; }
+  return r.name+', the '+FACTIONS[from].name+' capital, falls to '+(to===c.fac?'you':FACTIONS[to].name)+(n?' \u2014 their '+n+' other region'+(n===1?'':'s')+' surrender'+(n===1?'s':'')+' too.':'.');
+}
+function campEliminations(c){
+  for(const f of c.sides) if(f!==c.fac&&!(c.out||[]).includes(f)&&!campOwned(c,f).length){ c.out=[...(c.out||[]),f]; c.log.unshift(FACTIONS[f].name+' has been driven from the map.'); }
+}
+function campCheckEnd(c){
+  if(!campOwned(c,c.fac).length||!c.regions.some(r=>r.owner===c.fac&&r.capital)){ c.over='lost'; c.log.unshift('Your capital has fallen. The campaign is lost.'); return true; }
+  if(c.regions.every(r=>r.owner===c.fac)){ c.over='won'; c.log.unshift('Every region is yours. Campaign won in '+c.turn+' turns!'); return true; }
+  return false;
+}
+/* the rivals' moves after each of your battles: attacks on each other are settled at once, an attack on you is a battle */
+function campRivals(c){
+  const R=campRng((c.seed^(c.turn*2654435761))>>>0);
+  const live=c.sides.filter(f=>f!==c.fac&&campOwned(c,f).length);
+  for(let i=live.length-1;i>0;i--){ const j=Math.floor(R()*(i+1)); [live[i],live[j]]=[live[j],live[i]]; }
+  let defend=null;
+  for(const f of live){
+    if(R()>0.55||!campOwned(c,f).length) continue;
+    let targets=c.regions.filter(r=>r.owner!==f&&r.nb.some(k=>c.regions[k].owner===f));
+    // you get at most one attack per turn, and rivals pick on each other two times in three when they can
+    const others=targets.filter(r=>r.owner!==c.fac);
+    if(others.length&&(defend||R()<0.67)) targets=others;
+    if(!targets.length) continue;
+    targets.sort((a,b)=>campOwned(c,b.owner).length-campOwned(c,a.owner).length);   // they lean toward the biggest
+    const t=R()<0.6?targets[0]:targets[Math.floor(R()*targets.length)];
+    if(t.owner===c.fac){
+      if(!defend) defend={region:t.id, enemy:f};
+      continue;
+    }
+    const odds=t.capital?0.3:0.5, prev=t.owner;
+    if(R()<odds){ const cap=campTake(c, t, f); c.log.unshift(cap||FACTIONS[f].name+' takes '+t.name+' from '+FACTIONS[prev].name+'.'); }
+    else c.log.unshift(FACTIONS[prev].name+' throws back '+FACTIONS[f].name+' at '+t.name+'.');
+  }
+  campEliminations(c);
+  c.turn++;
+  if(defend){ c.defend=defend; c.log.unshift(FACTIONS[defend.enemy].name+' marches on '+c.regions[defend.region].name+'!'); }
+  else c.defend=null;
+  if(c.log.length>40) c.log.length=40;
+}
+/* ---- drawing the map ---- */
+function campDraw(){
+  const c=campLoad(), cv=$('campCanvas'); if(!c||!cv) return;
+  const ctx=cv.getContext('2d'), sx=cv.width/CAMP_W, sy=cv.height/CAMP_H, cw=cv.width, ch=cv.height;
+  const rgb=f=>{ const h=f?FACTIONS[f].css:'#5b6b62'; return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]; };
+  const idx=new Int16Array(cw*ch), xs=c.regions.map(r=>r.x*sx), ys=c.regions.map(r=>r.y*sy);
+  for(let y=0;y<ch;y++)for(let x=0;x<cw;x++){ let b=0, bd=1e18; for(let i=0;i<xs.length;i++){ const d=(xs[i]-x)**2+(ys[i]-y)**2; if(d<bd){ bd=d; b=i; } } idx[y*cw+x]=b; }
+  const img=ctx.createImageData(cw,ch), px=img.data;
+  const shade=c.regions.map(r=>{ const k=0.84+((r.id*37)%9)/9*0.2, dim=(campSel===r.id)?1.12:(c.battle||c.defend||c.over||!campCanAttack(c,r))&&r.owner!==c.fac?0.78:1; return rgb(r.owner).map(v=>Math.min(255,v*k*dim)); });
+  for(let y=0;y<ch;y++)for(let x=0;x<cw;x++){
+    const p=y*cw+x, a=idx[p], o=p*4;
+    let col=shade[a], edge=0;
+    const r1=x+1<cw?idx[p+1]:a, d1=y+1<ch?idx[p+cw]:a, l1=x>0?idx[p-1]:a, u1=y>0?idx[p-cw]:a;
+    for(const b of [r1,d1,l1,u1]) if(b!==a) edge=Math.max(edge, c.regions[a].owner!==c.regions[b].owner?2:1);
+    const m=edge===2?0.25:edge===1?0.62:1;
+    px[o]=col[0]*m; px[o+1]=col[1]*m; px[o+2]=col[2]*m; px[o+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+  // markers: capitals, terrain glyph, attackable rings
+  const glyph={classic:'\u2022', highland:'\u25b2', woods:'\u2663', lakes:'\u2248', sea:'\u2248'};
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  for(const r of c.regions){
+    const px=r.x*sx, py=r.y*sy;
+    const can=!c.battle&&!c.defend&&!c.over&&campCanAttack(c,r);
+    const K=Math.max(1, cw/(cv.getBoundingClientRect().width||cw)*0.8);   // markers keep a readable size on a small screen
+    if(can){ ctx.strokeStyle='rgba(255,255,255,.92)'; ctx.setLineDash([5*K,4*K]); ctx.lineWidth=2.5*K; ctx.beginPath(); ctx.arc(px,py,17*K,0,7); ctx.stroke(); ctx.setLineDash([]); }
+    if(c.defend&&c.defend.region===r.id){ ctx.strokeStyle='#ff5a4d'; ctx.lineWidth=4*K; ctx.beginPath(); ctx.arc(px,py,18*K,0,7); ctx.stroke(); }
+    ctx.fillStyle='rgba(10,16,14,.8)'; ctx.beginPath(); ctx.arc(px,py,12*K,0,7); ctx.fill();
+    ctx.fillStyle=r.capital?'#ffd27a':'#e8efe9'; ctx.font='800 '+Math.round((r.capital?17:15)*K)+'px Nunito, sans-serif';
+    ctx.fillText(r.capital?'\u2605':glyph[r.terrain], px, py+K);
+    if(campSel===r.id){ ctx.strokeStyle='#ffd27a'; ctx.lineWidth=3*K; ctx.beginPath(); ctx.arc(px,py,14*K,0,7); ctx.stroke(); }
+  }
+}
+function renderCampaign(){
+  const c=campLoad();
+  $('campNew').style.display=c?'none':'';
+  $('campMap').style.display=c?'':'none';
+  if(!c){
+    const row=$('campFacRow'); row.innerHTML='';
+    for(const k of Object.keys(FACTIONS)){
+      const b=document.createElement('button'); b.className='opt'+(campNewCfg.fac===k?' sel':''); b.style.setProperty('--fc',FACTIONS[k].css);
+      b.innerHTML=FACTIONS[k].name; b.onclick=()=>{ campNewCfg.fac=k; sfx.select(); renderCampaign(); }; row.appendChild(b);
+    }
+    document.querySelectorAll('#campLenRow .opt').forEach(o=>o.classList.toggle('sel',+o.dataset.n===campNewCfg.n));
+    document.querySelectorAll('#campDiffRow .opt').forEach(o=>o.classList.toggle('sel',o.dataset.diff===campNewCfg.diff));
+    return;
+  }
+  const mine=campOwned(c,c.fac).length;
+  $('campStatus').innerHTML='<b style="color:'+FACTIONS[c.fac].css+'">'+FACTIONS[c.fac].name+'</b> \u00b7 campaign turn <b>'+c.turn+'</b> \u00b7 you hold <b>'+mine+'</b> of '+c.regions.length+' regions \u00b7 '+(DIFFS[c.diff]||DIFFS.normal).name+
+    (c.over?' \u00b7 <b>'+(c.over==='won'?'VICTORY':'DEFEAT')+'</b>':'');
+  $('campLegend').innerHTML=c.sides.map(f=>'<span class="'+((c.out||[]).includes(f)?'out':'')+'"><i style="background:'+FACTIONS[f].css+'"></i>'+FACTIONS[f].name+(f===c.fac?' (you)':'')+' \u00b7 '+campOwned(c,f).length+'</span>').join('');
+  $('campLog').innerHTML=c.log.slice(0,12).map(l=>'<div>'+esc(l)+'</div>').join('');
+  $('campCode').textContent='Map code '+c.seed.toString(36).toUpperCase();
+  const card=$('campCard'); card.innerHTML='';
+  const btn=(label,sub,fn,cls)=>{ const b=document.createElement('button'); b.className='bigbtn '+(cls||'primary'); b.innerHTML=label+(sub?'<span>'+sub+'</span>':''); b.onclick=fn; card.appendChild(b); return b; };
+  if(c.over){
+    card.innerHTML='<h4>'+(c.over==='won'?'Campaign won':'Campaign lost')+'</h4><div class="cs">'+(c.over==='won'?'Every region flies your flag, after '+c.turn+' campaign turns.':'Your forces have been driven from the map.')+'</div>';
+    btn('New campaign','start over on a new map',()=>{ campSave(null); campSel=null; renderCampaign(); });
+  } else if(c.battle){
+    const r=c.regions[c.battle.region];
+    card.innerHTML='<h4>'+(c.battle.kind==='attack'?'Assault on ':'Defence of ')+esc(r.name)+'</h4><div class="cs">Against '+FACTIONS[c.battle.enemy].name+' \u00b7 '+CAMP_TERRAIN[r.terrain]+' \u00b7 '+r.size+'\u00d7'+r.size+'</div>';
+    const running=!!map&&!gameOver&&(gcfg||{}).campaign&&gcfg.campaign.id===c.battle.id;
+    let saved=false; try{ const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); saved=!!(d&&d.cfg&&d.cfg.campaign&&d.cfg.campaign.id===c.battle.id); }catch(e){}
+    if(running) btn('Back to the battle','',()=>{ $('setup').classList.remove('show'); sfx.select(); });
+    else if(saved) btn('Resume the battle','continue where you left off',()=>{ try{ const d=JSON.parse(localStorage.getItem(SAVE_KEY)); if(restoreGame(d)){ tutStop(); sfx.capture(); } }catch(e){} });
+    else btn('Fight the battle','it was interrupted \u2014 start it again',()=>campBattle(c.battle.kind,c.battle.region,c.battle.enemy));
+  } else if(c.defend){
+    const r=c.regions[c.defend.region];
+    card.innerHTML='<h4>'+esc(r.name)+' is under attack</h4><div class="cs">'+FACTIONS[c.defend.enemy].name+' is marching in. Fight them off, or give the region up.'+(r.capital?' <b>This is your capital: lose it and the campaign is over.</b>':'')+'</div>';
+    btn('Defend '+esc(r.name),CAMP_TERRAIN[r.terrain]+' \u00b7 '+r.size+'\u00d7'+r.size,()=>{ const d=c.defend; c.defend=null; campSave(c); campBattle('defend',d.region,d.enemy); });
+    if(!r.capital) btn('Give it up','the region falls without a fight',()=>{ r.owner=c.defend.enemy; c.log.unshift('Turn '+c.turn+': '+r.name+' abandoned to '+FACTIONS[c.defend.enemy].name+'.'); c.defend=null; campEliminations(c); if(!campCheckEnd(c)) campRivals(c); campSave(c); renderCampaign(); },'');
+  } else if(campSel!=null){
+    const r=c.regions[campSel];
+    const owner=r.owner===c.fac?'yours':FACTIONS[r.owner].name;
+    card.innerHTML='<h4>'+esc(r.name)+(r.capital?' \u2605':'')+'</h4><div class="cs">'+owner+' \u00b7 '+CAMP_TERRAIN[r.terrain]+' \u00b7 battle map '+r.size+'\u00d7'+r.size+(r.capital?' \u00b7 capital':'')+'</div>';
+    if(campCanAttack(c,r)) btn('Attack '+esc(r.name),'a normal game against '+FACTIONS[r.owner].name,()=>campBattle('attack',r.id,r.owner));
+    else if(r.owner!==c.fac){ const d=document.createElement('div'); d.className='cs'; d.style.marginTop='6px'; d.textContent='Not next to any of your regions yet.'; card.appendChild(d); }
+  } else {
+    card.innerHTML='<div class="cs">Tap a region with a dashed ring to attack it. \u2605 marks a capital; \u25b2 highlands, \u2663 woodland and \u2248 water decide the battle map.</div>';
+  }
+  campDraw();
+}
+$('campCanvas').addEventListener('click',e=>{
+  const c=campLoad(); if(!c) return;
+  const r=e.target.getBoundingClientRect(), x=(e.clientX-r.left)/r.width*CAMP_W, y=(e.clientY-r.top)/r.height*CAMP_H;
+  let b=0, bd=1e9; c.regions.forEach((q,i)=>{ const d=(q.x-x)**2+(q.y-y)**2; if(d<bd){ bd=d; b=i; } });
+  campSel=campSel===b?null:b; sfx.select(); renderCampaign();
+});
+document.querySelectorAll('#campLenRow .opt').forEach(b=>b.onclick=()=>{ campNewCfg.n=+b.dataset.n; sfx.select(); renderCampaign(); });
+document.querySelectorAll('#campDiffRow .opt').forEach(b=>b.onclick=()=>{ campNewCfg.diff=b.dataset.diff; sfx.select(); renderCampaign(); });
+$('campStart').onclick=()=>{
+  const code=($('campSeed').value||'').trim().toLowerCase();
+  const seed=code&&/^[0-9a-z]+$/.test(code)?parseInt(code,36)>>>0:Math.floor(Math.random()*2**31);
+  campSave(genCampaign(seed, campNewCfg.n, campNewCfg.fac, campNewCfg.diff)); campSel=null; sfx.capture(); renderCampaign();
+};
+$('campQuit').onclick=()=>{
+  const b=$('campQuit');
+  if(!b.dataset.armed){ b.dataset.armed='1'; b.textContent='Tap again to abandon'; setTimeout(()=>{ b.dataset.armed=''; b.textContent='Abandon campaign'; },3000); return; }
+  campSave(null); campSel=null; sfx.select(); renderCampaign();
+};
+function syncCampBtn(){
+  const c=campLoad(), el=$('campInfo'); if(!el) return;
+  el.textContent=!c?'conquer a region map, one battle at a time':c.over?'campaign '+(c.over==='won'?'won':'lost')+' \u2014 start a new one':
+    'turn '+c.turn+' \u00b7 '+campOwned(c,c.fac).length+' of '+c.regions.length+' regions'+(c.battle?' \u00b7 battle in progress':c.defend?' \u00b7 under attack!':'');
+}
 function showSetup(){
   const grid=$('factionGrid');
   grid.innerHTML='';
@@ -4242,7 +4551,7 @@ function showSetup(){
     }catch(e){ $('continueInfo').textContent='saved campaign'; }
   } else cb.style.display='none';
   disarm();
-  syncRejoin();
+  syncRejoin(); syncCampBtn();
   setupView(NET.on?'mp':'home');
   $('setup').classList.add('show');
 }
@@ -4285,6 +4594,7 @@ $('tutBtn').onclick=()=>{
   cfg=keep;
 };
 $('customBtn').onclick=()=>{ disarm(); setupView('solo'); sfx.select(); };
+$('campBtn').onclick=()=>{ disarm(); setupView('camp'); sfx.select(); };
 $('mpOpenBtn').onclick=()=>{ disarm(); setupView('mp'); sfx.select();
   if(!navigator.onLine) mpMsg('⚠ You are offline \u2014 online play needs an internet connection. Solo games work offline.');
   else if(!window.Peer) mpMsg('⚠ P2P engine failed to load — re-download the game file.'); };
@@ -5068,6 +5378,13 @@ function endGame(winner){
   if(hotOn()){ t.textContent=pname(winner)+' wins'; t.className='win';
     b.textContent=meta(winner).name+(timeUp?' finished with the highest score.':' holds the region.')+' Turn '+turn+'.'; }
   { const d=document.createElement('div'); d.className='ovScore'; d.innerHTML=resultHtml(winner, firstTime); b.appendChild(d); }
+  const camp=(gcfg||{}).campaign;
+  if(camp&&!NET.on&&!hotOn()){
+    const line=firstTime?campaignResult(camp, winner===MYSIDE):null;
+    if(line){ const d=document.createElement('div'); d.className='ovNote'; d.textContent=line; b.appendChild(d); }
+    btn.textContent='Campaign map';
+    btn.onclick=()=>{ $('overlay').classList.remove('show'); showSetup(); setupView('camp'); };
+  }
   // online: the host can take everyone straight back to the lobby for another game
   const rm=$('ovRematch');
   rm.hidden=!(NET.on&&NET.host);
@@ -5091,7 +5408,7 @@ function revealAll(){
   for(let y=0;y<H;y++)for(let x=0;x<W;x++) explored[y][x]=true;
   syncFog();
 }
-$('endNew').onclick=()=>{ $('endBar').hidden=true; NET.leave(); showSetup(); };
+$('endNew').onclick=()=>{ $('endBar').hidden=true; NET.leave(); showSetup(); if((gcfg||{}).campaign) setupView('camp'); };
 $('restart').onclick=()=>{ $('overlay').classList.remove('show'); NET.leave(); showSetup(); };
 $('helpBtn').onclick=()=>{
   const lines=[
@@ -5118,6 +5435,7 @@ $('helpBtn').onclick=()=>{
     ['Modifiers','Custom setup or the online host can add No fog, Double income, Early Titans (any city can field one) or No powers. Games with No fog, Double income or Early Titans don\u2019t earn medals.'],
     ['Online rematch','When an online game ends the host can tap Rematch to bring everyone back to the lobby with the same factions and settings.'],
     ['Reconnecting','If a guest drops out the game retries on its own. A guest who reloads the page or reopens the app gets a Rejoin button on the title screen for the next six hours; the host keeps their seat until the host replaces them with the AI.'],
+    ['Campaign','Title screen \u2192 Campaign: a random map of 10, 14 or 20 regions shared between you and three rival factions. Each campaign turn you attack one region next to yours; the battle is a normal game against that region\u2019s owner, on a map that matches the region (highlands, woodland, lakes or coast; capitals are bigger). Win and the region is yours; take a rival\u2019s capital (\u2605) and its whole faction surrenders to you. Then the rivals move: they fight each other, and sometimes attack one of your regions, which you can defend in a battle or give up (never your capital: lose that and the campaign is over). Nothing else carries over between battles. Hold every region to win; a map code lets a friend play the same map.'],
     ['Pass & play','Menu \u2192 Custom \u2192 Players on this device: two to four people share one phone or computer. After each turn a hand-off screen hides the board until the next player taps Start turn, and everyone sees only their own explored map. Any remaining rivals are played by the computer.'],
     ['Danger zones','Tap the warning triangle (or press D) to shade every tile an enemy in sight could strike next turn.'],
     ['Surrender','A computer rival that is down to its HQ and hopelessly outgunned gives up instead of dragging out the ending.'],
@@ -5952,7 +6270,7 @@ function newGame(){
   for(let i=0;i<cfg.enemies;i++){
     const s='A'+(i+1);
     enemySides.push(s);
-    const want=i<hotN-1?(cfg.hotFac||[])[i]:null;   // players 2+ picked their factions on the setup screen
+    const want=(cfg.enemyFacs&&cfg.enemyFacs[i])||(i<hotN-1?(cfg.hotFac||[])[i]:null);   // players 2+ picked their factions on the setup screen; a campaign battle names its defender
     let k=want&&pool.includes(want)?pool.indexOf(want):pool.findIndex(f=>!chosen.some(c=>(FACTION_CLASH[c]||[]).includes(f)));
     if(k<0) k=0;
     const fk=pool.length?pool.splice(k,1)[0]:cfg.faction; chosen.push(fk);

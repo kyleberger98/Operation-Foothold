@@ -12,6 +12,7 @@ The whole game is one file, `gridline-command.html`. It also runs offline: downl
 - **Titans:** a super unit that only cities of level 4 or higher can field, one per city.
 - **Navy:** coastal cities build Patrol Boats, Landing Craft, Destroyers and Battleships; Landing Craft ferry land units across water.
 - **Map types and modifiers:** Classic, Highlands, Woodland, Lakes, Inland Sea and Mirrored maps, plus optional No fog, Double income, Early Titans and No powers.
+- **Campaign:** conquer a random map of regions one battle at a time against three rival factions; each battle is a normal game.
 - **Two modes:** Conquest (capture every HQ) and Score attack (30 turns, highest score wins).
 - **Stars and medals:** every solo win is rated one to three stars, and each faction keeps its best medal per difficulty.
 - **Pass & play:** two to four people can share one phone or computer, each with their own fog of war.
