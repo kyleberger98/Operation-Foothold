@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<title>Gridline Command — Modern Tactics</title>
-<meta name="description" content="Turn-based tactics: capture every enemy HQ. Low-poly 3D, four factions, solo against the AI or online with friends.">
+<title>Gridline Command: Modern Tactics</title>
+<meta name="description" content="Turn-based tactics: capture every enemy HQ. Seven factions, a campaign, navies and Titans: solo against the AI, pass-and-play or online with friends.">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0b1d27">
 <meta name="mobile-web-app-capable" content="yes">
@@ -66,6 +66,26 @@ button{font:inherit; transition:background .15s ease, color .15s ease, border-co
 .rb.off{color:var(--dim)}
 #fitBtn{position:fixed; z-index:11; right:calc(env(safe-area-inset-right,0px) + 12px); top:calc(env(safe-area-inset-top,0px) + 62px)}
 #fitBtn.on{border-color:var(--amber); color:var(--amber)}
+#armyBtn{position:fixed; z-index:11; right:calc(env(safe-area-inset-right,0px) + 12px); top:calc(env(safe-area-inset-top,0px) + 212px)}
+#armyPanel{position:fixed; inset:0; z-index:44; display:flex; align-items:flex-end; justify-content:center; background:rgba(8,12,10,.5)}
+#armyPanel[hidden]{display:none}
+.apInner{width:min(560px,100%); max-height:78vh; overflow-y:auto; background:rgba(20,27,22,.98); border:1px solid var(--line); border-radius:18px 18px 0 0;
+  padding:12px 14px calc(env(safe-area-inset-bottom,0px) + 14px)}
+.apHead{display:flex; justify-content:space-between; align-items:center; position:sticky; top:-12px; background:rgba(20,27,22,.98); padding:4px 0 8px}
+.apHead b{font-family:'Saira Condensed',sans-serif; font-size:18px; letter-spacing:.1em; text-transform:uppercase}
+.apHead button{background:none; border:1px solid var(--line); color:var(--text); border-radius:50%; width:32px; height:32px; cursor:pointer}
+.apSec{font-family:'Saira Condensed',sans-serif; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); margin:10px 0 4px}
+.apRow{display:flex; align-items:center; gap:10px; width:100%; padding:6px 8px; border-radius:10px; border:none; background:none; color:var(--text); cursor:pointer; text-align:left; font-size:12.5px}
+.apRow:hover,.apRow:focus-visible{background:rgba(255,255,255,.06)}
+.apRow img{width:30px; height:30px; object-fit:contain; flex:none}
+.apRow .ic{width:30px; height:30px; flex:none; display:grid; place-items:center; color:var(--amber)}
+.apRow .ic svg{width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2}
+.apRow .nm{flex:1; min-width:0}
+.apRow .nm b{display:block; font-weight:700}
+.apRow .nm span{color:var(--dim); font-size:11.5px}
+.apRow .st{font-size:11px; padding:2px 8px; border-radius:999px; background:rgba(255,255,255,.07); color:var(--dim); white-space:nowrap}
+.apRow .st.ready{color:#8fd89a; background:rgba(143,216,154,.12)}
+.apRow .st.watch{color:var(--amber); background:rgba(240,179,92,.12)}
 #dangerBtn{position:fixed; z-index:11; right:calc(env(safe-area-inset-right,0px) + 12px); top:calc(env(safe-area-inset-top,0px) + 112px)}
 #dangerBtn.on{border-color:var(--red); color:var(--red)}
 #powerBtn{position:fixed; z-index:11; right:calc(env(safe-area-inset-right,0px) + 12px); top:calc(env(safe-area-inset-top,0px) + 162px)}
@@ -79,7 +99,7 @@ button{font:inherit; transition:background .15s ease, color .15s ease, border-co
   display:flex; gap:8px}
 
 /* ---- bottom dock: Tech on the left, Next unit + End turn on the right ---- */
-body.nogame #hud, body.nogame .dock, body.nogame #topRight, body.nogame #fitBtn, body.nogame #dangerBtn, body.nogame #powerBtn, body.nogame #menuBtn{visibility:hidden}
+body.nogame #hud, body.nogame .dock, body.nogame #topRight, body.nogame #fitBtn, body.nogame #armyBtn, body.nogame #dangerBtn, body.nogame #powerBtn, body.nogame #menuBtn{visibility:hidden}
 .dock{position:fixed; z-index:12; bottom:calc(env(safe-area-inset-bottom,0px) + 12px);
   display:flex; flex-direction:column; align-items:center; gap:5px;
   padding:0; background:none; border:none; cursor:pointer; color:var(--text)}
@@ -340,7 +360,16 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
   padding:10px 12px; cursor:pointer; text-align:left; font-family:'Nunito',system-ui,sans-serif; color:var(--text);
   transition:transform .14s ease, border-color .14s ease, box-shadow .14s ease, background .14s ease}
 .fcard .fn{font-family:'Saira Condensed',sans-serif; font-size:16px; letter-spacing:.08em; text-transform:uppercase}
-.fcard .fp{font-size:10.5px; color:var(--dim); line-height:1.55; margin-top:4px}
+.fcard .fp, #campFacInfo .fp{font-size:10.5px; color:var(--dim); line-height:1.55; margin-top:4px}
+.fstyle{font-size:11.5px; line-height:1.45; margin-top:3px; color:var(--text)}
+.fstyle em{font-style:normal; color:var(--amber); font-size:10.5px; white-space:nowrap}
+.fstats{display:grid; grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); gap:2px 10px; margin:6px 0 2px}
+.fstats span{display:flex; align-items:center; gap:3px; font-size:10px; color:var(--dim)}
+.fstats i{font-style:normal; width:52px; flex:none}
+.fstats b{width:9px; height:6px; border-radius:2px; background:rgba(255,255,255,.12)}
+.fstats b.on{background:var(--amber)}
+#campFacInfo{margin:8px 0 2px; padding:10px 12px; border-radius:12px; background:var(--panel2); border:1px solid var(--line); border-left:5px solid var(--fc)}
+#campFacInfo .fn{font-family:'Saira Condensed',sans-serif; font-size:16px; letter-spacing:.08em; text-transform:uppercase}
 .fcard:hover{border-color:var(--dim); transform:translateY(-2px); box-shadow:0 8px 18px rgba(0,0,0,.4)}
 .fcard.sel{border-color:var(--amber); background:#221f15; box-shadow:inset 0 0 0 1px var(--amber)}
 .optRow{display:flex; gap:8px; flex-wrap:wrap}
@@ -545,6 +574,8 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
   <div class="hud-box hb-side"><span class="v" id="hudSide">YOU</span></div>
 </div>
 <button id="powerBtn" class="rb" title="Commander power (P)" aria-label="Commander power" hidden><svg viewBox="0 0 24 24"><path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/></svg></button>
+<button id="armyBtn" class="rb" title="Army overview (O)" aria-label="Army overview"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg></button>
+<div id="armyPanel" hidden><div class="apInner"><div class="apHead"><b>Army overview</b><button id="armyClose" aria-label="Close">&#10005;</button></div><div id="armyList"></div></div></div>
 <button id="dangerBtn" class="rb" title="Danger zones: where enemies in sight can strike next turn (D)" aria-label="Danger zones"><svg viewBox="0 0 24 24"><path d="M12 4 21 19.5H3z"/><path d="M12 10v4.5M12 17v.3"/></svg></button>
 <button id="fitBtn" class="rb" title="Whole map (V)" aria-label="Whole map"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
 <button id="menuBtn" class="rb" title="Menu" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h14"/></svg></button>
@@ -598,7 +629,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 <div id="setup">
   <div id="setupInner">
     <div id="homePane">
-      <h1><span class="op">Gridline</span> Command<span class="three">3D</span></h1>
+      <h1><span class="op">Gridline</span> Command</h1>
       <div class="tag">Turn-based tactics · capture the enemy HQ</div>
       <div class="homeBtns">
         <button id="resumeBtn" class="bigbtn primary" style="display:none">Resume<span>back to the battlefield</span></button>
@@ -674,6 +705,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
         <p class="campIntro">A random theatre of war split into regions held by you and three rival factions. Each turn you attack a region next to yours, which is fought as a normal game; win it and the region is yours. Take a rival&rsquo;s capital &#9733; and its whole faction surrenders. Between your battles the rivals fight each other, and sometimes come for you. Hold every region to win; lose your own capital and the campaign is over.</p>
         <div class="sec">Your faction</div>
         <div class="optRow" id="campFacRow"></div>
+        <div id="campFacInfo"></div>
         <div class="sec">Campaign length</div>
         <div class="optRow" id="campLenRow">
           <button class="opt" data-n="10">Short<span>10 regions</span></button>
@@ -714,7 +746,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
       </div>
       <div id="mpStatus" class="sec"></div>
       <div id="mpLobby" style="display:none">
-        <div id="mpCodeBox">ROOM CODE<b id="mpCodeVal">&mdash;</b></div>
+        <div id="mpCodeBox">ROOM CODE<b id="mpCodeVal">-----</b></div>
         <div id="mpInvite" style="display:none">
           <button id="mpCopyBtn" class="opt">Copy invite link<span id="mpInviteUrl"></span></button>
           <button id="mpShareBtn" class="opt" style="display:none">Share invite<span>send it to a friend</span></button>
@@ -746,7 +778,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
         <div id="mpWait" style="display:none">Waiting for the host to launch&hellip;</div>
         <button id="mpLeaveBtn" class="opt">&#10005; Leave lobby</button>
       </div>
-      <div class="saveNote">Peer-to-peer over the internet &mdash; the host's device referees the match.</div>
+      <div class="saveNote">Peer-to-peer over the internet: the host's device referees the match.</div>
     </div>
   </div>
 </div>
@@ -782,7 +814,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 
 </script>
 <script>
-/*! PeerJS 1.5.5 — https://peerjs.com — MIT — embedded inline so multiplayer works from a local file too */
+/*! PeerJS 1.5.5: https://peerjs.com: MIT: embedded inline so multiplayer works from a local file too */
 (()=>{function e(e,t,n,r){Object.defineProperty(e,t,{get:n,set:r,enumerable:!0,configurable:!0})}function t(e){return e&&e.__esModule?e.default:e}class n{constructor(){this.chunkedMTU=16300,this._dataCount=1,this.chunk=e=>{let t=[],n=e.byteLength,r=Math.ceil(n/this.chunkedMTU),i=0,s=0;for(;s<n;){let o=Math.min(n,s+this.chunkedMTU),a=e.slice(s,o),c={__peerData:this._dataCount,n:i,data:a,total:r};t.push(c),s=o,i++}return this._dataCount++,t}}}class r{append_buffer(e){this.flush(),this._parts.push(e)}append(e){this._pieces.push(e)}flush(){if(this._pieces.length>0){let e=new Uint8Array(this._pieces);this._parts.push(e),this._pieces=[]}}toArrayBuffer(){let e=[];for(let t of this._parts)e.push(t);return function(e){let t=0;for(let n of e)t+=n.byteLength;let n=new Uint8Array(t),r=0;for(let t of e){let e=new Uint8Array(t.buffer,t.byteOffset,t.byteLength);n.set(e,r),r+=t.byteLength}return n}(e).buffer}constructor(){this.encoder=new TextEncoder,this._pieces=[],this._parts=[]}}function i(e){return new o(e).unpack()}function s(e){let t=new a,n=t.pack(e);return n instanceof Promise?n.then(()=>t.getBuffer()):t.getBuffer()}class o{unpack(){let e,t=this.unpack_uint8();if(t<128)return t;if((224^t)<32)return(224^t)-32;if((e=160^t)<=15)return this.unpack_raw(e);if((e=176^t)<=15)return this.unpack_string(e);if((e=144^t)<=15)return this.unpack_array(e);if((e=128^t)<=15)return this.unpack_map(e);switch(t){case 192:return null;case 193:case 212:case 213:case 214:case 215:return;case 194:return!1;case 195:return!0;case 202:return this.unpack_float();case 203:return this.unpack_double();case 204:return this.unpack_uint8();case 205:return this.unpack_uint16();case 206:return this.unpack_uint32();case 207:return this.unpack_uint64();case 208:return this.unpack_int8();case 209:return this.unpack_int16();case 210:return this.unpack_int32();case 211:return this.unpack_int64();case 216:return e=this.unpack_uint16(),this.unpack_string(e);case 217:return e=this.unpack_uint32(),this.unpack_string(e);case 218:return e=this.unpack_uint16(),this.unpack_raw(e);case 219:return e=this.unpack_uint32(),this.unpack_raw(e);case 220:return e=this.unpack_uint16(),this.unpack_array(e);case 221:return e=this.unpack_uint32(),this.unpack_array(e);case 222:return e=this.unpack_uint16(),this.unpack_map(e);case 223:return e=this.unpack_uint32(),this.unpack_map(e)}}unpack_uint8(){let e=255&this.dataView[this.index];return this.index++,e}unpack_uint16(){let e=this.read(2),t=(255&e[0])*256+(255&e[1]);return this.index+=2,t}unpack_uint32(){let e=this.read(4),t=((256*e[0]+e[1])*256+e[2])*256+e[3];return this.index+=4,t}unpack_uint64(){let e=this.read(8),t=((((((256*e[0]+e[1])*256+e[2])*256+e[3])*256+e[4])*256+e[5])*256+e[6])*256+e[7];return this.index+=8,t}unpack_int8(){let e=this.unpack_uint8();return e<128?e:e-256}unpack_int16(){let e=this.unpack_uint16();return e<32768?e:e-65536}unpack_int32(){let e=this.unpack_uint32();return e<0x80000000?e:e-0x100000000}unpack_int64(){let e=this.unpack_uint64();return e<0x8000000000000000?e:e-0xffffffffffffffff}unpack_raw(e){if(this.length<this.index+e)throw Error(`BinaryPackFailure: index is out of range ${this.index} ${e} ${this.length}`);let t=this.dataBuffer.slice(this.index,this.index+e);return this.index+=e,t}unpack_string(e){let t,n,r=this.read(e),i=0,s="";for(;i<e;)(t=r[i])<160?(n=t,i++):(192^t)<32?(n=(31&t)<<6|63&r[i+1],i+=2):(224^t)<16?(n=(15&t)<<12|(63&r[i+1])<<6|63&r[i+2],i+=3):(n=(7&t)<<18|(63&r[i+1])<<12|(63&r[i+2])<<6|63&r[i+3],i+=4),s+=String.fromCodePoint(n);return this.index+=e,s}unpack_array(e){let t=Array(e);for(let n=0;n<e;n++)t[n]=this.unpack();return t}unpack_map(e){let t={};for(let n=0;n<e;n++)t[this.unpack()]=this.unpack();return t}unpack_float(){let e=this.unpack_uint32();return(0==e>>31?1:-1)*(8388607&e|8388608)*2**((e>>23&255)-127-23)}unpack_double(){let e=this.unpack_uint32(),t=this.unpack_uint32(),n=(e>>20&2047)-1023;return(0==e>>31?1:-1)*((1048575&e|1048576)*2**(n-20)+t*2**(n-52))}read(e){let t=this.index;if(t+e<=this.length)return this.dataView.subarray(t,t+e);throw Error("BinaryPackFailure: read index out of range")}constructor(e){this.index=0,this.dataBuffer=e,this.dataView=new Uint8Array(this.dataBuffer),this.length=this.dataBuffer.byteLength}}class a{getBuffer(){return this._bufferBuilder.toArrayBuffer()}pack(e){if("string"==typeof e)this.pack_string(e);else if("number"==typeof e)Math.floor(e)===e?this.pack_integer(e):this.pack_double(e);else if("boolean"==typeof e)!0===e?this._bufferBuilder.append(195):!1===e&&this._bufferBuilder.append(194);else if(void 0===e)this._bufferBuilder.append(192);else if("object"==typeof e)if(null===e)this._bufferBuilder.append(192);else{let t=e.constructor;if(e instanceof Array){let t=this.pack_array(e);if(t instanceof Promise)return t.then(()=>this._bufferBuilder.flush())}else if(e instanceof ArrayBuffer)this.pack_bin(new Uint8Array(e));else if("BYTES_PER_ELEMENT"in e)this.pack_bin(new Uint8Array(e.buffer,e.byteOffset,e.byteLength));else if(e instanceof Date)this.pack_string(e.toString());else if(e instanceof Blob)return e.arrayBuffer().then(e=>{this.pack_bin(new Uint8Array(e)),this._bufferBuilder.flush()});else if(t==Object||t.toString().startsWith("class")){let t=this.pack_object(e);if(t instanceof Promise)return t.then(()=>this._bufferBuilder.flush())}else throw Error(`Type "${t.toString()}" not yet supported`)}else throw Error(`Type "${typeof e}" not yet supported`);this._bufferBuilder.flush()}pack_bin(e){let t=e.length;if(t<=15)this.pack_uint8(160+t);else if(t<=65535)this._bufferBuilder.append(218),this.pack_uint16(t);else if(t<=0xffffffff)this._bufferBuilder.append(219),this.pack_uint32(t);else throw Error("Invalid length");this._bufferBuilder.append_buffer(e)}pack_string(e){let t=this._textEncoder.encode(e),n=t.length;if(n<=15)this.pack_uint8(176+n);else if(n<=65535)this._bufferBuilder.append(216),this.pack_uint16(n);else if(n<=0xffffffff)this._bufferBuilder.append(217),this.pack_uint32(n);else throw Error("Invalid length");this._bufferBuilder.append_buffer(t)}pack_array(e){let t=e.length;if(t<=15)this.pack_uint8(144+t);else if(t<=65535)this._bufferBuilder.append(220),this.pack_uint16(t);else if(t<=0xffffffff)this._bufferBuilder.append(221),this.pack_uint32(t);else throw Error("Invalid length");let n=r=>{if(r<t){let t=this.pack(e[r]);return t instanceof Promise?t.then(()=>n(r+1)):n(r+1)}};return n(0)}pack_integer(e){if(e>=-32&&e<=127)this._bufferBuilder.append(255&e);else if(e>=0&&e<=255)this._bufferBuilder.append(204),this.pack_uint8(e);else if(e>=-128&&e<=127)this._bufferBuilder.append(208),this.pack_int8(e);else if(e>=0&&e<=65535)this._bufferBuilder.append(205),this.pack_uint16(e);else if(e>=-32768&&e<=32767)this._bufferBuilder.append(209),this.pack_int16(e);else if(e>=0&&e<=0xffffffff)this._bufferBuilder.append(206),this.pack_uint32(e);else if(e>=-0x80000000&&e<=0x7fffffff)this._bufferBuilder.append(210),this.pack_int32(e);else if(e>=-0x8000000000000000&&e<=0x8000000000000000)this._bufferBuilder.append(211),this.pack_int64(e);else if(e>=0&&e<=0xffffffffffffffff)this._bufferBuilder.append(207),this.pack_uint64(e);else throw Error("Invalid integer")}pack_double(e){let t=0;e<0&&(t=1,e=-e);let n=Math.floor(Math.log(e)/Math.LN2),r=Math.floor((e/2**n-1)*0x10000000000000),i=t<<31|n+1023<<20|r/0x100000000&1048575;this._bufferBuilder.append(203),this.pack_int32(i),this.pack_int32(r%0x100000000)}pack_object(e){let t=Object.keys(e),n=t.length;if(n<=15)this.pack_uint8(128+n);else if(n<=65535)this._bufferBuilder.append(222),this.pack_uint16(n);else if(n<=0xffffffff)this._bufferBuilder.append(223),this.pack_uint32(n);else throw Error("Invalid length");let r=n=>{if(n<t.length){let i=t[n];if(e.hasOwnProperty(i)){this.pack(i);let t=this.pack(e[i]);if(t instanceof Promise)return t.then(()=>r(n+1))}return r(n+1)}};return r(0)}pack_uint8(e){this._bufferBuilder.append(e)}pack_uint16(e){this._bufferBuilder.append(e>>8),this._bufferBuilder.append(255&e)}pack_uint32(e){let t=0|e;this._bufferBuilder.append((0xff000000&t)>>>24),this._bufferBuilder.append((0xff0000&t)>>>16),this._bufferBuilder.append((65280&t)>>>8),this._bufferBuilder.append(255&t)}pack_uint64(e){let t=e/0x100000000,n=e%0x100000000;this._bufferBuilder.append((0xff000000&t)>>>24),this._bufferBuilder.append((0xff0000&t)>>>16),this._bufferBuilder.append((65280&t)>>>8),this._bufferBuilder.append(255&t),this._bufferBuilder.append((0xff000000&n)>>>24),this._bufferBuilder.append((0xff0000&n)>>>16),this._bufferBuilder.append((65280&n)>>>8),this._bufferBuilder.append(255&n)}pack_int8(e){this._bufferBuilder.append(255&e)}pack_int16(e){this._bufferBuilder.append((65280&e)>>8),this._bufferBuilder.append(255&e)}pack_int32(e){this._bufferBuilder.append(e>>>24&255),this._bufferBuilder.append((0xff0000&e)>>>16),this._bufferBuilder.append((65280&e)>>>8),this._bufferBuilder.append(255&e)}pack_int64(e){let t=Math.floor(e/0x100000000),n=e%0x100000000;this._bufferBuilder.append((0xff000000&t)>>>24),this._bufferBuilder.append((0xff0000&t)>>>16),this._bufferBuilder.append((65280&t)>>>8),this._bufferBuilder.append(255&t),this._bufferBuilder.append((0xff000000&n)>>>24),this._bufferBuilder.append((0xff0000&n)>>>16),this._bufferBuilder.append((65280&n)>>>8),this._bufferBuilder.append(255&n)}constructor(){this._bufferBuilder=new r,this._textEncoder=new TextEncoder}}"use strict";let c=!0,p=!0;function d(e,t,n){let r=e.match(t);return r&&r.length>=n&&parseInt(r[n],10)}function l(e,t,n){if(!e.RTCPeerConnection)return;let r=e.RTCPeerConnection.prototype,i=r.addEventListener;r.addEventListener=function(e,r){if(e!==t)return i.apply(this,arguments);let s=e=>{let t=n(e);t&&(r.handleEvent?r.handleEvent(t):r(t))};return this._eventMap=this._eventMap||{},this._eventMap[t]||(this._eventMap[t]=new Map),this._eventMap[t].set(r,s),i.apply(this,[e,s])};let s=r.removeEventListener;r.removeEventListener=function(e,n){if(e!==t||!this._eventMap||!this._eventMap[t]||!this._eventMap[t].has(n))return s.apply(this,arguments);let r=this._eventMap[t].get(n);return this._eventMap[t].delete(n),0===this._eventMap[t].size&&delete this._eventMap[t],0===Object.keys(this._eventMap).length&&delete this._eventMap,s.apply(this,[e,r])},Object.defineProperty(r,"on"+t,{get(){return this["_on"+t]},set(e){this["_on"+t]&&(this.removeEventListener(t,this["_on"+t]),delete this["_on"+t]),e&&this.addEventListener(t,this["_on"+t]=e)},enumerable:!0,configurable:!0})}function h(e){return"boolean"!=typeof e?Error("Argument type: "+typeof e+". Please use a boolean."):(c=e,e?"adapter.js logging disabled":"adapter.js logging enabled")}function u(e){return"boolean"!=typeof e?Error("Argument type: "+typeof e+". Please use a boolean."):(p=!e,"adapter.js deprecation warnings "+(e?"disabled":"enabled"))}function f(){"object"==typeof window&&(c||"undefined"!=typeof console&&"function"==typeof console.log&&console.log.apply(console,arguments))}function m(e,t){p&&console.warn(e+" is deprecated, please use "+t+" instead.")}function _(e){return"[object Object]"===Object.prototype.toString.call(e)}function g(e,t,n){let r=n?"outbound-rtp":"inbound-rtp",i=new Map;if(null===t)return i;let s=[];return e.forEach(e=>{"track"===e.type&&e.trackIdentifier===t.id&&s.push(e)}),s.forEach(t=>{e.forEach(n=>{n.type===r&&n.trackId===t.id&&function e(t,n,r){!n||r.has(n.id)||(r.set(n.id,n),Object.keys(n).forEach(i=>{i.endsWith("Id")?e(t,t.get(n[i]),r):i.endsWith("Ids")&&n[i].forEach(n=>{e(t,t.get(n),r)})}))}(e,n,i)})}),i}"use strict";var y={};function C(e,t){let n=e&&e.navigator;if(!n.mediaDevices)return;let r=function(e){if("object"!=typeof e||e.mandatory||e.optional)return e;let t={};return Object.keys(e).forEach(n=>{if("require"===n||"advanced"===n||"mediaSource"===n)return;let r="object"==typeof e[n]?e[n]:{ideal:e[n]};void 0!==r.exact&&"number"==typeof r.exact&&(r.min=r.max=r.exact);let i=function(e,t){return e?e+t.charAt(0).toUpperCase()+t.slice(1):"deviceId"===t?"sourceId":t};if(void 0!==r.ideal){t.optional=t.optional||[];let e={};"number"==typeof r.ideal?(e[i("min",n)]=r.ideal,t.optional.push(e),(e={})[i("max",n)]=r.ideal):e[i("",n)]=r.ideal,t.optional.push(e)}void 0!==r.exact&&"number"!=typeof r.exact?(t.mandatory=t.mandatory||{},t.mandatory[i("",n)]=r.exact):["min","max"].forEach(e=>{void 0!==r[e]&&(t.mandatory=t.mandatory||{},t.mandatory[i(e,n)]=r[e])})}),e.advanced&&(t.optional=(t.optional||[]).concat(e.advanced)),t},i=function(e,i){if(t.version>=61)return i(e);if((e=JSON.parse(JSON.stringify(e)))&&"object"==typeof e.audio){let t=function(e,t,n){t in e&&!(n in e)&&(e[n]=e[t],delete e[t])};t((e=JSON.parse(JSON.stringify(e))).audio,"autoGainControl","googAutoGainControl"),t(e.audio,"noiseSuppression","googNoiseSuppression"),e.audio=r(e.audio)}if(e&&"object"==typeof e.video){let s=e.video.facingMode;s=s&&("object"==typeof s?s:{ideal:s});let o=t.version<66;if(s&&("user"===s.exact||"environment"===s.exact||"user"===s.ideal||"environment"===s.ideal)&&!(n.mediaDevices.getSupportedConstraints&&n.mediaDevices.getSupportedConstraints().facingMode&&!o)){let t;if(delete e.video.facingMode,"environment"===s.exact||"environment"===s.ideal?t=["back","rear"]:("user"===s.exact||"user"===s.ideal)&&(t=["front"]),t)return n.mediaDevices.enumerateDevices().then(n=>{let o=(n=n.filter(e=>"videoinput"===e.kind)).find(e=>t.some(t=>e.label.toLowerCase().includes(t)));return!o&&n.length&&t.includes("back")&&(o=n[n.length-1]),o&&(e.video.deviceId=s.exact?{exact:o.deviceId}:{ideal:o.deviceId}),e.video=r(e.video),f("chrome: "+JSON.stringify(e)),i(e)})}e.video=r(e.video)}return f("chrome: "+JSON.stringify(e)),i(e)},s=function(e){return t.version>=64?e:{name:({PermissionDeniedError:"NotAllowedError",PermissionDismissedError:"NotAllowedError",InvalidStateError:"NotAllowedError",DevicesNotFoundError:"NotFoundError",ConstraintNotSatisfiedError:"OverconstrainedError",TrackStartError:"NotReadableError",MediaDeviceFailedDueToShutdown:"NotAllowedError",MediaDeviceKillSwitchOn:"NotAllowedError",TabCaptureError:"AbortError",ScreenCaptureError:"AbortError",DeviceCaptureError:"AbortError"})[e.name]||e.name,message:e.message,constraint:e.constraint||e.constraintName,toString(){return this.name+(this.message&&": ")+this.message}}};if(n.getUserMedia=(function(e,t,r){i(e,e=>{n.webkitGetUserMedia(e,t,e=>{r&&r(s(e))})})}).bind(n),n.mediaDevices.getUserMedia){let e=n.mediaDevices.getUserMedia.bind(n.mediaDevices);n.mediaDevices.getUserMedia=function(t){return i(t,t=>e(t).then(e=>{if(t.audio&&!e.getAudioTracks().length||t.video&&!e.getVideoTracks().length)throw e.getTracks().forEach(e=>{e.stop()}),new DOMException("","NotFoundError");return e},e=>Promise.reject(s(e))))}}}"use strict";function v(e){e.MediaStream=e.MediaStream||e.webkitMediaStream}function b(e){if("object"!=typeof e||!e.RTCPeerConnection||"ontrack"in e.RTCPeerConnection.prototype)l(e,"track",e=>(e.transceiver||Object.defineProperty(e,"transceiver",{value:{receiver:e.receiver}}),e));else{Object.defineProperty(e.RTCPeerConnection.prototype,"ontrack",{get(){return this._ontrack},set(e){this._ontrack&&this.removeEventListener("track",this._ontrack),this.addEventListener("track",this._ontrack=e)},enumerable:!0,configurable:!0});let t=e.RTCPeerConnection.prototype.setRemoteDescription;e.RTCPeerConnection.prototype.setRemoteDescription=function(){return this._ontrackpoly||(this._ontrackpoly=t=>{t.stream.addEventListener("addtrack",n=>{let r;r=e.RTCPeerConnection.prototype.getReceivers?this.getReceivers().find(e=>e.track&&e.track.id===n.track.id):{track:n.track};let i=new Event("track");i.track=n.track,i.receiver=r,i.transceiver={receiver:r},i.streams=[t.stream],this.dispatchEvent(i)}),t.stream.getTracks().forEach(n=>{let r;r=e.RTCPeerConnection.prototype.getReceivers?this.getReceivers().find(e=>e.track&&e.track.id===n.id):{track:n};let i=new Event("track");i.track=n,i.receiver=r,i.transceiver={receiver:r},i.streams=[t.stream],this.dispatchEvent(i)})},this.addEventListener("addstream",this._ontrackpoly)),t.apply(this,arguments)}}}function T(e){if("object"==typeof e&&e.RTCPeerConnection&&!("getSenders"in e.RTCPeerConnection.prototype)&&"createDTMFSender"in e.RTCPeerConnection.prototype){let t=function(e,t){return{track:t,get dtmf(){return void 0===this._dtmf&&("audio"===t.kind?this._dtmf=e.createDTMFSender(t):this._dtmf=null),this._dtmf},_pc:e}};if(!e.RTCPeerConnection.prototype.getSenders){e.RTCPeerConnection.prototype.getSenders=function(){return this._senders=this._senders||[],this._senders.slice()};let n=e.RTCPeerConnection.prototype.addTrack;e.RTCPeerConnection.prototype.addTrack=function(e,r){let i=n.apply(this,arguments);return i||(i=t(this,e),this._senders.push(i)),i};let r=e.RTCPeerConnection.prototype.removeTrack;e.RTCPeerConnection.prototype.removeTrack=function(e){r.apply(this,arguments);let t=this._senders.indexOf(e);-1!==t&&this._senders.splice(t,1)}}let n=e.RTCPeerConnection.prototype.addStream;e.RTCPeerConnection.prototype.addStream=function(e){this._senders=this._senders||[],n.apply(this,[e]),e.getTracks().forEach(e=>{this._senders.push(t(this,e))})};let r=e.RTCPeerConnection.prototype.removeStream;e.RTCPeerConnection.prototype.removeStream=function(e){this._senders=this._senders||[],r.apply(this,[e]),e.getTracks().forEach(e=>{let t=this._senders.find(t=>t.track===e);t&&this._senders.splice(this._senders.indexOf(t),1)})}}else if("object"==typeof e&&e.RTCPeerConnection&&"getSenders"in e.RTCPeerConnection.prototype&&"createDTMFSender"in e.RTCPeerConnection.prototype&&e.RTCRtpSender&&!("dtmf"in e.RTCRtpSender.prototype)){let t=e.RTCPeerConnection.prototype.getSenders;e.RTCPeerConnection.prototype.getSenders=function(){let e=t.apply(this,[]);return e.forEach(e=>e._pc=this),e},Object.defineProperty(e.RTCRtpSender.prototype,"dtmf",{get(){return void 0===this._dtmf&&("audio"===this.track.kind?this._dtmf=this._pc.createDTMFSender(this.track):this._dtmf=null),this._dtmf}})}}function S(e){if(!("object"==typeof e&&e.RTCPeerConnection&&e.RTCRtpSender&&e.RTCRtpReceiver))return;if(!("getStats"in e.RTCRtpSender.prototype)){let t=e.RTCPeerConnection.prototype.getSenders;t&&(e.RTCPeerConnection.prototype.getSenders=function(){let e=t.apply(this,[]);return e.forEach(e=>e._pc=this),e});let n=e.RTCPeerConnection.prototype.addTrack;n&&(e.RTCPeerConnection.prototype.addTrack=function(){let e=n.apply(this,arguments);return e._pc=this,e}),e.RTCRtpSender.prototype.getStats=function(){let e=this;return this._pc.getStats().then(t=>g(t,e.track,!0))}}if(!("getStats"in e.RTCRtpReceiver.prototype)){let t=e.RTCPeerConnection.prototype.getReceivers;t&&(e.RTCPeerConnection.prototype.getReceivers=function(){let e=t.apply(this,[]);return e.forEach(e=>e._pc=this),e}),l(e,"track",e=>(e.receiver._pc=e.srcElement,e)),e.RTCRtpReceiver.prototype.getStats=function(){let e=this;return this._pc.getStats().then(t=>g(t,e.track,!1))}}if(!("getStats"in e.RTCRtpSender.prototype&&"getStats"in e.RTCRtpReceiver.prototype))return;let t=e.RTCPeerConnection.prototype.getStats;e.RTCPeerConnection.prototype.getStats=function(){if(arguments.length>0&&arguments[0]instanceof e.MediaStreamTrack){let e,t,n,r=arguments[0];return(this.getSenders().forEach(t=>{t.track===r&&(e?n=!0:e=t)}),this.getReceivers().forEach(e=>(e.track===r&&(t?n=!0:t=e),e.track===r)),n||e&&t)?Promise.reject(new DOMException("There are more than one sender or receiver for the track.","InvalidAccessError")):e?e.getStats():t?t.getStats():Promise.reject(new DOMException("There is no sender or receiver for the track.","InvalidAccessError"))}return t.apply(this,arguments)}}function k(e){e.RTCPeerConnection.prototype.getLocalStreams=function(){return this._shimmedLocalStreams=this._shimmedLocalStreams||{},Object.keys(this._shimmedLocalStreams).map(e=>this._shimmedLocalStreams[e][0])};let t=e.RTCPeerConnection.prototype.addTrack;e.RTCPeerConnection.prototype.addTrack=function(e,n){if(!n)return t.apply(this,arguments);this._shimmedLocalStreams=this._shimmedLocalStreams||{};let r=t.apply(this,arguments);return this._shimmedLocalStreams[n.id]?-1===this._shimmedLocalStreams[n.id].indexOf(r)&&this._shimmedLocalStreams[n.id].push(r):this._shimmedLocalStreams[n.id]=[n,r],r};let n=e.RTCPeerConnection.prototype.addStream;e.RTCPeerConnection.prototype.addStream=function(e){this._shimmedLocalStreams=this._shimmedLocalStreams||{},e.getTracks().forEach(e=>{if(this.getSenders().find(t=>t.track===e))throw new DOMException("Track already exists.","InvalidAccessError")});let t=this.getSenders();n.apply(this,arguments);let r=this.getSenders().filter(e=>-1===t.indexOf(e));this._shimmedLocalStreams[e.id]=[e].concat(r)};let r=e.RTCPeerConnection.prototype.removeStream;e.RTCPeerConnection.prototype.removeStream=function(e){return this._shimmedLocalStreams=this._shimmedLocalStreams||{},delete this._shimmedLocalStreams[e.id],r.apply(this,arguments)};let i=e.RTCPeerConnection.prototype.removeTrack;e.RTCPeerConnection.prototype.removeTrack=function(e){return this._shimmedLocalStreams=this._shimmedLocalStreams||{},e&&Object.keys(this._shimmedLocalStreams).forEach(t=>{let n=this._shimmedLocalStreams[t].indexOf(e);-1!==n&&this._shimmedLocalStreams[t].splice(n,1),1===this._shimmedLocalStreams[t].length&&delete this._shimmedLocalStreams[t]}),i.apply(this,arguments)}}function R(e,t){if(!e.RTCPeerConnection)return;if(e.RTCPeerConnection.prototype.addTrack&&t.version>=65)return k(e);let n=e.RTCPeerConnection.prototype.getLocalStreams;e.RTCPeerConnection.prototype.getLocalStreams=function(){let e=n.apply(this);return this._reverseStreams=this._reverseStreams||{},e.map(e=>this._reverseStreams[e.id])};let r=e.RTCPeerConnection.prototype.addStream;e.RTCPeerConnection.prototype.addStream=function(t){if(this._streams=this._streams||{},this._reverseStreams=this._reverseStreams||{},t.getTracks().forEach(e=>{if(this.getSenders().find(t=>t.track===e))throw new DOMException("Track already exists.","InvalidAccessError")}),!this._reverseStreams[t.id]){let n=new e.MediaStream(t.getTracks());this._streams[t.id]=n,this._reverseStreams[n.id]=t,t=n}r.apply(this,[t])};let i=e.RTCPeerConnection.prototype.removeStream;function s(e,t){let n=t.sdp;return Object.keys(e._reverseStreams||[]).forEach(t=>{let r=e._reverseStreams[t],i=e._streams[r.id];n=n.replace(RegExp(i.id,"g"),r.id)}),new RTCSessionDescription({type:t.type,sdp:n})}e.RTCPeerConnection.prototype.removeStream=function(e){this._streams=this._streams||{},this._reverseStreams=this._reverseStreams||{},i.apply(this,[this._streams[e.id]||e]),delete this._reverseStreams[this._streams[e.id]?this._streams[e.id].id:e.id],delete this._streams[e.id]},e.RTCPeerConnection.prototype.addTrack=function(t,n){if("closed"===this.signalingState)throw new DOMException("The RTCPeerConnection's signalingState is 'closed'.","InvalidStateError");let r=[].slice.call(arguments,1);if(1!==r.length||!r[0].getTracks().find(e=>e===t))throw new DOMException("The adapter.js addTrack polyfill only supports a single  stream which is associated with the specified track.","NotSupportedError");if(this.getSenders().find(e=>e.track===t))throw new DOMException("Track already exists.","InvalidAccessError");this._streams=this._streams||{},this._reverseStreams=this._reverseStreams||{};let i=this._streams[n.id];if(i)i.addTrack(t),Promise.resolve().then(()=>{this.dispatchEvent(new Event("negotiationneeded"))});else{let r=new e.MediaStream([t]);this._streams[n.id]=r,this._reverseStreams[r.id]=n,this.addStream(r)}return this.getSenders().find(e=>e.track===t)},["createOffer","createAnswer"].forEach(function(t){let n=e.RTCPeerConnection.prototype[t];e.RTCPeerConnection.prototype[t]=({[t](){let e=arguments,t=arguments.length&&"function"==typeof arguments[0];return t?n.apply(this,[t=>{let n=s(this,t);e[0].apply(null,[n])},t=>{e[1]&&e[1].apply(null,t)},arguments[2]]):n.apply(this,arguments).then(e=>s(this,e))}})[t]});let o=e.RTCPeerConnection.prototype.setLocalDescription;e.RTCPeerConnection.prototype.setLocalDescription=function(){var e,t;let n;return arguments.length&&arguments[0].type?(arguments[0]=(e=this,t=arguments[0],n=t.sdp,Object.keys(e._reverseStreams||[]).forEach(t=>{let r=e._reverseStreams[t],i=e._streams[r.id];n=n.replace(RegExp(r.id,"g"),i.id)}),new RTCSessionDescription({type:t.type,sdp:n})),o.apply(this,arguments)):o.apply(this,arguments)};let a=Object.getOwnPropertyDescriptor(e.RTCPeerConnection.prototype,"localDescription");Object.defineProperty(e.RTCPeerConnection.prototype,"localDescription",{get(){let e=a.get.apply(this);return""===e.type?e:s(this,e)}}),e.RTCPeerConnection.prototype.removeTrack=function(e){let t;if("closed"===this.signalingState)throw new DOMException("The RTCPeerConnection's signalingState is 'closed'.","InvalidStateError");if(!e._pc)throw new DOMException("Argument 1 of RTCPeerConnection.removeTrack does not implement interface RTCRtpSender.","TypeError");if(e._pc!==this)throw new DOMException("Sender was not created by this connection.","InvalidAccessError");this._streams=this._streams||{},Object.keys(this._streams).forEach(n=>{this._streams[n].getTracks().find(t=>e.track===t)&&(t=this._streams[n])}),t&&(1===t.getTracks().length?this.removeStream(this._reverseStreams[t.id]):t.removeTrack(e.track),this.dispatchEvent(new Event("negotiationneeded")))}}function P(e,t){!e.RTCPeerConnection&&e.webkitRTCPeerConnection&&(e.RTCPeerConnection=e.webkitRTCPeerConnection),e.RTCPeerConnection&&t.version<53&&["setLocalDescription","setRemoteDescription","addIceCandidate"].forEach(function(t){let n=e.RTCPeerConnection.prototype[t];e.RTCPeerConnection.prototype[t]=({[t](){return arguments[0]=new("addIceCandidate"===t?e.RTCIceCandidate:e.RTCSessionDescription)(arguments[0]),n.apply(this,arguments)}})[t]})}function w(e,t){l(e,"negotiationneeded",e=>{let n=e.target;if(!(t.version<72)&&(!n.getConfiguration||"plan-b"!==n.getConfiguration().sdpSemantics)||"stable"===n.signalingState)return e})}"use strict";e(y,"shimMediaStream",()=>v),e(y,"shimOnTrack",()=>b),e(y,"shimGetSendersWithDtmf",()=>T),e(y,"shimSenderReceiverGetStats",()=>S),e(y,"shimAddTrackRemoveTrackWithNative",()=>k),e(y,"shimAddTrackRemoveTrack",()=>R),e(y,"shimPeerConnection",()=>P),e(y,"fixNegotiationNeeded",()=>w),e(y,"shimGetUserMedia",()=>C);var E={};function x(e,t){let n=e&&e.navigator,r=e&&e.MediaStreamTrack;if(n.getUserMedia=function(e,t,r){m("navigator.getUserMedia","navigator.mediaDevices.getUserMedia"),n.mediaDevices.getUserMedia(e).then(t,r)},!(t.version>55&&"autoGainControl"in n.mediaDevices.getSupportedConstraints())){let e=function(e,t,n){t in e&&!(n in e)&&(e[n]=e[t],delete e[t])},t=n.mediaDevices.getUserMedia.bind(n.mediaDevices);if(n.mediaDevices.getUserMedia=function(n){return"object"==typeof n&&"object"==typeof n.audio&&(e((n=JSON.parse(JSON.stringify(n))).audio,"autoGainControl","mozAutoGainControl"),e(n.audio,"noiseSuppression","mozNoiseSuppression")),t(n)},r&&r.prototype.getSettings){let t=r.prototype.getSettings;r.prototype.getSettings=function(){let n=t.apply(this,arguments);return e(n,"mozAutoGainControl","autoGainControl"),e(n,"mozNoiseSuppression","noiseSuppression"),n}}if(r&&r.prototype.applyConstraints){let t=r.prototype.applyConstraints;r.prototype.applyConstraints=function(n){return"audio"===this.kind&&"object"==typeof n&&(e(n=JSON.parse(JSON.stringify(n)),"autoGainControl","mozAutoGainControl"),e(n,"noiseSuppression","mozNoiseSuppression")),t.apply(this,[n])}}}}"use strict";function D(e,t){e.navigator.mediaDevices&&"getDisplayMedia"in e.navigator.mediaDevices||e.navigator.mediaDevices&&(e.navigator.mediaDevices.getDisplayMedia=function(n){if(!(n&&n.video)){let e=new DOMException("getDisplayMedia without video constraints is undefined");return e.name="NotFoundError",e.code=8,Promise.reject(e)}return!0===n.video?n.video={mediaSource:t}:n.video.mediaSource=t,e.navigator.mediaDevices.getUserMedia(n)})}"use strict";function I(e){"object"==typeof e&&e.RTCTrackEvent&&"receiver"in e.RTCTrackEvent.prototype&&!("transceiver"in e.RTCTrackEvent.prototype)&&Object.defineProperty(e.RTCTrackEvent.prototype,"transceiver",{get(){return{receiver:this.receiver}}})}function M(e,t){if("object"!=typeof e||!(e.RTCPeerConnection||e.mozRTCPeerConnection))return;!e.RTCPeerConnection&&e.mozRTCPeerConnection&&(e.RTCPeerConnection=e.mozRTCPeerConnection),t.version<53&&["setLocalDescription","setRemoteDescription","addIceCandidate"].forEach(function(t){let n=e.RTCPeerConnection.prototype[t];e.RTCPeerConnection.prototype[t]=({[t](){return arguments[0]=new("addIceCandidate"===t?e.RTCIceCandidate:e.RTCSessionDescription)(arguments[0]),n.apply(this,arguments)}})[t]});let n={inboundrtp:"inbound-rtp",outboundrtp:"outbound-rtp",candidatepair:"candidate-pair",localcandidate:"local-candidate",remotecandidate:"remote-candidate"},r=e.RTCPeerConnection.prototype.getStats;e.RTCPeerConnection.prototype.getStats=function(){let[e,i,s]=arguments;return r.apply(this,[e||null]).then(e=>{if(t.version<53&&!i)try{e.forEach(e=>{e.type=n[e.type]||e.type})}catch(t){if("TypeError"!==t.name)throw t;e.forEach((t,r)=>{e.set(r,Object.assign({},t,{type:n[t.type]||t.type}))})}return e}).then(i,s)}}function O(e){if(!("object"==typeof e&&e.RTCPeerConnection&&e.RTCRtpSender)||e.RTCRtpSender&&"getStats"in e.RTCRtpSender.prototype)return;let t=e.RTCPeerConnection.prototype.getSenders;t&&(e.RTCPeerConnection.prototype.getSenders=function(){let e=t.apply(this,[]);return e.forEach(e=>e._pc=this),e});let n=e.RTCPeerConnection.prototype.addTrack;n&&(e.RTCPeerConnection.prototype.addTrack=function(){let e=n.apply(this,arguments);return e._pc=this,e}),e.RTCRtpSender.prototype.getStats=function(){return this.track?this._pc.getStats(this.track):Promise.resolve(new Map)}}function L(e){if(!("object"==typeof e&&e.RTCPeerConnection&&e.RTCRtpSender)||e.RTCRtpSender&&"getStats"in e.RTCRtpReceiver.prototype)return;let t=e.RTCPeerConnection.prototype.getReceivers;t&&(e.RTCPeerConnection.prototype.getReceivers=function(){let e=t.apply(this,[]);return e.forEach(e=>e._pc=this),e}),l(e,"track",e=>(e.receiver._pc=e.srcElement,e)),e.RTCRtpReceiver.prototype.getStats=function(){return this._pc.getStats(this.track)}}function A(e){!e.RTCPeerConnection||"removeStream"in e.RTCPeerConnection.prototype||(e.RTCPeerConnection.prototype.removeStream=function(e){m("removeStream","removeTrack"),this.getSenders().forEach(t=>{t.track&&e.getTracks().includes(t.track)&&this.removeTrack(t)})})}function j(e){e.DataChannel&&!e.RTCDataChannel&&(e.RTCDataChannel=e.DataChannel)}function B(e){if(!("object"==typeof e&&e.RTCPeerConnection))return;let t=e.RTCPeerConnection.prototype.addTransceiver;t&&(e.RTCPeerConnection.prototype.addTransceiver=function(){this.setParametersPromises=[];let e=arguments[1]&&arguments[1].sendEncodings;void 0===e&&(e=[]);let n=(e=[...e]).length>0;n&&e.forEach(e=>{if("rid"in e&&!/^[a-z0-9]{0,16}$/i.test(e.rid))throw TypeError("Invalid RID value provided.");if("scaleResolutionDownBy"in e&&!(parseFloat(e.scaleResolutionDownBy)>=1))throw RangeError("scale_resolution_down_by must be >= 1.0");if("maxFramerate"in e&&!(parseFloat(e.maxFramerate)>=0))throw RangeError("max_framerate must be >= 0.0")});let r=t.apply(this,arguments);if(n){let{sender:t}=r,n=t.getParameters();"encodings"in n&&(1!==n.encodings.length||0!==Object.keys(n.encodings[0]).length)||(n.encodings=e,t.sendEncodings=e,this.setParametersPromises.push(t.setParameters(n).then(()=>{delete t.sendEncodings}).catch(()=>{delete t.sendEncodings})))}return r})}function U(e){if(!("object"==typeof e&&e.RTCRtpSender))return;let t=e.RTCRtpSender.prototype.getParameters;t&&(e.RTCRtpSender.prototype.getParameters=function(){let e=t.apply(this,arguments);return"encodings"in e||(e.encodings=[].concat(this.sendEncodings||[{}])),e})}function F(e){if(!("object"==typeof e&&e.RTCPeerConnection))return;let t=e.RTCPeerConnection.prototype.createOffer;e.RTCPeerConnection.prototype.createOffer=function(){return this.setParametersPromises&&this.setParametersPromises.length?Promise.all(this.setParametersPromises).then(()=>t.apply(this,arguments)).finally(()=>{this.setParametersPromises=[]}):t.apply(this,arguments)}}function N(e){if(!("object"==typeof e&&e.RTCPeerConnection))return;let t=e.RTCPeerConnection.prototype.createAnswer;e.RTCPeerConnection.prototype.createAnswer=function(){return this.setParametersPromises&&this.setParametersPromises.length?Promise.all(this.setParametersPromises).then(()=>t.apply(this,arguments)).finally(()=>{this.setParametersPromises=[]}):t.apply(this,arguments)}}"use strict";e(E,"shimOnTrack",()=>I),e(E,"shimPeerConnection",()=>M),e(E,"shimSenderGetStats",()=>O),e(E,"shimReceiverGetStats",()=>L),e(E,"shimRemoveStream",()=>A),e(E,"shimRTCDataChannel",()=>j),e(E,"shimAddTransceiver",()=>B),e(E,"shimGetParameters",()=>U),e(E,"shimCreateOffer",()=>F),e(E,"shimCreateAnswer",()=>N),e(E,"shimGetUserMedia",()=>x),e(E,"shimGetDisplayMedia",()=>D);var z={};function $(e){if("object"==typeof e&&e.RTCPeerConnection){if("getLocalStreams"in e.RTCPeerConnection.prototype||(e.RTCPeerConnection.prototype.getLocalStreams=function(){return this._localStreams||(this._localStreams=[]),this._localStreams}),!("addStream"in e.RTCPeerConnection.prototype)){let t=e.RTCPeerConnection.prototype.addTrack;e.RTCPeerConnection.prototype.addStream=function(e){this._localStreams||(this._localStreams=[]),this._localStreams.includes(e)||this._localStreams.push(e),e.getAudioTracks().forEach(n=>t.call(this,n,e)),e.getVideoTracks().forEach(n=>t.call(this,n,e))},e.RTCPeerConnection.prototype.addTrack=function(e,...n){return n&&n.forEach(e=>{this._localStreams?this._localStreams.includes(e)||this._localStreams.push(e):this._localStreams=[e]}),t.apply(this,arguments)}}"removeStream"in e.RTCPeerConnection.prototype||(e.RTCPeerConnection.prototype.removeStream=function(e){this._localStreams||(this._localStreams=[]);let t=this._localStreams.indexOf(e);if(-1===t)return;this._localStreams.splice(t,1);let n=e.getTracks();this.getSenders().forEach(e=>{n.includes(e.track)&&this.removeTrack(e)})})}}function V(e){if("object"==typeof e&&e.RTCPeerConnection&&("getRemoteStreams"in e.RTCPeerConnection.prototype||(e.RTCPeerConnection.prototype.getRemoteStreams=function(){return this._remoteStreams?this._remoteStreams:[]}),!("onaddstream"in e.RTCPeerConnection.prototype))){Object.defineProperty(e.RTCPeerConnection.prototype,"onaddstream",{get(){return this._onaddstream},set(e){this._onaddstream&&(this.removeEventListener("addstream",this._onaddstream),this.removeEventListener("track",this._onaddstreampoly)),this.addEventListener("addstream",this._onaddstream=e),this.addEventListener("track",this._onaddstreampoly=e=>{e.streams.forEach(e=>{if(this._remoteStreams||(this._remoteStreams=[]),this._remoteStreams.includes(e))return;this._remoteStreams.push(e);let t=new Event("addstream");t.stream=e,this.dispatchEvent(t)})})}});let t=e.RTCPeerConnection.prototype.setRemoteDescription;e.RTCPeerConnection.prototype.setRemoteDescription=function(){let e=this;return this._onaddstreampoly||this.addEventListener("track",this._onaddstreampoly=function(t){t.streams.forEach(t=>{if(e._remoteStreams||(e._remoteStreams=[]),e._remoteStreams.indexOf(t)>=0)return;e._remoteStreams.push(t);let n=new Event("addstream");n.stream=t,e.dispatchEvent(n)})}),t.apply(e,arguments)}}}function G(e){if("object"!=typeof e||!e.RTCPeerConnection)return;let t=e.RTCPeerConnection.prototype,n=t.createOffer,r=t.createAnswer,i=t.setLocalDescription,s=t.setRemoteDescription,o=t.addIceCandidate;t.createOffer=function(e,t){let r=arguments.length>=2?arguments[2]:arguments[0],i=n.apply(this,[r]);return t?(i.then(e,t),Promise.resolve()):i},t.createAnswer=function(e,t){let n=arguments.length>=2?arguments[2]:arguments[0],i=r.apply(this,[n]);return t?(i.then(e,t),Promise.resolve()):i};let a=function(e,t,n){let r=i.apply(this,[e]);return n?(r.then(t,n),Promise.resolve()):r};t.setLocalDescription=a,t.setRemoteDescription=a=function(e,t,n){let r=s.apply(this,[e]);return n?(r.then(t,n),Promise.resolve()):r},t.addIceCandidate=function(e,t,n){let r=o.apply(this,[e]);return n?(r.then(t,n),Promise.resolve()):r}}function J(e){let t=e&&e.navigator;if(t.mediaDevices&&t.mediaDevices.getUserMedia){let e=t.mediaDevices,n=e.getUserMedia.bind(e);t.mediaDevices.getUserMedia=e=>n(W(e))}!t.getUserMedia&&t.mediaDevices&&t.mediaDevices.getUserMedia&&(t.getUserMedia=(function(e,n,r){t.mediaDevices.getUserMedia(e).then(n,r)}).bind(t))}function W(e){return e&&void 0!==e.video?Object.assign({},e,{video:function e(t){return _(t)?Object.keys(t).reduce(function(n,r){let i=_(t[r]),s=i?e(t[r]):t[r],o=i&&!Object.keys(s).length;return void 0===s||o?n:Object.assign(n,{[r]:s})},{}):t}(e.video)}):e}function Y(e){if(!e.RTCPeerConnection)return;let t=e.RTCPeerConnection;e.RTCPeerConnection=function(e,n){if(e&&e.iceServers){let t=[];for(let n=0;n<e.iceServers.length;n++){let r=e.iceServers[n];void 0===r.urls&&r.url?(m("RTCIceServer.url","RTCIceServer.urls"),(r=JSON.parse(JSON.stringify(r))).urls=r.url,delete r.url,t.push(r)):t.push(e.iceServers[n])}e.iceServers=t}return new t(e,n)},e.RTCPeerConnection.prototype=t.prototype,"generateCertificate"in t&&Object.defineProperty(e.RTCPeerConnection,"generateCertificate",{get:()=>t.generateCertificate})}function H(e){"object"==typeof e&&e.RTCTrackEvent&&"receiver"in e.RTCTrackEvent.prototype&&!("transceiver"in e.RTCTrackEvent.prototype)&&Object.defineProperty(e.RTCTrackEvent.prototype,"transceiver",{get(){return{receiver:this.receiver}}})}function K(e){let t=e.RTCPeerConnection.prototype.createOffer;e.RTCPeerConnection.prototype.createOffer=function(e){if(e){void 0!==e.offerToReceiveAudio&&(e.offerToReceiveAudio=!!e.offerToReceiveAudio);let t=this.getTransceivers().find(e=>"audio"===e.receiver.track.kind);!1===e.offerToReceiveAudio&&t?"sendrecv"===t.direction?t.setDirection?t.setDirection("sendonly"):t.direction="sendonly":"recvonly"===t.direction&&(t.setDirection?t.setDirection("inactive"):t.direction="inactive"):!0!==e.offerToReceiveAudio||t||this.addTransceiver("audio",{direction:"recvonly"}),void 0!==e.offerToReceiveVideo&&(e.offerToReceiveVideo=!!e.offerToReceiveVideo);let n=this.getTransceivers().find(e=>"video"===e.receiver.track.kind);!1===e.offerToReceiveVideo&&n?"sendrecv"===n.direction?n.setDirection?n.setDirection("sendonly"):n.direction="sendonly":"recvonly"===n.direction&&(n.setDirection?n.setDirection("inactive"):n.direction="inactive"):!0!==e.offerToReceiveVideo||n||this.addTransceiver("video",{direction:"recvonly"})}return t.apply(this,arguments)}}function X(e){"object"!=typeof e||e.AudioContext||(e.AudioContext=e.webkitAudioContext)}e(z,"shimLocalStreamsAPI",()=>$),e(z,"shimRemoteStreamsAPI",()=>V),e(z,"shimCallbacksAPI",()=>G),e(z,"shimGetUserMedia",()=>J),e(z,"shimConstraints",()=>W),e(z,"shimRTCIceServerUrls",()=>Y),e(z,"shimTrackEventTransceiver",()=>H),e(z,"shimCreateOfferLegacy",()=>K),e(z,"shimAudioContext",()=>X);var Q={};"use strict";e(Q,"shimRTCIceCandidate",()=>ee),e(Q,"shimRTCIceCandidateRelayProtocol",()=>et),e(Q,"shimMaxMessageSize",()=>en),e(Q,"shimSendThrowTypeError",()=>er),e(Q,"shimConnectionState",()=>ei),e(Q,"removeExtmapAllowMixed",()=>es),e(Q,"shimAddIceCandidateNullOrEmpty",()=>eo),e(Q,"shimParameterlessSetLocalDescription",()=>ea);var q={};"use strict";let Z={};function ee(e){if(!e.RTCIceCandidate||e.RTCIceCandidate&&"foundation"in e.RTCIceCandidate.prototype)return;let n=e.RTCIceCandidate;e.RTCIceCandidate=function(e){if("object"==typeof e&&e.candidate&&0===e.candidate.indexOf("a=")&&((e=JSON.parse(JSON.stringify(e))).candidate=e.candidate.substring(2)),e.candidate&&e.candidate.length){let r=new n(e),i=t(q).parseCandidate(e.candidate);for(let e in i)e in r||Object.defineProperty(r,e,{value:i[e]});return r.toJSON=function(){return{candidate:r.candidate,sdpMid:r.sdpMid,sdpMLineIndex:r.sdpMLineIndex,usernameFragment:r.usernameFragment}},r}return new n(e)},e.RTCIceCandidate.prototype=n.prototype,l(e,"icecandidate",t=>(t.candidate&&Object.defineProperty(t,"candidate",{value:new e.RTCIceCandidate(t.candidate),writable:"false"}),t))}function et(e){!e.RTCIceCandidate||e.RTCIceCandidate&&"relayProtocol"in e.RTCIceCandidate.prototype||l(e,"icecandidate",e=>{if(e.candidate){let n=t(q).parseCandidate(e.candidate.candidate);"relay"===n.type&&(e.candidate.relayProtocol=({0:"tls",1:"tcp",2:"udp"})[n.priority>>24])}return e})}function en(e,n){if(!e.RTCPeerConnection)return;"sctp"in e.RTCPeerConnection.prototype||Object.defineProperty(e.RTCPeerConnection.prototype,"sctp",{get(){return void 0===this._sctp?null:this._sctp}});let r=function(e){if(!e||!e.sdp)return!1;let n=t(q).splitSections(e.sdp);return n.shift(),n.some(e=>{let n=t(q).parseMLine(e);return n&&"application"===n.kind&&-1!==n.protocol.indexOf("SCTP")})},i=function(e){let t=e.sdp.match(/mozilla...THIS_IS_SDPARTA-(\d+)/);if(null===t||t.length<2)return -1;let n=parseInt(t[1],10);return n!=n?-1:n},s=function(e){let t=65536;return"firefox"===n.browser&&(t=n.version<57?-1===e?16384:0x7ffffff5:n.version<60?57===n.version?65535:65536:0x7ffffff5),t},o=function(e,r){let i=65536;"firefox"===n.browser&&57===n.version&&(i=65535);let s=t(q).matchPrefix(e.sdp,"a=max-message-size:");return s.length>0?i=parseInt(s[0].substring(19),10):"firefox"===n.browser&&-1!==r&&(i=0x7ffffff5),i},a=e.RTCPeerConnection.prototype.setRemoteDescription;e.RTCPeerConnection.prototype.setRemoteDescription=function(){if(this._sctp=null,"chrome"===n.browser&&n.version>=76){let{sdpSemantics:e}=this.getConfiguration();"plan-b"===e&&Object.defineProperty(this,"sctp",{get(){return void 0===this._sctp?null:this._sctp},enumerable:!0,configurable:!0})}if(r(arguments[0])){let e,t=i(arguments[0]),n=s(t),r=o(arguments[0],t);e=0===n&&0===r?Number.POSITIVE_INFINITY:0===n||0===r?Math.max(n,r):Math.min(n,r);let a={};Object.defineProperty(a,"maxMessageSize",{get:()=>e}),this._sctp=a}return a.apply(this,arguments)}}function er(e){if(!(e.RTCPeerConnection&&"createDataChannel"in e.RTCPeerConnection.prototype))return;function t(e,t){let n=e.send;e.send=function(){let r=arguments[0],i=r.length||r.size||r.byteLength;if("open"===e.readyState&&t.sctp&&i>t.sctp.maxMessageSize)throw TypeError("Message too large (can send a maximum of "+t.sctp.maxMessageSize+" bytes)");return n.apply(e,arguments)}}let n=e.RTCPeerConnection.prototype.createDataChannel;e.RTCPeerConnection.prototype.createDataChannel=function(){let e=n.apply(this,arguments);return t(e,this),e},l(e,"datachannel",e=>(t(e.channel,e.target),e))}function ei(e){if(!e.RTCPeerConnection||"connectionState"in e.RTCPeerConnection.prototype)return;let t=e.RTCPeerConnection.prototype;Object.defineProperty(t,"connectionState",{get(){return({completed:"connected",checking:"connecting"})[this.iceConnectionState]||this.iceConnectionState},enumerable:!0,configurable:!0}),Object.defineProperty(t,"onconnectionstatechange",{get(){return this._onconnectionstatechange||null},set(e){this._onconnectionstatechange&&(this.removeEventListener("connectionstatechange",this._onconnectionstatechange),delete this._onconnectionstatechange),e&&this.addEventListener("connectionstatechange",this._onconnectionstatechange=e)},enumerable:!0,configurable:!0}),["setLocalDescription","setRemoteDescription"].forEach(e=>{let n=t[e];t[e]=function(){return this._connectionstatechangepoly||(this._connectionstatechangepoly=e=>{let t=e.target;if(t._lastConnectionState!==t.connectionState){t._lastConnectionState=t.connectionState;let n=new Event("connectionstatechange",e);t.dispatchEvent(n)}return e},this.addEventListener("iceconnectionstatechange",this._connectionstatechangepoly)),n.apply(this,arguments)}})}function es(e,t){if(!e.RTCPeerConnection||"chrome"===t.browser&&t.version>=71||"safari"===t.browser&&t.version>=605)return;let n=e.RTCPeerConnection.prototype.setRemoteDescription;e.RTCPeerConnection.prototype.setRemoteDescription=function(t){if(t&&t.sdp&&-1!==t.sdp.indexOf("\na=extmap-allow-mixed")){let n=t.sdp.split("\n").filter(e=>"a=extmap-allow-mixed"!==e.trim()).join("\n");e.RTCSessionDescription&&t instanceof e.RTCSessionDescription?arguments[0]=new e.RTCSessionDescription({type:t.type,sdp:n}):t.sdp=n}return n.apply(this,arguments)}}function eo(e,t){if(!(e.RTCPeerConnection&&e.RTCPeerConnection.prototype))return;let n=e.RTCPeerConnection.prototype.addIceCandidate;n&&0!==n.length&&(e.RTCPeerConnection.prototype.addIceCandidate=function(){return arguments[0]?("chrome"===t.browser&&t.version<78||"firefox"===t.browser&&t.version<68||"safari"===t.browser)&&arguments[0]&&""===arguments[0].candidate?Promise.resolve():n.apply(this,arguments):(arguments[1]&&arguments[1].apply(null),Promise.resolve())})}function ea(e,t){if(!(e.RTCPeerConnection&&e.RTCPeerConnection.prototype))return;let n=e.RTCPeerConnection.prototype.setLocalDescription;n&&0!==n.length&&(e.RTCPeerConnection.prototype.setLocalDescription=function(){let e=arguments[0]||{};if("object"!=typeof e||e.type&&e.sdp)return n.apply(this,arguments);if(!(e={type:e.type,sdp:e.sdp}).type)switch(this.signalingState){case"stable":case"have-local-offer":case"have-remote-pranswer":e.type="offer";break;default:e.type="answer"}return e.sdp||"offer"!==e.type&&"answer"!==e.type?n.apply(this,[e]):("offer"===e.type?this.createOffer:this.createAnswer).apply(this).then(e=>n.apply(this,[e]))})}"use strict";Z.generateIdentifier=function(){return Math.random().toString(36).substring(2,12)},Z.localCName=Z.generateIdentifier(),Z.splitLines=function(e){return e.trim().split("\n").map(e=>e.trim())},Z.splitSections=function(e){return e.split("\nm=").map((e,t)=>(t>0?"m="+e:e).trim()+"\r\n")},Z.getDescription=function(e){let t=Z.splitSections(e);return t&&t[0]},Z.getMediaSections=function(e){let t=Z.splitSections(e);return t.shift(),t},Z.matchPrefix=function(e,t){return Z.splitLines(e).filter(e=>0===e.indexOf(t))},Z.parseCandidate=function(e){let t,n={foundation:(t=0===e.indexOf("a=candidate:")?e.substring(12).split(" "):e.substring(10).split(" "))[0],component:{1:"rtp",2:"rtcp"}[t[1]]||t[1],protocol:t[2].toLowerCase(),priority:parseInt(t[3],10),ip:t[4],address:t[4],port:parseInt(t[5],10),type:t[7]};for(let e=8;e<t.length;e+=2)switch(t[e]){case"raddr":n.relatedAddress=t[e+1];break;case"rport":n.relatedPort=parseInt(t[e+1],10);break;case"tcptype":n.tcpType=t[e+1];break;case"ufrag":n.ufrag=t[e+1],n.usernameFragment=t[e+1];break;default:void 0===n[t[e]]&&(n[t[e]]=t[e+1])}return n},Z.writeCandidate=function(e){let t=[];t.push(e.foundation);let n=e.component;"rtp"===n?t.push(1):"rtcp"===n?t.push(2):t.push(n),t.push(e.protocol.toUpperCase()),t.push(e.priority),t.push(e.address||e.ip),t.push(e.port);let r=e.type;return t.push("typ"),t.push(r),"host"!==r&&e.relatedAddress&&e.relatedPort&&(t.push("raddr"),t.push(e.relatedAddress),t.push("rport"),t.push(e.relatedPort)),e.tcpType&&"tcp"===e.protocol.toLowerCase()&&(t.push("tcptype"),t.push(e.tcpType)),(e.usernameFragment||e.ufrag)&&(t.push("ufrag"),t.push(e.usernameFragment||e.ufrag)),"candidate:"+t.join(" ")},Z.parseIceOptions=function(e){return e.substring(14).split(" ")},Z.parseRtpMap=function(e){let t=e.substring(9).split(" "),n={payloadType:parseInt(t.shift(),10)};return n.name=(t=t[0].split("/"))[0],n.clockRate=parseInt(t[1],10),n.channels=3===t.length?parseInt(t[2],10):1,n.numChannels=n.channels,n},Z.writeRtpMap=function(e){let t=e.payloadType;void 0!==e.preferredPayloadType&&(t=e.preferredPayloadType);let n=e.channels||e.numChannels||1;return"a=rtpmap:"+t+" "+e.name+"/"+e.clockRate+(1!==n?"/"+n:"")+"\r\n"},Z.parseExtmap=function(e){let t=e.substring(9).split(" ");return{id:parseInt(t[0],10),direction:t[0].indexOf("/")>0?t[0].split("/")[1]:"sendrecv",uri:t[1],attributes:t.slice(2).join(" ")}},Z.writeExtmap=function(e){return"a=extmap:"+(e.id||e.preferredId)+(e.direction&&"sendrecv"!==e.direction?"/"+e.direction:"")+" "+e.uri+(e.attributes?" "+e.attributes:"")+"\r\n"},Z.parseFmtp=function(e){let t,n={},r=e.substring(e.indexOf(" ")+1).split(";");for(let e=0;e<r.length;e++)n[(t=r[e].trim().split("="))[0].trim()]=t[1];return n},Z.writeFmtp=function(e){let t="",n=e.payloadType;if(void 0!==e.preferredPayloadType&&(n=e.preferredPayloadType),e.parameters&&Object.keys(e.parameters).length){let r=[];Object.keys(e.parameters).forEach(t=>{void 0!==e.parameters[t]?r.push(t+"="+e.parameters[t]):r.push(t)}),t+="a=fmtp:"+n+" "+r.join(";")+"\r\n"}return t},Z.parseRtcpFb=function(e){let t=e.substring(e.indexOf(" ")+1).split(" ");return{type:t.shift(),parameter:t.join(" ")}},Z.writeRtcpFb=function(e){let t="",n=e.payloadType;return void 0!==e.preferredPayloadType&&(n=e.preferredPayloadType),e.rtcpFeedback&&e.rtcpFeedback.length&&e.rtcpFeedback.forEach(e=>{t+="a=rtcp-fb:"+n+" "+e.type+(e.parameter&&e.parameter.length?" "+e.parameter:"")+"\r\n"}),t},Z.parseSsrcMedia=function(e){let t=e.indexOf(" "),n={ssrc:parseInt(e.substring(7,t),10)},r=e.indexOf(":",t);return r>-1?(n.attribute=e.substring(t+1,r),n.value=e.substring(r+1)):n.attribute=e.substring(t+1),n},Z.parseSsrcGroup=function(e){let t=e.substring(13).split(" ");return{semantics:t.shift(),ssrcs:t.map(e=>parseInt(e,10))}},Z.getMid=function(e){let t=Z.matchPrefix(e,"a=mid:")[0];if(t)return t.substring(6)},Z.parseFingerprint=function(e){let t=e.substring(14).split(" ");return{algorithm:t[0].toLowerCase(),value:t[1].toUpperCase()}},Z.getDtlsParameters=function(e,t){return{role:"auto",fingerprints:Z.matchPrefix(e+t,"a=fingerprint:").map(Z.parseFingerprint)}},Z.writeDtlsParameters=function(e,t){let n="a=setup:"+t+"\r\n";return e.fingerprints.forEach(e=>{n+="a=fingerprint:"+e.algorithm+" "+e.value+"\r\n"}),n},Z.parseCryptoLine=function(e){let t=e.substring(9).split(" ");return{tag:parseInt(t[0],10),cryptoSuite:t[1],keyParams:t[2],sessionParams:t.slice(3)}},Z.writeCryptoLine=function(e){return"a=crypto:"+e.tag+" "+e.cryptoSuite+" "+("object"==typeof e.keyParams?Z.writeCryptoKeyParams(e.keyParams):e.keyParams)+(e.sessionParams?" "+e.sessionParams.join(" "):"")+"\r\n"},Z.parseCryptoKeyParams=function(e){if(0!==e.indexOf("inline:"))return null;let t=e.substring(7).split("|");return{keyMethod:"inline",keySalt:t[0],lifeTime:t[1],mkiValue:t[2]?t[2].split(":")[0]:void 0,mkiLength:t[2]?t[2].split(":")[1]:void 0}},Z.writeCryptoKeyParams=function(e){return e.keyMethod+":"+e.keySalt+(e.lifeTime?"|"+e.lifeTime:"")+(e.mkiValue&&e.mkiLength?"|"+e.mkiValue+":"+e.mkiLength:"")},Z.getCryptoParameters=function(e,t){return Z.matchPrefix(e+t,"a=crypto:").map(Z.parseCryptoLine)},Z.getIceParameters=function(e,t){let n=Z.matchPrefix(e+t,"a=ice-ufrag:")[0],r=Z.matchPrefix(e+t,"a=ice-pwd:")[0];return n&&r?{usernameFragment:n.substring(12),password:r.substring(10)}:null},Z.writeIceParameters=function(e){let t="a=ice-ufrag:"+e.usernameFragment+"\r\na=ice-pwd:"+e.password+"\r\n";return e.iceLite&&(t+="a=ice-lite\r\n"),t},Z.parseRtpParameters=function(e){let t={codecs:[],headerExtensions:[],fecMechanisms:[],rtcp:[]},n=Z.splitLines(e)[0].split(" ");t.profile=n[2];for(let r=3;r<n.length;r++){let i=n[r],s=Z.matchPrefix(e,"a=rtpmap:"+i+" ")[0];if(s){let n=Z.parseRtpMap(s),r=Z.matchPrefix(e,"a=fmtp:"+i+" ");switch(n.parameters=r.length?Z.parseFmtp(r[0]):{},n.rtcpFeedback=Z.matchPrefix(e,"a=rtcp-fb:"+i+" ").map(Z.parseRtcpFb),t.codecs.push(n),n.name.toUpperCase()){case"RED":case"ULPFEC":t.fecMechanisms.push(n.name.toUpperCase())}}}Z.matchPrefix(e,"a=extmap:").forEach(e=>{t.headerExtensions.push(Z.parseExtmap(e))});let r=Z.matchPrefix(e,"a=rtcp-fb:* ").map(Z.parseRtcpFb);return t.codecs.forEach(e=>{r.forEach(t=>{e.rtcpFeedback.find(e=>e.type===t.type&&e.parameter===t.parameter)||e.rtcpFeedback.push(t)})}),t},Z.writeRtpDescription=function(e,t){let n="";n+="m="+e+" ",n+=t.codecs.length>0?"9":"0",n+=" "+(t.profile||"UDP/TLS/RTP/SAVPF")+" ",n+=t.codecs.map(e=>void 0!==e.preferredPayloadType?e.preferredPayloadType:e.payloadType).join(" ")+"\r\n",n+="c=IN IP4 0.0.0.0\r\n",n+="a=rtcp:9 IN IP4 0.0.0.0\r\n",t.codecs.forEach(e=>{n+=Z.writeRtpMap(e),n+=Z.writeFmtp(e),n+=Z.writeRtcpFb(e)});let r=0;return t.codecs.forEach(e=>{e.maxptime>r&&(r=e.maxptime)}),r>0&&(n+="a=maxptime:"+r+"\r\n"),t.headerExtensions&&t.headerExtensions.forEach(e=>{n+=Z.writeExtmap(e)}),n},Z.parseRtpEncodingParameters=function(e){let t,n=[],r=Z.parseRtpParameters(e),i=-1!==r.fecMechanisms.indexOf("RED"),s=-1!==r.fecMechanisms.indexOf("ULPFEC"),o=Z.matchPrefix(e,"a=ssrc:").map(e=>Z.parseSsrcMedia(e)).filter(e=>"cname"===e.attribute),a=o.length>0&&o[0].ssrc,c=Z.matchPrefix(e,"a=ssrc-group:FID").map(e=>e.substring(17).split(" ").map(e=>parseInt(e,10)));c.length>0&&c[0].length>1&&c[0][0]===a&&(t=c[0][1]),r.codecs.forEach(e=>{if("RTX"===e.name.toUpperCase()&&e.parameters.apt){let r={ssrc:a,codecPayloadType:parseInt(e.parameters.apt,10)};a&&t&&(r.rtx={ssrc:t}),n.push(r),i&&((r=JSON.parse(JSON.stringify(r))).fec={ssrc:a,mechanism:s?"red+ulpfec":"red"},n.push(r))}}),0===n.length&&a&&n.push({ssrc:a});let p=Z.matchPrefix(e,"b=");return p.length&&(p=0===p[0].indexOf("b=TIAS:")?parseInt(p[0].substring(7),10):0===p[0].indexOf("b=AS:")?950*parseInt(p[0].substring(5),10)-16e3:void 0,n.forEach(e=>{e.maxBitrate=p})),n},Z.parseRtcpParameters=function(e){let t={},n=Z.matchPrefix(e,"a=ssrc:").map(e=>Z.parseSsrcMedia(e)).filter(e=>"cname"===e.attribute)[0];n&&(t.cname=n.value,t.ssrc=n.ssrc);let r=Z.matchPrefix(e,"a=rtcp-rsize");return t.reducedSize=r.length>0,t.compound=0===r.length,t.mux=Z.matchPrefix(e,"a=rtcp-mux").length>0,t},Z.writeRtcpParameters=function(e){let t="";return e.reducedSize&&(t+="a=rtcp-rsize\r\n"),e.mux&&(t+="a=rtcp-mux\r\n"),void 0!==e.ssrc&&e.cname&&(t+="a=ssrc:"+e.ssrc+" cname:"+e.cname+"\r\n"),t},Z.parseMsid=function(e){let t,n=Z.matchPrefix(e,"a=msid:");if(1===n.length)return{stream:(t=n[0].substring(7).split(" "))[0],track:t[1]};let r=Z.matchPrefix(e,"a=ssrc:").map(e=>Z.parseSsrcMedia(e)).filter(e=>"msid"===e.attribute);if(r.length>0)return{stream:(t=r[0].value.split(" "))[0],track:t[1]}},Z.parseSctpDescription=function(e){let t,n=Z.parseMLine(e),r=Z.matchPrefix(e,"a=max-message-size:");r.length>0&&(t=parseInt(r[0].substring(19),10)),isNaN(t)&&(t=65536);let i=Z.matchPrefix(e,"a=sctp-port:");if(i.length>0)return{port:parseInt(i[0].substring(12),10),protocol:n.fmt,maxMessageSize:t};let s=Z.matchPrefix(e,"a=sctpmap:");if(s.length>0){let e=s[0].substring(10).split(" ");return{port:parseInt(e[0],10),protocol:e[1],maxMessageSize:t}}},Z.writeSctpDescription=function(e,t){let n=[];return n="DTLS/SCTP"!==e.protocol?["m="+e.kind+" 9 "+e.protocol+" "+t.protocol+"\r\n","c=IN IP4 0.0.0.0\r\n","a=sctp-port:"+t.port+"\r\n"]:["m="+e.kind+" 9 "+e.protocol+" "+t.port+"\r\n","c=IN IP4 0.0.0.0\r\n","a=sctpmap:"+t.port+" "+t.protocol+" 65535\r\n"],void 0!==t.maxMessageSize&&n.push("a=max-message-size:"+t.maxMessageSize+"\r\n"),n.join("")},Z.generateSessionId=function(){return Math.random().toString().substr(2,22)},Z.writeSessionBoilerplate=function(e,t,n){return"v=0\r\no="+(n||"thisisadapterortc")+" "+(e||Z.generateSessionId())+" "+(void 0!==t?t:2)+" IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\n"},Z.getDirection=function(e,t){let n=Z.splitLines(e);for(let e=0;e<n.length;e++)switch(n[e]){case"a=sendrecv":case"a=sendonly":case"a=recvonly":case"a=inactive":return n[e].substring(2)}return t?Z.getDirection(t):"sendrecv"},Z.getKind=function(e){return Z.splitLines(e)[0].split(" ")[0].substring(2)},Z.isRejected=function(e){return"0"===e.split(" ",2)[1]},Z.parseMLine=function(e){let t=Z.splitLines(e)[0].substring(2).split(" ");return{kind:t[0],port:parseInt(t[1],10),protocol:t[2],fmt:t.slice(3).join(" ")}},Z.parseOLine=function(e){let t=Z.matchPrefix(e,"o=")[0].substring(2).split(" ");return{username:t[0],sessionId:t[1],sessionVersion:parseInt(t[2],10),netType:t[3],addressType:t[4],address:t[5]}},Z.isValidSDP=function(e){if("string"!=typeof e||0===e.length)return!1;let t=Z.splitLines(e);for(let e=0;e<t.length;e++)if(t[e].length<2||"="!==t[e].charAt(1))return!1;return!0},q=Z;let ec=function({window:e}={},t={shimChrome:!0,shimFirefox:!0,shimSafari:!0}){let n=function(e){let t={browser:null,version:null};if(void 0===e||!e.navigator||!e.navigator.userAgent)return t.browser="Not a browser.",t;let{navigator:n}=e;if(n.userAgentData&&n.userAgentData.brands){let e=n.userAgentData.brands.find(e=>"Chromium"===e.brand);if(e)return{browser:"chrome",version:parseInt(e.version,10)}}return n.mozGetUserMedia?(t.browser="firefox",t.version=d(n.userAgent,/Firefox\/(\d+)\./,1)):n.webkitGetUserMedia||!1===e.isSecureContext&&e.webkitRTCPeerConnection?(t.browser="chrome",t.version=d(n.userAgent,/Chrom(e|ium)\/(\d+)\./,2)):e.RTCPeerConnection&&n.userAgent.match(/AppleWebKit\/(\d+)\./)?(t.browser="safari",t.version=d(n.userAgent,/AppleWebKit\/(\d+)\./,1),t.supportsUnifiedPlan=e.RTCRtpTransceiver&&"currentDirection"in e.RTCRtpTransceiver.prototype):t.browser="Not a supported browser.",t}(e),r={browserDetails:n,commonShim:Q,extractVersion:d,disableLog:h,disableWarnings:u,sdp:q};switch(n.browser){case"chrome":if(!y||!y.shimPeerConnection||!t.shimChrome){f("Chrome shim is not included in this adapter release.");break}if(null===n.version){f("Chrome shim can not determine version, not shimming.");break}f("adapter.js shimming chrome."),r.browserShim=y,eo(e,n),ea(e,n),y.shimGetUserMedia(e,n),y.shimMediaStream(e,n),y.shimPeerConnection(e,n),y.shimOnTrack(e,n),y.shimAddTrackRemoveTrack(e,n),y.shimGetSendersWithDtmf(e,n),y.shimSenderReceiverGetStats(e,n),y.fixNegotiationNeeded(e,n),ee(e,n),et(e,n),ei(e,n),en(e,n),er(e,n),es(e,n);break;case"firefox":if(!E||!E.shimPeerConnection||!t.shimFirefox){f("Firefox shim is not included in this adapter release.");break}f("adapter.js shimming firefox."),r.browserShim=E,eo(e,n),ea(e,n),E.shimGetUserMedia(e,n),E.shimPeerConnection(e,n),E.shimOnTrack(e,n),E.shimRemoveStream(e,n),E.shimSenderGetStats(e,n),E.shimReceiverGetStats(e,n),E.shimRTCDataChannel(e,n),E.shimAddTransceiver(e,n),E.shimGetParameters(e,n),E.shimCreateOffer(e,n),E.shimCreateAnswer(e,n),ee(e,n),ei(e,n),en(e,n),er(e,n);break;case"safari":if(!z||!t.shimSafari){f("Safari shim is not included in this adapter release.");break}f("adapter.js shimming safari."),r.browserShim=z,eo(e,n),ea(e,n),z.shimRTCIceServerUrls(e,n),z.shimCreateOfferLegacy(e,n),z.shimCallbacksAPI(e,n),z.shimLocalStreamsAPI(e,n),z.shimRemoteStreamsAPI(e,n),z.shimTrackEventTransceiver(e,n),z.shimGetUserMedia(e,n),z.shimAudioContext(e,n),ee(e,n),et(e,n),en(e,n),er(e,n),es(e,n);break;default:f("Unsupported browser!")}return r}({window:"undefined"==typeof window?void 0:window}),ep=ec.default||ec,ed=new class{isWebRTCSupported(){return"undefined"!=typeof RTCPeerConnection}isBrowserSupported(){let e=this.getBrowser(),t=this.getVersion();return!!this.supportedBrowsers.includes(e)&&("chrome"===e?t>=this.minChromeVersion:"firefox"===e?t>=this.minFirefoxVersion:"safari"===e&&!this.isIOS&&t>=this.minSafariVersion)}getBrowser(){return ep.browserDetails.browser}getVersion(){return ep.browserDetails.version||0}isUnifiedPlanSupported(){let e,t=this.getBrowser(),n=ep.browserDetails.version||0;if("chrome"===t&&n<this.minChromeVersion)return!1;if("firefox"===t&&n>=this.minFirefoxVersion)return!0;if(!window.RTCRtpTransceiver||!("currentDirection"in RTCRtpTransceiver.prototype))return!1;let r=!1;try{(e=new RTCPeerConnection).addTransceiver("audio"),r=!0}catch(e){}finally{e&&e.close()}return r}toString(){return`Supports:
     browser:${this.getBrowser()}
     version:${this.getVersion()}
@@ -801,8 +833,8 @@ function showFatal(title,msg){
     '<b style="color:#e8625a;font-size:18px">'+title+'</b><br><br>'+msg+'</div>';
 }
 if(!window.THREE){
-  showFatal('GRIDLINE COMMAND \u2014 engine missing',
-    'The embedded 3D engine failed to initialize. The file may be corrupted \u2014 re-download it and try again.');
+  showFatal('GRIDLINE COMMAND: engine missing',
+    'The embedded 3D engine failed to initialize. The file may be corrupted: re-download it and try again.');
   throw new Error('THREE missing');
 }
 
@@ -811,7 +843,7 @@ if(!window.THREE){
 ================================================================ */
 let W=11, H=11;
 const P='P';
-let MYSIDE=P;   // the side this device commands — differs from P for multiplayer guests
+let MYSIDE=P;   // the side this device commands: differs from P for multiplayer guests
 /* pass-and-play: several people share this device. HOT lists their sides; MYSIDE follows whoever's turn it is,
    and each player keeps their own fog, camera and turn recap. */
 let HOT=[];
@@ -822,27 +854,44 @@ let exploredBy={}, camBy={}, turnSnaps={}, curtainUp=false, noticesDue=false, ho
 /* ---------------- FACTIONS ---------------- */
 const FACTIONS={
   AEGIS:  {key:'AEGIS',  name:'Aegis Command',    color:0x5aa7e8, trim:0x2a5d96, css:'#5aa7e8',
-           perk:'Veteran corps \u2014 starts with Field Medicine; Aegis units have +1 HP, heal 3 HP when they rest and 2 HP on turns they move without attacking.',
+           perk:'Veteran corps: starts with Field Medicine; Aegis units have +1 HP, heal 3 HP when they rest and 2 HP on turns they move without attacking.',
            startTech:'MEDIC', healBonus:1, hpBonus:1, healOnMove:true},
   CRIMSON:{key:'CRIMSON',name:'Crimson Pact',     color:0xe8625a, trim:0x8e3a35, css:'#e8625a',
-           perk:'War economy \u2014 every unit costs 1\u2605 less to train: Infantry 1\u2605, Snipers 3\u2605. Doesn\u2019t stack with Logistics.',
+           perk:'War economy: every unit costs 1\u2605 less to train: Infantry 1\u2605, Snipers 3\u2605. Doesn\u2019t stack with Logistics.',
            unitDiscount:1, snpDiscount:1},
   SOLARIS:{key:'SOLARIS',name:'Solaris Syndicate',color:0xf0b35c, trim:0xa67424, css:'#f0b35c',
-           perk:'Industrialists \u2014 starts with Mining; ore and oil harvests cost 1\u2605 less.',
+           perk:'Industrialists: starts with Mining; ore and oil harvests cost 1\u2605 less.',
            startTech:'MINING', harvestDiscount:1},
   GHOST:  {key:'GHOST',  name:'Ghost Division',   color:0xe65bc8, trim:0x99307f, css:'#e65bc8',
-           perk:'Recon doctrine \u2014 vision range 3, starts with Marksmanship, and Ghost Snipers that haven\u2019t moved this turn shoot 3 tiles (overwatch).',
+           perk:'Recon doctrine: vision range 3, starts with Marksmanship, and Ghost Snipers that haven\u2019t moved this turn shoot 3 tiles (overwatch).',
            startTech:'MARKS', vision:3, overwatch:true},
   BASTION:{key:'BASTION',name:'Iron Bastion',     color:0xefe6cc, trim:0x8c8370, css:'#efe6cc',
-           perk:'Fortress doctrine \u2014 every city you hold has City Walls (+50% defense), your HQ from the very first turn, and Bastion starts with Fortification.',
+           perk:'Fortress doctrine: every city you hold has City Walls (+50% defense), your HQ from the very first turn, and Bastion starts with Fortification.',
            startTech:'FORT', walls:true},
   VERDANT:{key:'VERDANT',name:'Verdant Collective',color:0xa6d94e, trim:0x5e8a2a, css:'#a6d94e',
-           perk:'Green revolution \u2014 crop harvests give +1 extra population, and Develop costs 2\u2605 less.',
+           perk:'Green revolution: crop harvests give +1 extra population, and Develop costs 2\u2605 less.',
            cropBonus:1, devDiscount:2},
   TIDE:   {key:'TIDE',   name:'Tidewatch Rangers', color:0x22d3b0, trim:0x16806c, css:'#22d3b0',
-           perk:'Rapid deployment \u2014 starts with a second Infantry squad, Field Radio (+1 vision, villages revealed) and Marksmanship.',
+           perk:'Rapid deployment: starts with a second Infantry squad, Field Radio (+1 vision, villages revealed) and Marksmanship.',
            startTech:['RADIO','MARKS'], extraInf:1},
 };
+/* how each faction plays, at a glance: a style line, ratings out of 5, and how forgiving it is to learn */
+const FACTION_STYLE={
+  AEGIS:  {style:'Outlast the enemy: units heal every turn and carry extra HP.',           r:{Attack:3,Defense:4,Economy:2,Mobility:3,Intel:2}, learn:'Easy'},
+  CRIMSON:{style:'Strike first and fast: cheap units and the hardest-hitting power.',      r:{Attack:5,Defense:2,Economy:3,Mobility:4,Intel:2}, learn:'Medium'},
+  SOLARIS:{style:'Out-grow everyone: cheaper harvests, a cash windfall, long guns.',        r:{Attack:3,Defense:3,Economy:5,Mobility:2,Intel:2}, learn:'Easy'},
+  GHOST:  {style:'See everything first: wide vision, snipers that shoot 3 tiles, drones.',   r:{Attack:4,Defense:2,Economy:2,Mobility:3,Intel:5}, learn:'Hard'},
+  BASTION:{style:'Turtle and grind: walled cities and armoured Guardians.',                 r:{Attack:2,Defense:5,Economy:3,Mobility:2,Intel:2}, learn:'Easy'},
+  VERDANT:{style:'Grow tall: crops count double, cheap Develop, ambushes from forests.',    r:{Attack:3,Defense:3,Economy:4,Mobility:3,Intel:2}, learn:'Medium'},
+  TIDE:   {style:'Move first, everywhere: an extra squad, wide intel, hovercraft on water.', r:{Attack:3,Defense:2,Economy:2,Mobility:5,Intel:4}, learn:'Medium'},
+};
+function factionInfoHtml(k){
+  const f=FACTIONS[k], st=FACTION_STYLE[k], fu=UNIT_TYPES[FACTION_UNIT[k]];
+  const bars=st?'<div class="fstats">'+Object.entries(st.r).map(([n,v])=>'<span><i>'+n+'</i>'+'<b class="on"></b>'.repeat(v)+'<b></b>'.repeat(5-v)+'</span>').join('')+'</div>':'';
+  return (st?'<div class="fstyle">'+st.style+' <em>'+st.learn+' to learn</em></div>'+bars:'')+
+    '<div class="fp">'+f.perk+'</div>'+(f.power?'<div class="fpw"><b>Power \u00b7 '+f.power.name+':</b> '+f.power.desc+'</div>':'')+
+    (fu?'<div class="fpw"><b>Unique unit \u00b7 '+fu.name+'</b> ('+TECHS[UNIT_REQ[fu.key]].name+'): '+fu.desc.replace(/^[^.]*only\. /,'')+'</div>':'');
+}
 /* factions whose colours read alike on the board are kept apart when the AI picks rivals */
 const FACTION_CLASH={AEGIS:['TIDE'], TIDE:['AEGIS']};
 /* commander powers: each faction has one, usable once per game on your own turn */
@@ -894,7 +943,7 @@ function usePower(s){
   }
   for(const q of cities) fx.shock(q.x,q.y,meta(s).flag);
   if(s===MYSIDE) sfx.level();
-  log(s, `COMMANDER POWER \u2014 ${meta(s).name}: ${p.name}!`);
+  log(s, `COMMANDER POWER: ${meta(s).name}: ${p.name}!`);
   return true;
 }
 /* the computer uses its power when it counts (Easy rivals never do) */
@@ -978,7 +1027,7 @@ function uDef(u){
   return UNIT_TYPES[u.type].def + (u.type==='TNK'&&hasTech(u.owner,'ARMOR')&&!home?1:0);
 }
 function uMove(u){ return UNIT_TYPES[u.type].move + (u.type==='HEL'&&hasTech(u.owner,'TURBO')?1:0) + (u.type==='INF'?(meta(u.owner).faction.infMove||0):0); }
-/* artillery can't move and fire on the same turn — unless Self-Propelled Guns */
+/* artillery can't move and fire on the same turn: unless Self-Propelled Guns */
 function siegeLocked(u){ return !!UNIT_TYPES[u.type].siege && u.moved && !(u.type==='ART'&&hasTech(u.owner,'SPG')); }
 function cityIncome(c){ return ((c.capital?2:1)+c.level+(c.bonus||0)+(c.owner&&hasTech(c.owner,'URBAN')?1:0))*(mod('rich')?2:1); }
 /* cities travel through saves and the network in this compact form */
@@ -1067,7 +1116,7 @@ const TECHS={
   HOSP: {key:'HOSP',  name:'Field Hospitals',   branch:'Support',  tier:3, req:'FORT',  unlocks:'Units inside your cities heal 4 HP every turn, even after acting.'},
   CIVDEF:{key:'CIVDEF',name:'Civil Defense',    branch:'Support',  tier:3, req:'FORT',  unlocks:'Artillery and nuclear blasts deal half damage to your units, and can\u2019t kill them inside your own cities.'},
   RADIO:{key:'RADIO', name:'Field Radio',       branch:'Intel',    tier:1, req:null,    unlocks:'+1 vision, and every village and supply drop on the map is revealed.'},
-  AIRDEF:{key:'AIRDEF',name:'Air Defense',      branch:'Intel',    tier:2, req:'RADIO', unlocks:'Unlocks the Flak Battery \u2014 an anti-air gun that hunts Helicopters.'},
+  AIRDEF:{key:'AIRDEF',name:'Air Defense',      branch:'Intel',    tier:2, req:'RADIO', unlocks:'Unlocks the Flak Battery: an anti-air gun that hunts Helicopters.'},
   FWDOBS:{key:'FWDOBS',name:'Forward Observers',branch:'Intel',    tier:3, req:'RADIO', unlocks:'Artillery and Flak Batteries gain +1 range.'},
   SAT:  {key:'SAT',  name:'Satellite Network', branch:'Strategic', tier:4, req:'AVIA',  unlocks:'Reveals the whole map, and Artillery, Flak and Nuclear Missiles gain +1 range.'},
   NUKE: {key:'NUKE', name:'Manhattan Project',  branch:'Strategic', tier:4, req:'SIEGE', unlocks:'Unlocks the Nuclear Missile: a one-use strategic strike with a massive blast.'},
@@ -1100,7 +1149,7 @@ function research(s,k){
   log(s, `${NET.on?meta(s).name+' researches':(s===MYSIDE?'You research':'Enemy researches')} ${TECHS[k].name}.`);
   if(k==='SAT' && s===MYSIDE){
     for(let y=0;y<H;y++)for(let x=0;x<W;x++) explored[y][x]=true;
-    log('sys','Satellite network online \u2014 the entire region is now visible.');
+    log('sys','Satellite network online: the entire region is now visible.');
   }
   return true;
 }
@@ -1162,7 +1211,7 @@ function resultHtml(winner, firstTime){
     if(won){
       parts['Victory']=500; parts['Speed bonus']=30*Math.max(0,par+8-turn);
       stars=turn<=par?3:turn<=par+8?2:1;
-      note=stars===3?'Won by turn '+par+' — a flawless campaign.':stars===2?'Three stars need a win by turn '+par+'.':'Two stars need a win by turn '+(par+8)+'.';
+      note=stars===3?'Won by turn '+par+': a flawless campaign.':stars===2?'Three stars need a win by turn '+par+'.':'Two stars need a win by turn '+(par+8)+'.';
     }
   }
   const total=Object.values(parts).reduce((a,b)=>a+b,0);
@@ -1387,7 +1436,7 @@ function develop(s,x,y){
     c.rw=(c.rw||[]).concat(gained);
     fx.popup(x,y,'LEVEL '+c.level+'!','#f0b35c');
     if(s===MYSIDE) sfx.level();
-    log(s, `${c.capital?'HQ':'City'} grew to level ${c.level} \u2014 income up!${s===MYSIDE?' Pick a reward.':''}`);
+    log(s, `${c.capital?'HQ':'City'} grew to level ${c.level}: income up!${s===MYSIDE?' Pick a reward.':''}`);
   } else if(s===MYSIDE) sfx.harvest();
   return true;
 }
@@ -1452,7 +1501,7 @@ function harvest(x,y,owner){
     fx.popup(rc.x,rc.y,'LEVEL '+c.level+'!','#f0b35c');
     fx.shock(rc.x,rc.y,0x8fd89a);
     if(owner===MYSIDE) sfx.level();
-    log(owner, `${c.capital?'HQ':'City'} grew to level ${c.level} — income up!${owner===MYSIDE?' Pick a reward.':''}`);
+    log(owner, `${c.capital?'HQ':'City'} grew to level ${c.level}: income up!${owner===MYSIDE?' Pick a reward.':''}`);
   }
   return true;
 }
@@ -1485,14 +1534,14 @@ function myTurnNotices(){
   }
   {
     const cap=units.filter(u=>u.owner===s&&canCapture(u)).length;
-    if(cap) turnNotes.push(cap===1?'\u2691 A unit can capture a city \u2014 select it and tap Capture.':'\u2691 '+cap+' units can capture cities this turn.');
+    if(cap) turnNotes.push(cap===1?'\u2691 A unit can capture a city: select it and tap Capture.':'\u2691 '+cap+' units can capture cities this turn.');
   }
   if(!blockedHint){
     let own=0, blocked=0;
     map.flat().forEach((t,i)=>{ if(t.city&&t.city.owner===s){ own++; const q=unitAt(i%W,Math.floor(i/W)); if(q&&q.owner===s) blocked++; } });
     if(own&&blocked===own&&stars[s]>=unitCost(s,'INF')&&armySize(s)<armyCap(s)){
       blockedHint=true;
-      turnNotes.push('Units standing on your cities block training \u2014 move one off to recruit.');
+      turnNotes.push('Units standing on your cities block training: move one off to recruit.');
     }
   }
   { const at=recapAt; toast([turnHead(s),...turnNotes].join('\n'), turnNotes.length?'var(--amber)':meta(s).css, at?()=>panTo(at.x,at.y):null); }
@@ -1534,7 +1583,7 @@ function startTurn(s, first){
   if(pw.shield[s]&&--pw.shield[s]<=0) delete pw.shield[s];   // Hold the Line covers two rounds
   if(meta(s).faction.walls) map.flat().forEach(t=>{ if(t.city&&t.city.owner===s) t.city.walls=true; });
   if(s===MYSIDE&&!first&&myCam&&alive[MYSIDE]){ camGoal=myCam; myCam=null; }
-  if(s===MYSIDE) endGuard=performance.now()+700;
+  if(s===MYSIDE){ endGuard=performance.now()+700; setTimeout(()=>{ if(side===MYSIDE&&map) { computeVision(); wakeSentries(); refresh(); } },60); }
   turnCities[s]=cityCount(s);
   stars[s]+=isAI(s)?Math.round(income(s)*diff().inc):income(s);
   const medic=hasTech(s,'MEDIC'), hosp=hasTech(s,'HOSP');
@@ -1686,7 +1735,7 @@ function creditKill(k){
   k.kills=(k.kills||0)+1;
   if(k.kills===3&&!k.vet&&!UNIT_TYPES[k.type].super){
     fx.popup(k.x,k.y,'\u2605 PROMOTION','#f0b35c');
-    log(k.owner, `${UNIT_TYPES[k.type].name} earned a promotion \u2014 select it and tap Promote.`);
+    log(k.owner, `${UNIT_TYPES[k.type].name} earned a promotion: select it and tap Promote.`);
   }
 }
 function promote(u){
@@ -1747,8 +1796,8 @@ function fcText(f,tu){
     (f.cAtk?` <b style="color:var(--amber)">\u25b2 strong vs ${UNIT_TYPES[tu.type].name}</b>`:'')+
     (f.cDef?' <b style="color:#8aa08c">\u25bc armored target</b>':'')+
     (f.splashN?` <b style="color:var(--amber)">\u25c9 blast hits ${f.splashN} more</b>`:'')+
-    (f.kills?(' \u2014 <b>destroys it'+(f.advances?' & advances!':'!')+'</b>')
-            :(f.rdmg?` \u00b7 take <b>${f.rdmg}</b> back`+(f.dies?' \u2014 <b>you would die!</b>':'')
+    (f.kills?(': <b>destroys it'+(f.advances?' & advances!':'!')+'</b>')
+            :(f.rdmg?` \u00b7 take <b>${f.rdmg}</b> back`+(f.dies?': <b>you would die!</b>':'')
                     :' \u00b7 no retaliation'));
 }
 function forecast(u,d){
@@ -1838,7 +1887,7 @@ function nukeStrike(u,tx,ty){
   }
   // area damage to the rest of the blast
   splashDamage(u,tx,ty);
-  // capture a city if the strike lands on one (rubble changes hands? no — nukes don't capture; just damage)
+  // capture a city if the strike lands on one (rubble changes hands? no: nukes don't capture; just damage)
   fx.nukeBlast(tx,ty,R);
   sfx.nuke();
   // scorch forests in the blast
@@ -1851,7 +1900,7 @@ function nukeStrike(u,tx,ty){
   if(unitMeshes.has(u.id)){ const g=unitMeshes.get(u.id); unitGroup.remove(g); freeUnitMesh(g); unitMeshes.delete(u.id); }
   buildBoard();
   log(u.owner, `${meta(u.owner).name} detonated a NUCLEAR STRIKE!`);
-  // win check in case the blast wiped a faction's last units AND they have no cities — handled at city capture only,
+  // win check in case the blast wiped a faction's last units AND they have no cities: handled at city capture only,
   // so just refresh; elimination by capital capture still requires marching in.
 }
 function civdef(e,dmg){
@@ -1957,7 +2006,7 @@ function openDrop(u,x,y){
   }
   fx.popup(x,y,'SUPPLY DROP','#f0b35c');
   if(s===MYSIDE) sfx.level();
-  log(s, `${whose} opened a supply drop \u2014 ${msg}.`);
+  log(s, `${whose} opened a supply drop: ${msg}.`);
 }
 function moveUnit(u,x,y){
   fx.faceTarget(u,{x,y});
@@ -2014,7 +2063,7 @@ function eliminate(s, by, surrendered){
   });
   map.flat().forEach(t=>{ if(t.city&&t.city.owner===s){ t.city.owner=null; t.city.rw=[]; t.city.capital=false; } });
   if(by&&playerMeta[by]) tl(by).elims++;
-  if(surrendered) log('sys',`${meta(s).name} SURRENDERS \u2014 its last troops lay down their arms.`);
+  if(surrendered) log('sys',`${meta(s).name} SURRENDERS: its last troops lay down their arms.`);
   else log('sys',`${meta(s).name} has been ELIMINATED${NET.on?(by&&meta(by)?' by '+meta(by).name:''):(by===MYSIDE?' by your forces':'')}!`);
   if(!surrendered) sfx.boom(); else sfx.capture();
   const rem=turnOrder.filter(x=>alive[x]);
@@ -2150,7 +2199,7 @@ async function aiTurn(me){
       log(me,`${meta(me).name} assembles a Nuclear Missile.`);
       if(!nukeWarned[me]&&alive[MYSIDE]){
         nukeWarned[me]=true;
-        toast('\u2622 '+meta(me).name+' built a Nuclear Missile (range 6, 2-tile blast). Spread out \u2014 Civil Defense halves blast damage.','var(--red)');
+        toast('\u2622 '+meta(me).name+' built a Nuclear Missile (range 6, 2-tile blast). Spread out: Civil Defense halves blast damage.','var(--red)');
       }
       refresh();
       continue;
@@ -2376,7 +2425,7 @@ let renderer;
 try{
   renderer=new THREE.WebGLRenderer({antialias:true});
 }catch(err){
-  showFatal('GRIDLINE COMMAND \u2014 3D graphics unavailable',
+  showFatal('GRIDLINE COMMAND: 3D graphics unavailable',
     'Your browser could not create a WebGL context, which this game needs to render.<br><br>'+
     'Usual fixes:<br>\u2022 Enable <b>hardware acceleration</b> in your browser settings, then restart the browser<br>'+
     '\u2022 Update your graphics drivers<br>'+
@@ -2580,7 +2629,7 @@ for(const ev of ['gesturestart','gesturechange','gestureend']) document.addEvent
 
 /* ---- hover feedback: tile ring + battle forecast ---- */
 let hover=null, lastHoverT=0;
-let pendingAtk=null; // {uid,tid} — touch devices confirm attacks with a second tap
+let pendingAtk=null; // {uid,tid}: touch devices confirm attacks with a second tap
 const COARSE=window.matchMedia('(pointer:coarse)').matches;
 const hoverRing=new THREE.Mesh(
   new THREE.RingGeometry(0.34,0.46,24),
@@ -2616,7 +2665,7 @@ function setHover(h){
       cvs.style.cursor='crosshair';
     } else if(su&&!tu&&reachable(su).has(key(h.x,h.y))){
       const c=tileAt(h.x,h.y).city;
-      txt='\u25b8 Move here'+(c&&c.owner!==MYSIDE?' \u2014 <b>capture the '+(c.capital?'HQ':'city')+' next turn</b>':'');
+      txt='\u25b8 Move here'+(c&&c.owner!==MYSIDE?': <b>capture the '+(c.capital?'HQ':'city')+' next turn</b>':'');
       cvs.style.cursor='pointer';
     } else cvs.style.cursor='grab';
   } else cvs.style.cursor='grab';
@@ -3432,7 +3481,7 @@ function toggleDanger(){
   dangerOn=!dangerOn;
   $('dangerBtn').classList.toggle('on',dangerOn);
   sfx.select();
-  if(dangerOn&&!units.some(e=>e.owner!==MYSIDE&&visXY(e.x,e.y))) toast('Danger zones on \u2014 no enemy in sight right now.','var(--red)');
+  if(dangerOn&&!units.some(e=>e.owner!==MYSIDE&&visXY(e.x,e.y))) toast('Danger zones on: no enemy in sight right now.','var(--red)');
   refresh();
 }
 function syncHighlights(){
@@ -3918,7 +3967,7 @@ function onTileClick(x,y){
           const n=units.filter(e=>e.owner!==MYSIDE && Math.max(Math.abs(e.x-x),Math.abs(e.y-y))<=blastR(su)).length;
           refresh();
           $('forecast').innerHTML=
-            '\u2622 NUCLEAR STRIKE here \u2014 hits <b>'+n+'</b> in blast<br><b style="color:var(--red)">\u25b8 TAP AGAIN TO CONFIRM LAUNCH</b>';
+            '\u2622 NUCLEAR STRIKE here: hits <b>'+n+'</b> in blast<br><b style="color:var(--red)">\u25b8 TAP AGAIN TO CONFIRM LAUNCH</b>';
           sfx.select();
           return;
         }
@@ -3964,7 +4013,17 @@ function onTileClick(x,y){
 /* ================================================================
    HTML UI
 ================================================================ */
-const hasWork=u=>u.owner===MYSIDE && ((!u.attacked && (!u.moved || attackTargets(u).length>0)) || (!!u.cargo&&unloadSpots(u).length>0));
+const sentry=new Set();   // units left on watch: skipped by Next and the ready count until an enemy comes near or you give them orders
+const hasWork=u=>u.owner===MYSIDE && !sentry.has(u.id) && ((!u.attacked && (!u.moved || attackTargets(u).length>0)) || (!!u.cargo&&unloadSpots(u).length>0));
+/* at the start of your turn, a unit on watch wakes up when a visible enemy is within 3 tiles */
+function wakeSentries(){
+  for(const id of [...sentry]){
+    const u=units.find(q=>q.id===id);
+    if(!u||u.owner!==MYSIDE){ sentry.delete(id); continue; }
+    const e=units.find(q=>q.owner!==MYSIDE&&visXY(q.x,q.y)&&cheb(q,u)<=3);
+    if(e){ sentry.delete(id); toast(UNIT_TYPES[u.type].name+' on watch spots enemy '+UNIT_TYPES[e.type].name+'!','var(--amber)',()=>{ sel={kind:'unit',id:u.id}; panTo(u.x,u.y); refresh(); }); }
+  }
+}
 function readyCount(){ return gameOver?0:units.filter(hasWork).length; }
 function refresh(){
   if(!map) return;
@@ -4097,7 +4156,8 @@ $('techPanel').addEventListener('click',e=>{
 
 
 /* ---------------- SAVE / LOAD ---------------- */
-const SAVE_KEY='foothold-save-v1';
+const SAVE_KEY='foothold-save-v1', CAMP_SAVE_KEY='foothold-save-campaign';
+const saveKeyFor=o=>o&&o.campaign?CAMP_SAVE_KEY:SAVE_KEY;   // a campaign battle never overwrites (or is overwritten by) a quick game
 const CAN_STORE=(()=>{try{localStorage.setItem('__t','1');localStorage.removeItem('__t');return true;}catch(e){return false;}})();
 function serializeGame(){
   return JSON.stringify({
@@ -4121,11 +4181,11 @@ function serializeGame(){
   });
 }
 function autoSave(){
-  if(NET.on) return; // multiplayer campaigns live on the host — no autosave
+  if(NET.on) return; // multiplayer campaigns live on the host: no autosave
   if(!CAN_STORE||!map||gameOver||side!==MYSIDE) return;
-  try{ localStorage.setItem(SAVE_KEY, serializeGame()); }catch(e){}
+  try{ localStorage.setItem(saveKeyFor(gcfg), serializeGame()); }catch(e){}
 }
-function clearSave(){ if(CAN_STORE){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} } }
+function clearSave(){ if(CAN_STORE){ try{ localStorage.removeItem(saveKeyFor(gcfg)); }catch(e){} } }
 function hasSave(){ if(!CAN_STORE) return false; try{ return !!localStorage.getItem(SAVE_KEY); }catch(e){ return false; } }
 /* a save exported by an online guest: swap its side into the host seat so it plays on solo */
 function swapSaveSides(d, me){
@@ -4202,9 +4262,9 @@ function restoreGame(data, net){
     }
     if(pc) homeCam(pc.x,pc.y); else { cam.target.set(0,0,0); applyCam(); }
     if($('log')) $('log').innerHTML='';
-    log('sys', net?('\u2014 OPERATION LIVE \u00b7 turn '+turn+' \u00b7 '+W+'\u00d7'+H+' \u2014')
-                  :('\u2014 CAMPAIGN RESTORED \u00b7 turn '+turn+' \u00b7 '+W+'\u00d7'+H+' \u2014'));
-    log('sys', net?('You command '+meta(MYSIDE).name+' \u2014 '+meta(MYSIDE).faction.name+'.')
+    log('sys', net?('OPERATION LIVE \u00b7 turn '+turn+' \u00b7 '+W+'\u00d7'+H+'')
+                  :('CAMPAIGN RESTORED \u00b7 turn '+turn+' \u00b7 '+W+'\u00d7'+H+''));
+    log('sys', net?('You command '+meta(MYSIDE).name+': '+meta(MYSIDE).faction.name+'.')
                   :('You command '+meta(P).name+'. It is your turn.'));
     $('overlay').classList.remove('show');
     $('techPanel').classList.remove('show');
@@ -4255,7 +4315,7 @@ function setupView(v){
   $('soloPane').style.display=v==='solo'?'':'none';
   $('mpPane').style.display=v==='mp'?'':'none';
   $('campPane').style.display=v==='camp'?'':'none';
-  if(v==='camp') renderCampaign();
+  if(v==='camp'){ renderCampaign(); tipOnce('campaign','Campaign: attack a region next to yours (dashed ring). Each battle is a normal game; perks from your neighbouring regions help you, and capturing a capital takes that whole faction.'); }
 }
 const SIZE_NAME={9:'small',11:'standard',13:'large',15:'huge'};
 /* ================= CAMPAIGN =================
@@ -4419,7 +4479,7 @@ function campBattle(kind, regionId, enemy){
   const bon=campBonuses(c, r, c.fac, enemy);
   campApplyBonuses(P, bon.me); campApplyBonuses(enemySides[0], bon.enemy);
   computeVision(); refresh(); autoSave();
-  toast((kind==='attack'?'Assault on ':'Defend ')+r.name+' \u2014 '+FACTIONS[enemy].name+'. Take their HQ to win the region.'+
+  toast((kind==='attack'?'Assault on ':'Defend ')+r.name+': '+FACTIONS[enemy].name+'. Take their HQ to win the region.'+
     (bon.me.length?'\nYour perks: '+bon.me.map(q=>CAMP_BONUS[q.bonus].name).join(', ')+'.':'')+
     (bon.enemy.length?'\nTheir perks: '+bon.enemy.map(q=>CAMP_BONUS[q.bonus].name).join(', ')+'.':''),'var(--amber)');
 }
@@ -4450,7 +4510,7 @@ function campTake(c, r, to){
   if(!r.capital||from===to) return null;
   r.capital=false;
   let n=0; for(const q of c.regions) if(q.owner===from){ q.owner=to; n++; }
-  return r.name+', the '+FACTIONS[from].name+' capital, falls to '+(to===c.fac?'you':FACTIONS[to].name)+(n?' \u2014 their '+n+' other region'+(n===1?'':'s')+' surrender'+(n===1?'s':'')+' too.':'.');
+  return r.name+', the '+FACTIONS[from].name+' capital, falls to '+(to===c.fac?'you':FACTIONS[to].name)+(n?': their '+n+' other region'+(n===1?'':'s')+' surrender'+(n===1?'s':'')+' too.':'.');
 }
 function campEliminations(c){
   for(const f of c.sides) if(f!==c.fac&&!(c.out||[]).includes(f)&&!campOwned(c,f).length){ c.out=[...(c.out||[]),f]; c.log.unshift(FACTIONS[f].name+' has been driven from the map.'); }
@@ -4610,6 +4670,8 @@ function renderCampaign(){
       const b=document.createElement('button'); b.className='opt'+(campNewCfg.fac===k?' sel':''); b.style.setProperty('--fc',FACTIONS[k].css);
       b.innerHTML=FACTIONS[k].name; b.onclick=()=>{ campNewCfg.fac=k; sfx.select(); renderCampaign(); }; row.appendChild(b);
     }
+    const fi=$('campFacInfo'); fi.style.setProperty('--fc',FACTIONS[campNewCfg.fac].css);
+    fi.innerHTML='<div class="fn" style="color:'+FACTIONS[campNewCfg.fac].css+'">'+FACTIONS[campNewCfg.fac].name+'</div>'+factionInfoHtml(campNewCfg.fac);
     document.querySelectorAll('#campLenRow .opt').forEach(o=>o.classList.toggle('sel',+o.dataset.n===campNewCfg.n));
     document.querySelectorAll('#campDiffRow .opt').forEach(o=>o.classList.toggle('sel',o.dataset.diff===campNewCfg.diff));
     return;
@@ -4629,10 +4691,11 @@ function renderCampaign(){
     const r=c.regions[c.battle.region];
     card.innerHTML='<h4>'+(c.battle.kind==='attack'?'Assault on ':'Defence of ')+esc(r.name)+'</h4><div class="cs">Against '+FACTIONS[c.battle.enemy].name+' \u00b7 '+CAMP_TERRAIN[r.terrain]+' \u00b7 '+r.size+'\u00d7'+r.size+'</div>';
     const running=!!map&&!gameOver&&(gcfg||{}).campaign&&gcfg.campaign.id===c.battle.id;
-    let saved=false; try{ const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); saved=!!(d&&d.cfg&&d.cfg.campaign&&d.cfg.campaign.id===c.battle.id); }catch(e){}
+    // the battle's own slot (older builds kept it in the main slot)
+    let saved=null; for(const k of [CAMP_SAVE_KEY,SAVE_KEY]){ try{ const d=JSON.parse(localStorage.getItem(k)||'null'); if(!saved&&d&&d.cfg&&d.cfg.campaign&&d.cfg.campaign.id===c.battle.id) saved=d; }catch(e){} }
     if(running) btn('Back to the battle','',()=>{ $('setup').classList.remove('show'); sfx.select(); });
-    else if(saved) btn('Resume the battle','continue where you left off',()=>{ try{ const d=JSON.parse(localStorage.getItem(SAVE_KEY)); if(restoreGame(d)){ tutStop(); sfx.capture(); } }catch(e){} });
-    else btn('Fight the battle','it was interrupted \u2014 start it again',()=>campBattle(c.battle.kind,c.battle.region,c.battle.enemy));
+    else if(saved) btn('Resume the battle','continue where you left off',()=>{ try{ if(restoreGame(saved)){ tutStop(); sfx.capture(); } }catch(e){} });
+    else btn('Fight the battle','it was interrupted: start it again',()=>campBattle(c.battle.kind,c.battle.region,c.battle.enemy));
   } else if(c.defend){
     const r=c.regions[c.defend.region];
     const bd=campBonuses(c,r,c.defend.enemy,c.fac), lst=a=>a.length?a.map(q=>CAMP_BONUS[q.bonus].name).join(', '):'none';
@@ -4678,7 +4741,7 @@ $('campQuit').onclick=()=>{
 };
 function syncCampBtn(){
   const c=campLoad(), el=$('campInfo'); if(!el) return;
-  el.textContent=!c?'conquer a region map, one battle at a time':c.over?'campaign '+(c.over==='won'?'won':'lost')+' \u2014 start a new one':
+  el.textContent=!c?'conquer a region map, one battle at a time':c.over?'campaign '+(c.over==='won'?'won':'lost')+': start a new one':
     'turn '+c.turn+' \u00b7 '+campOwned(c,c.fac).length+' of '+c.regions.length+' regions'+(c.battle?' \u00b7 battle in progress':c.defend?' \u00b7 under attack!':'');
 }
 function showSetup(){
@@ -4689,9 +4752,7 @@ function showSetup(){
     const card=document.createElement('button');
     card.className='fcard'+(cfg.faction===k?' sel':'');
     card.style.borderLeftColor=f.css;
-    const fu=UNIT_TYPES[FACTION_UNIT[k]];
-    card.innerHTML=`<div class="fn" style="color:${f.css}">${f.name}</div><div class="fp">${f.perk}</div>`+(f.power?`<div class="fpw"><b>Power \u00b7 ${f.power.name}:</b> ${f.power.desc}</div>`:'')+
-      (fu?`<div class="fpw"><b>Unique unit \u00b7 ${fu.name}</b> (${TECHS[UNIT_REQ[fu.key]].name}): ${fu.desc.replace(/^[^.]*only\. /,'')}</div>`:'')+medalRow(k);
+    card.innerHTML=`<div class="fn" style="color:${f.css}">${f.name}</div>`+factionInfoHtml(k)+medalRow(k);
     card.onclick=()=>{
       cfg.faction=k;
       grid.querySelectorAll('.fcard').forEach(c=>c.classList.remove('sel'));
@@ -4715,7 +4776,8 @@ function showSetup(){
   $('resumeBtn').style.display=running?'':'none';
   // continue button if a save exists and no game is running
   const cb=$('continueBtn');
-  if(!running&&hasSave()){
+  let mainSave=null; try{ mainSave=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); }catch(e){}
+  if(!running&&mainSave&&!(mainSave.cfg&&mainSave.cfg.campaign)){
     cb.style.display='';
     try{
       const d=JSON.parse(localStorage.getItem(SAVE_KEY));
@@ -4737,7 +4799,7 @@ function confirmAbandon(btn){
   if(!map||gameOver||armedBtn===btn){ disarm(); return true; }
   disarm();
   armedBtn=btn; btn.dataset.html=btn.innerHTML; btn.classList.add('armed');
-  btn.innerHTML='Abandon current game?<span>tap again to start a new one</span>';
+  btn.innerHTML=(gcfg&&gcfg.campaign)?'Leave this campaign battle?<span>it stays saved: resume it from Campaign</span>':'Abandon current game?<span>tap again to start a new one</span>';
   armedT=setTimeout(disarm,4000);
   sfx.denied();
   return false;
@@ -4768,8 +4830,8 @@ $('tutBtn').onclick=()=>{
 $('customBtn').onclick=()=>{ disarm(); setupView('solo'); sfx.select(); };
 $('campBtn').onclick=()=>{ disarm(); setupView('camp'); sfx.select(); };
 $('mpOpenBtn').onclick=()=>{ disarm(); setupView('mp'); sfx.select();
-  if(!navigator.onLine) mpMsg('⚠ You are offline \u2014 online play needs an internet connection. Solo games work offline.');
-  else if(!window.Peer) mpMsg('⚠ P2P engine failed to load — re-download the game file.'); };
+  if(!navigator.onLine) mpMsg('⚠ You are offline: online play needs an internet connection. Solo games work offline.');
+  else if(!window.Peer) mpMsg('⚠ P2P engine failed to load: re-download the game file.'); };
 document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>{
   if(NET.on&&!NET.inGame) NET.leave();
   disarm(); setupView('home'); sfx.select();
@@ -4834,7 +4896,7 @@ function renderHot(){
     box.appendChild(b);
   });
   const ai=cfg.enemies-(cfg.hot-1);
-  $('hotNote').textContent=cfg.hot>1?('Player 1 plays the faction chosen above. Take turns on this device \u2014 each player sees only their own map. '+
+  $('hotNote').textContent=cfg.hot>1?('Player 1 plays the faction chosen above. Take turns on this device: each player sees only their own map. '+
     (ai>0?ai+' more rival'+(ai>1?'s are':' is')+' played by the computer.':'No computer rivals.')):'';
 }
 document.querySelectorAll('#hotRow .opt').forEach(b=>{
@@ -4881,6 +4943,15 @@ function toast(msg,color,onTap){
   t.onclick=()=>{ if(onTap) onTap(); t.remove(); };   // tap a notice to dismiss it (some also jump to the spot)
   setTimeout(()=>{ t.classList.add('out'); setTimeout(()=>t.remove(),320); },3200+1200*(msg.split('\n').length-1));
 }
+/* one-time tips the first time you meet a mechanic (kept per device) */
+const TIPS_KEY='foothold-tips-seen';
+function tipOnce(k,msg){
+  if(NET.on&&!NET.inGame) return;
+  let seen={}; try{ seen=JSON.parse(localStorage.getItem(TIPS_KEY)||'{}'); }catch(e){}
+  if(seen[k]) return;
+  seen[k]=1; try{ localStorage.setItem(TIPS_KEY, JSON.stringify(seen)); }catch(e){}
+  toast('TIP: '+msg+'\n(tap to dismiss)','#8fd89a');
+}
 function toastFromLog(who,msg){
   const big=/ELIMINATED|SURRENDERS|NUCLEAR|COMMANDER POWER|ran out of time/i.test(msg);
   if(!big && !(who===MYSIDE||who==='sys')) return;
@@ -4917,7 +4988,7 @@ const tutRes=()=>{
 const TUT=[
   {text:()=>'This is your <b>Infantry</b>. '+TAP()+' it to give it orders.',
    at:()=>({tile:myUnit()}), done:()=>sel&&sel.kind==='unit'&&byId(sel.id)&&byId(sel.id).owner===MYSIDE},
-  {text:()=>nearestVillage()?'Blue tiles show where it can move. Head for the <b>grey village</b> \u2014 stand on it, and next turn tap <b>Capture</b>. (Drag to look around; '+(COARSE?'pinch':'scroll')+' to zoom.)'
+  {text:()=>nearestVillage()?'Blue tiles show where it can move. Head for the <b>grey village</b>: stand on it, and next turn tap <b>Capture</b>. (Drag to look around; '+(COARSE?'pinch':'scroll')+' to zoom.)'
                             :'Blue tiles show where it can move. Push toward the clouds to explore.',
    at:()=>({tile:nearestVillage()||myUnit()}), done:()=>coach.flags.moved},
   {text:()=>'Now '+TAP().toLowerCase()+' your <b>HQ</b>. Cities train new units.',
@@ -4935,7 +5006,7 @@ const TUT=[
    at:()=>({tile:tutRes()}), done:()=>coach.flags.harvested, skip:()=>!tutRes()},
   {text:()=>'Enemies in range get <b>red rings</b>. '+TAP()+' one to see the battle forecast before you strike.',
    at:()=>({el:$('endTurn')}), done:()=>coach.flags.ended2||coach.flags.attacked},
-  {text:()=>'Your unit held the village through the night. Select it and '+TAP().toLowerCase()+' <b>Capture</b> \u2014 more cities mean more stars. Take every enemy HQ to win!',
+  {text:()=>'Your unit held the village through the night. Select it and '+TAP().toLowerCase()+' <b>Capture</b>: more cities mean more stars. Take every enemy HQ to win!',
    at:()=>{ const u=units.find(q=>q.owner===MYSIDE&&canCapture(q)); return {tile:u||myHQ()}; },
    done:()=>coach.flags.captured, skip:()=>turn>15,
    wait:()=>!units.some(q=>q.owner===MYSIDE&&canCapture(q))},   // stays quiet until a unit can capture
@@ -4970,7 +5041,7 @@ function tutStop(){
 function tutEnd(skipped){
   tutStop();
   try{ localStorage.setItem(TUT_KEY,'1'); }catch(e){}
-  if(!skipped) toast('Tutorial complete. Capture every enemy HQ to win — good luck, Commander!','var(--amber)');
+  if(!skipped) toast('Tutorial complete. Capture every enemy HQ to win: good luck, Commander!','var(--amber)');
 }
 $('coachSkip').onclick=()=>{ sfx.select(); tutEnd(true); };
 function coachNote(a){
@@ -5167,29 +5238,34 @@ function renderInfoBody(){
     sub.textContent='Commander power \u00b7 once per game';
     body.textContent=p.desc+(used!=null?' Used on turn '+used+'.':side!==MYSIDE?' Wait for your turn.':'');
     if(used==null) train.appendChild(actBtn({icon:'bolt', name:'Activate', cls:'more', disabled:side!==MYSIDE||gameOver||!alive[MYSIDE],
-      title:'Use '+p.name+' now \u2014 it cannot be undone', onclick:()=>{ act({t:'power'}); sel=null; refresh(); }}));
+      title:'Use '+p.name+' now: it cannot be undone', onclick:()=>{ act({t:'power'}); sel=null; refresh(); }}));
     return;
   }
   if(sel&&sel.kind==='unit'){
     const u=units.find(x=>x.id===sel.id);
     if(u){
       const t=UNIT_TYPES[u.type], mine=u.owner===MYSIDE&&!gameOver;
+      if(mine&&t.carry) tipOnce('lander','Landing Craft: select a land unit and tap this craft to board, sail next to a shore, then tap a highlighted land tile to put the unit ashore.');
+      else if(mine&&t.naval) tipOnce('ship','Ships sail water only. Infantry and Tanks can\u2019t shoot at them, but Snipers, Artillery, Flak, Helicopters and other ships can.');
+      else if(mine&&t.faction) tipOnce('funit','This is your faction\u2019s unique unit: '+t.desc.replace(/^[^.]*only\. /,''));
+      else if(mine&&u.type==='TTN') tipOnce('titan','Titans: 36 HP and hard to kill, but they only move 1 tile. Helicopters and Artillery are their counters.');
+      else if(mine&&tutDone()) tipOnce('sentry','Got a unit you want to leave in place? Tap Sentry and the Next button will skip it until an enemy comes close.');
       por.innerHTML=`<img src="${unitIcon(u.type,u.owner)}" alt="">`;
       por.style.setProperty('--fc', meta(u.owner).css);
       title.textContent=t.name;
       sub.textContent=!mine?ownerName(u.owner)
-        :u.type==='NUKE'?(u.attacked?'Launched':'Armed — tap any tile in range to launch')
+        :u.type==='NUKE'?(u.attacked?'Launched':'Armed: tap any tile in range to launch')
         :u.attacked?'Done for this turn'
-        :u.moved?(siegeLocked(u)?'Moved — artillery cannot fire after moving':attackTargets(u).length?'Moved — can still attack':'Moved — nothing in range')
-        :'Ready \u2014 blue tiles move, red rings attack';
+        :u.moved?(siegeLocked(u)?'Moved: artillery cannot fire after moving':attackTargets(u).length?'Moved: can still attack':'Moved: nothing in range')
+        :'Ready: blue tiles move, red rings attack';
       if(mine&&tileAt(u.x,u.y).city&&tileAt(u.x,u.y).city.owner===MYSIDE) sub.textContent+=' \u00b7 tap again for the city';
       const forest=tileAt(u.x,u.y).terrain==='forest';
       chips.innerHTML=hpChip(u)+chip('ATK',fmtStat(uAtk(u)))+chip('DEF',uDef(u))+chip('MOVE',uMove(u))+chip('RANGE',uRange(u))+
         (forest?chip('Forest','+'+(hasTech(u.owner,'CAMO')?100:50)+'% DEF','good'):'')+
         (u.vet?chip('\u2605','Veteran','good'):u.kills&&u.type!=='NUKE'&&!t.super?chip('Kills',Math.min(3,u.kills)+'/3'):'');
       if(mine) por.title=t.desc; else body.textContent=t.desc;   // your own units skip the flavour line
-      if(t.carry) body.textContent=u.cargo?'Carrying '+UNIT_TYPES[u.cargo.type].name+' ('+u.cargo.hp+'/'+u.cargo.maxHp+' HP)'+(mine&&unloadSpots(u).length?' \u2014 tap a highlighted shore tile to land it.':mine&&u.unloaded===turn?'.':' \u2014 sail next to land to put it ashore.')
-        :mine?'Empty \u2014 select a land unit and tap this craft to board it.':'Empty.';
+      if(t.carry) body.textContent=u.cargo?'Carrying '+UNIT_TYPES[u.cargo.type].name+' ('+u.cargo.hp+'/'+u.cargo.maxHp+' HP)'+(mine&&unloadSpots(u).length?': tap a highlighted shore tile to land it.':mine&&u.unloaded===turn?'.':': sail next to land to put it ashore.')
+        :mine?'Empty: select a land unit and tap this craft to board it.':'Empty.';
       if(mine&&pendingAtk&&pendingAtk.uid===u.id){
         const pa=pendingAtk, tu=pa.tid!=null?byId(pa.tid):null;
         train.appendChild(actBtn({icon:'atk', name:tu?'Attack':'Launch', cls:'atk',
@@ -5199,17 +5275,23 @@ function renderInfoBody(){
       if(mine&&canCapture(u)) train.appendChild(actBtn({icon:'flag', name:'Capture', cls:'more',
         title:'Take this city: uses the unit\u2019s action', onclick:()=>{ act({t:'capture',uid:u.id}); sel=null; refresh(); }}));
       else if(mine&&!u.attacked&&tileAt(u.x,u.y).city&&tileAt(u.x,u.y).city.owner!==MYSIDE)
-        body.textContent='Holding a rival city \u2014 you can capture it at the start of your next turn if this unit is still here.';
+        body.textContent='Holding a rival city: you can capture it at the start of your next turn if this unit is still here.';
       if(mine&&canPromote(u)) train.appendChild(actBtn({icon:'star', name:'Promote', cls:'more',
-        title:'Veteran: +5 max HP and a full heal. Free \u2014 promote now or save it as an emergency heal.',
+        title:'Veteran: +5 max HP and a full heal. Free: promote now or save it as an emergency heal.',
         onclick:()=>act({t:'promote',uid:u.id})}));
       if(mine&&!u.attacked&&u.type!=='NUKE'){
         const fac=meta(MYSIDE).faction;
         const heal=hasTech(MYSIDE,'MEDIC')&&u.hp<u.maxHp&&(!u.moved||fac.healOnMove);
         const hv=u.moved?2:healAmt(MYSIDE);
         train.appendChild(actBtn({icon:heal?'heal':'hold', name:heal?'Heal':u.moved?'Done':'Hold',
-          title:heal?'End this unit’s turn — heals '+hv+' HP next turn':u.moved?'End this unit’s turn':'Skip this unit’s turn',
+          title:heal?'End this unit’s turn: heals '+hv+' HP next turn':u.moved?'End this unit’s turn':'Skip this unit’s turn',
           onclick:()=>{ act({t:'hold',uid:u.id}); sel=null; refresh(); }}));
+      }
+      if(mine&&u.type!=='NUKE'){
+        const on=sentry.has(u.id);
+        train.appendChild(actBtn({icon:'eye', name:on?'Wake':'Sentry', cls:'more',
+          title:on?'Back on duty: counts as ready again':'Leave this unit on watch: Next skips it every turn until an enemy comes within 3 tiles',
+          onclick:()=>{ if(on) sentry.delete(u.id); else { sentry.add(u.id); if(!u.attacked&&!u.moved) act({t:'hold',uid:u.id}); } sfx.select(); sel=null; refresh(); }}));
       }
       // a unit standing on a resource can harvest it (doesn't use the unit's action)
       const rt=tileAt(u.x,u.y);
@@ -5234,12 +5316,12 @@ function renderInfoBody(){
       const unlocked=resUnlocked(MYSIDE,t.resource);
       por.innerHTML=svgIcon(RES_ICON[t.resource]);
       title.textContent=r.name;
-      sub.textContent=!unlocked?'Locked — research '+TECHS[RES_REQ[t.resource]].name
+      sub.textContent=!unlocked?'Locked: research '+TECHS[RES_REQ[t.resource]].name
         :near?'Grows your '+(near.city.capital?'HQ':'city')+' (level '+near.city.level+')'
-        :claimed?'Inside enemy territory':'Outside your territory — capture a nearby city first';
+        :claimed?'Inside enemy territory':'Outside your territory: capture a nearby city first';
       chips.innerHTML=chip('Cost',hc+'★')+chip('Growth','+'+r.pop+' pop');
       body.textContent=r.desc;
-      if(near&&near.city.level>=MAX_LEVEL) sub.textContent='Its city is fully grown \u2014 nothing to gain';
+      if(near&&near.city.level>=MAX_LEVEL) sub.textContent='Its city is fully grown: nothing to gain';
       train.appendChild(actBtn({icon:RES_ICON[t.resource], name:'Harvest', cost:hc, disabled:!unlocked||!near||near.city.level>=MAX_LEVEL||stars[MYSIDE]<hc,
         onclick:()=>{ act({t:'harvest',x:sel.x,y:sel.y}); sel=null; refresh(); }}));
       if(!unlocked) train.appendChild(actBtn({icon:'lock', name:'Tech', cls:'more', onclick:()=>$('techBtn').click()}));
@@ -5251,7 +5333,7 @@ function renderInfoBody(){
     else {
       por.innerHTML=svgIcon('chest');
       title.textContent='Supply drop';
-      sub.textContent='Unclaimed — first unit to arrive opens it';
+      sub.textContent='Unclaimed: first unit to arrive opens it';
       body.textContent='Move any unit onto it for stars, a free tech, a free Infantry, a map of the area, or settlers for your nearest city.';
       return;
     }
@@ -5267,7 +5349,7 @@ function renderInfoBody(){
     if(c.owner!==MYSIDE){
       const nm=c.owner&&playerMeta[c.owner]?meta(c.owner).name:null;
       sub.textContent=nm?nm:'Neutral village';
-      body.textContent=(nm?'Rival stronghold.':'Unclaimed — free to take.')+' Move a unit onto it, then tap Capture at the start of your next turn'+
+      body.textContent=(nm?'Rival stronghold.':'Unclaimed: free to take.')+' Move a unit onto it, then tap Capture at the start of your next turn'+
         (c.capital&&nm?' to knock '+nm+' out of the fight':'')+'.';
       return;
     }
@@ -5277,7 +5359,7 @@ function renderInfoBody(){
       const nx=sel.x+dx, ny=sel.y+dy;
       if(inb(nx,ny)&&tileAt(nx,ny).resource) resN++;
     }
-    sub.textContent=c.level>=MAX_LEVEL?'Fully grown':resN?'Harvest the '+resN+' resource'+(resN===1?'':'s')+' around it to grow':'No resources left nearby \u2014 Develop it to grow';
+    sub.textContent=c.level>=MAX_LEVEL?'Fully grown':resN?'Harvest the '+resN+' resource'+(resN===1?'':'s')+' around it to grow':'No resources left nearby: Develop it to grow';
     const full=armySize(MYSIDE)>=armyCap(MYSIDE);
     chips.innerHTML+=chip('Army',armySize(MYSIDE)+'/'+armyCap(MYSIDE),full?'':'good');
     if(c.level>=titanLevel()) chips.innerHTML+=chip('Titans',titanCount(MYSIDE)+'/'+titanCap(MYSIDE),titanCount(MYSIDE)<titanCap(MYSIDE)?'good':'');
@@ -5288,14 +5370,16 @@ function renderInfoBody(){
         onclick:()=>act({t:'develop',x:sel.x,y:sel.y})}));
     }
     const occupied=!!unitAt(sel.x,sel.y), coast=coastal(sel.x,sel.y), dock=coast&&coastSpot(sel.x,sel.y);
-    if(occupied&&!(coast&&hasTech(MYSIDE,'NAVAL'))){ body.textContent='A unit is standing here — move it off to train.'; return; }
+    if(occupied&&!(coast&&hasTech(MYSIDE,'NAVAL'))){ body.textContent='A unit is standing here: move it off to train.'; return; }
     if(occupied) body.textContent='A unit is standing on the city: only ships can launch from here.';
     let locked=0;
     if(full) body.textContent='Your army is at full strength. Grow or capture cities to support more units (each city supports its level + 1).';
+    if(c.level>=titanLevel()&&!occupied) tipOnce('titanCity','This city can now field a Titan, the super unit: one per city of level 4 or more.');
+    if(coast&&hasTech(MYSIDE,'NAVAL')) tipOnce('harbour','Cities next to water launch ships onto a free water tile beside them, even with a unit standing on the city.');
     if(c.level>=titanLevel()&&!occupied){
       const tc=unitCost(MYSIDE,'TTN'), have=titanCount(MYSIDE), cap=titanCap(MYSIDE);
       train.appendChild(actBtn({k:'TTN', img:unitIcon('TTN',MYSIDE), name:'Titan', cost:tc, cls:'super', disabled:stars[MYSIDE]<tc||full||have>=cap,
-        title:have>=cap?'You already field '+have+' Titan'+(have===1?'':'s')+' \u2014 each city of level 4+ supports one':'Titan \u2014 '+UNIT_TYPES.TTN.desc,
+        title:have>=cap?'You already field '+have+' Titan'+(have===1?'':'s')+': each city of level 4+ supports one':'Titan: '+UNIT_TYPES.TTN.desc,
         onclick:()=>{ act({t:'train',k:'TTN',x:sel.x,y:sel.y}); sel=null; refresh(); }}));
     }
     for(const k of TRAIN_ORDER){
@@ -5306,7 +5390,7 @@ function renderInfoBody(){
       if(!unitUnlocked(MYSIDE,k)){ locked++; continue; }
       const cost=unitCost(MYSIDE,k);
       train.appendChild(actBtn({k, img:unitIcon(k,MYSIDE), name:t.name, cost, disabled:stars[MYSIDE]<cost||full||(t.naval&&!dock),
-        title:t.naval&&!dock?'Every water tile next to this city is taken':t.name+' — '+t.desc, onclick:()=>{ act({t:'train',k,x:sel.x,y:sel.y}); sel=null; refresh(); }}));
+        title:t.naval&&!dock?'Every water tile next to this city is taken':t.name+': '+t.desc, onclick:()=>{ act({t:'train',k,x:sel.x,y:sel.y}); sel=null; refresh(); }}));
     }
     if(hasTech(MYSIDE,'NUKE')&&!occupied){
       const nt=UNIT_TYPES.NUKE;
@@ -5356,6 +5440,35 @@ function nextUnit(){
 $('nextBtn').onclick=nextUnit;
 $('fitBtn').onclick=toggleFit;
 $('dangerBtn').onclick=toggleDanger;
+function openArmy(){
+  if(!map) return;
+  const list=$('armyList'); list.innerHTML='';
+  const row=(img,title,sub,stat,cls,go)=>{ const b=document.createElement('button'); b.className='apRow';
+    b.innerHTML=img+'<span class="nm"><b>'+title+'</b><span>'+sub+'</span></span>'+(stat?'<span class="st '+(cls||'')+'">'+stat+'</span>':'');
+    b.onclick=()=>{ $('armyPanel').hidden=true; go(); sfx.select(); refresh(); }; list.appendChild(b); };
+  const mine=units.filter(u=>u.owner===MYSIDE).sort((a,b)=>(hasWork(b)-hasWork(a))||UNIT_TYPES[a.type].name.localeCompare(UNIT_TYPES[b.type].name));
+  const sec=t=>{ const d=document.createElement('div'); d.className='apSec'; d.textContent=t; list.appendChild(d); };
+  sec('Units \u00b7 '+mine.length+' of '+armyCap(MYSIDE)+(side===MYSIDE?' \u00b7 '+readyCount()+' ready':''));
+  for(const u of mine){
+    const t=UNIT_TYPES[u.type];
+    const stat=sentry.has(u.id)?'On watch':side!==MYSIDE?'':hasWork(u)?'Ready':u.attacked?'Done':u.moved?'Moved':'Ready';
+    row('<img src="'+unitIcon(u.type,MYSIDE)+'" alt="">', t.name+(u.vet?' \u2605':''), 'HP '+u.hp+'/'+u.maxHp+(u.cargo?' \u00b7 carrying '+UNIT_TYPES[u.cargo.type].name:'')+' \u00b7 '+(tileAt(u.x,u.y).city?'in a city':tileAt(u.x,u.y).terrain),
+      stat, stat==='Ready'?'ready':stat==='On watch'?'watch':'', ()=>{ sel={kind:'unit',id:u.id}; panTo(u.x,u.y); });
+  }
+  const cities=[]; for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.owner===MYSIDE) cities.push({x,y,c}); }
+  cities.sort((a,b)=>b.c.capital-a.c.capital||b.c.level-a.c.level);
+  sec('Cities \u00b7 '+cities.length+' \u00b7 +'+income(MYSIDE)+'\u2605 a turn');
+  for(const {x,y,c} of cities){
+    const busy=unitAt(x,y);
+    row('<span class="ic">'+svgIcon('city')+'</span>', (c.capital?'Headquarters':'City')+' \u00b7 level '+c.level,
+      '+'+cityIncome(c)+'\u2605 \u00b7 '+(c.level<MAX_LEVEL?'pop '+c.pop+'/'+(c.level+1):'fully grown')+(coastal(x,y)?' \u00b7 harbour':'')+(c.rw&&c.rw.length?' \u00b7 reward waiting':''),
+      busy?'Occupied':'Can train', busy?'':'ready', ()=>{ sel={kind:'city',x,y}; panTo(x,y); });
+  }
+  $('armyPanel').hidden=false;
+}
+$('armyBtn').onclick=openArmy;
+$('armyClose').onclick=()=>{ $('armyPanel').hidden=true; sfx.select(); };
+$('armyPanel').addEventListener('click',e=>{ if(e.target.id==='armyPanel') $('armyPanel').hidden=true; });
 $('hoGo').onclick=()=>{
   if(performance.now()<hoGuard) return;
   $('handoff').hidden=true; curtainUp=false; sfx.select();
@@ -5370,6 +5483,7 @@ function syncPower(){
   if(b.hidden) return;
   const ready=pw.used[MYSIDE]==null;
   b.classList.toggle('ready', ready&&side===MYSIDE);
+  if(ready&&side===MYSIDE&&turn>=3&&tutDone()) tipOnce('power','Your commander power is ready: tap the lightning button. It works once per game, so save it for the turn that matters.');
   b.classList.toggle('spent', !ready);
   b.style.setProperty('--fc', f.css);
 }
@@ -5437,7 +5551,7 @@ const MUSIC={
   start(){ if(this.started) return; this.started=true; this.apply(); },
 };
 try{ const m=localStorage.getItem('foothold-music'); if(m==='off'||m==='low'||m==='on') MUSIC.level=m; }catch(e){}
-function syncMusic(){ const b=$('musicMenuBtn'); if(b){ b.innerHTML='Music: <b>'+({off:'Off',low:'Low',on:'On'})[MUSIC.level]+'</b>'; b.title='Background music \u2014 tap to change'; } MUSIC.apply(); }
+function syncMusic(){ const b=$('musicMenuBtn'); if(b){ b.innerHTML='Music: <b>'+({off:'Off',low:'Low',on:'On'})[MUSIC.level]+'</b>'; b.title='Background music: tap to change'; } MUSIC.apply(); }
 $('musicMenuBtn').onclick=()=>{ MUSIC.level={off:'low',low:'on',on:'off'}[MUSIC.level]; try{ localStorage.setItem('foothold-music',MUSIC.level); }catch(e){} MUSIC.start(); syncMusic(); sfx.select(); };
 // browsers only allow sound after a tap: start the music on the first one
 document.addEventListener('pointerdown',()=>MUSIC.start(),{once:true,capture:true});
@@ -5475,6 +5589,8 @@ window.addEventListener('keydown',e=>{
   if(e.key==='m'||e.key==='M'){ $('muteBtn').click(); return; }
   if(map&&(e.key==='v'||e.key==='V')){ toggleFit(); return; }
   if(map&&(e.key==='d'||e.key==='D')){ toggleDanger(); return; }
+  if(map&&(e.key==='o'||e.key==='O')){ if($('armyPanel').hidden) openArmy(); else $('armyPanel').hidden=true; return; }
+  if(e.key==='Escape'&&!$('armyPanel').hidden){ $('armyPanel').hidden=true; return; }
   if(map&&!gameOver&&(e.key==='p'||e.key==='P')){ $('powerBtn').click(); return; }
   if(map&&(e.key==='h'||e.key==='H')){ $('helpBtn').click(); return; }
   if(gameOver) return;
@@ -5540,11 +5656,11 @@ function endGame(winner){
   const tally=` Turn ${turn} \u00b7 ${stats.kills} enemy units destroyed \u00b7 ${stats.losses} lost.`;
   const timeUp=gameMode()==='score'&&turnOrder.filter(s=>alive[s]).length>1;
   if(winner===MYSIDE){ t.textContent='Victory'; t.className='win';
-    b.textContent=(timeUp?'Time is up \u2014 you finished with the highest score, Commander.'
+    b.textContent=(timeUp?'Time is up: you finished with the highest score, Commander.'
                   :NET.on?'All rival factions eliminated. The region is yours, Commander.'
                          :'All enemy factions eliminated. The region is yours, Commander.')+tally; }
   else { t.textContent=timeUp?'Outscored':NET.on?'Operation Failed':'HQ Lost'; t.className='lose';
-    b.textContent=(timeUp?'Time is up \u2014 '+meta(winner).name+' finished with the highest score.'
+    b.textContent=(timeUp?'Time is up: '+meta(winner).name+' finished with the highest score.'
                   :winner&&playerMeta[winner]?meta(winner).name+' controls the region.'
                                                      :'Hostile forces overran your headquarters.')+tally; }
   if(hotOn()){ t.textContent=pname(winner)+' wins'; t.className='win';
@@ -5561,7 +5677,7 @@ function endGame(winner){
   const rm=$('ovRematch');
   rm.hidden=!(NET.on&&NET.host);
   rm.onclick=()=>NET.rematch();
-  if(NET.on&&NET.client){ const d=document.createElement('div'); d.className='ovNote'; d.textContent='The host can start a rematch \u2014 stay on this screen to be pulled back into the lobby.'; b.appendChild(d); }
+  if(NET.on&&NET.client){ const d=document.createElement('div'); d.className='ovNote'; d.textContent='The host can start a rematch: stay on this screen to be pulled back into the lobby.'; b.appendChild(d); }
   if(NET.client) rejoinInfo(null);
   const alt=$('ovAlt');
   alt.hidden=false; alt.textContent='View battlefield';
@@ -5586,16 +5702,16 @@ $('helpBtn').onclick=()=>{
   const lines=[
     ['Goal','Capture every enemy HQ. Lose if your own HQ falls.'],
     ['Game modes','Conquest: the last faction standing wins. Score attack (Menu \u2192 Custom): play 30 turns, then the highest score wins.'],
-    ['Score & medals','Cities and their levels, research, your army, enemy units destroyed and factions eliminated all score points. A solo win earns one to three stars \u2014 the faster the win, the more stars \u2014 and each faction keeps its best medal for every difficulty.'],
+    ['Score & medals','Cities and their levels, research, your army, enemy units destroyed and factions eliminated all score points. A solo win earns one to three stars: the faster the win, the more stars: and each faction keeps its best medal for every difficulty.'],
     ['Capturing','Move a unit onto a village or enemy city, then at the start of your next turn select it and tap Capture (it uses the unit\u2019s action). The defender gets a turn to strike back.'],
     ['Army size','Each city supports its level + 1 units. Grow and capture cities to field a bigger army.'],
     ['Develop','Spare stars? Select one of your cities and tap Develop for +1 population (4\u2605 + 2\u2605 per level, once per city each turn). A level-5 city builds Barracks instead: 20\u2605 for +1 army size, up to three per city.'],
-    ['Move & Attack','Click a unit: blue tiles = move, red rings = attack. One move + one attack each per turn. On a computer, right-click a tile to move or fire with the selected unit straight away. Melee units (range 1) advance into a tile when they destroy its defender — advance onto a city and it can capture next turn.'],
-    ['Fog','Cloud cover hides undiscovered land. Units and cities see 2 tiles around them. Explored ground stays on the map, but enemy units only show where you can see right now \u2014 shaded tiles are out of sight.'],
-    ['Economy','Crops (2\u2605), ore (4\u2605) and oil (6\u2605) sit near cities. Harvest one inside your territory to add population — fill the bar to level the city up for +1\u2605 income, permanently. Capture gray neutral cities to claim their resources.'],
+    ['Move & Attack','Click a unit: blue tiles = move, red rings = attack. One move + one attack each per turn. On a computer, right-click a tile to move or fire with the selected unit straight away. Melee units (range 1) advance into a tile when they destroy its defender: advance onto a city and it can capture next turn.'],
+    ['Fog','Cloud cover hides undiscovered land. Units and cities see 2 tiles around them. Explored ground stays on the map, but enemy units only show where you can see right now: shaded tiles are out of sight.'],
+    ['Economy','Crops (2\u2605), ore (4\u2605) and oil (6\u2605) sit near cities. Harvest one inside your territory to add population: fill the bar to level the city up for +1\u2605 income, permanently. Capture gray neutral cities to claim their resources.'],
     ['Counters','Snipers +25% vs Infantry \u00b7 Tanks resist Sniper fire \u00b7 Helicopters +50% vs Tanks and Titans, and resist tank guns \u00b7 Flak Batteries +75% vs Helicopters and resist their fire. Artillery blasts also hit enemies next to the target for 25%.'],
     ['Factions','Aegis: +1 HP and heals while resting or on the march (free Field Medicine) \u00b7 Crimson: every unit 1\u2605 cheaper \u00b7 Solaris mines from the start & harvests cheaper \u00b7 Ghost sees 3 tiles, and Snipers that hold still shoot 3 tiles \u00b7 Iron Bastion: City Walls on every city it holds, and free Fortification \u00b7 Verdant: crops give +1 population, Develop 2\u2605 cheaper \u00b7 Tidewatch: a second starting Infantry, free Field Radio and Marksmanship.'],
-    ['Tech','Combat: Sniper \u2192 Tank \u2192 Artillery, plus drills, armor and self-propelled guns. Industry: Ore \u2192 Oil \u2192 Helicopter, plus cheaper training, +1\u2605 per city and faster gunships. Support: healing, 2\u00d7 city defense, forest camouflage, field hospitals and blast protection. Intel: +1 vision, the Flak Battery and longer artillery range. Strategic: Satellite Network (reveals the map) and Manhattan Project (the Nuclear Missile — a one-use 5\u00d75 strike). A tech costs 4/6/12/18\u2605 by tier, plus its tier for every city beyond your first (counted at the start of your turn).'],
+    ['Tech','Combat: Sniper \u2192 Tank \u2192 Artillery, plus drills, armor and self-propelled guns. Industry: Ore \u2192 Oil \u2192 Helicopter, plus cheaper training, +1\u2605 per city and faster gunships. Support: healing, 2\u00d7 city defense, forest camouflage, field hospitals and blast protection. Intel: +1 vision, the Flak Battery and longer artillery range. Strategic: Satellite Network (reveals the map) and Manhattan Project (the Nuclear Missile: a one-use 5\u00d75 strike). A tech costs 4/6/12/18\u2605 by tier, plus its tier for every city beyond your first (counted at the start of your turn).'],
     ['City rewards','Every time a city levels up you pick one of two rewards: Workshop or Scouts, City walls or a War chest, Population boom or Wider borders, Command post or a free Titan.'],
     ['Faction units','Every faction has one unit nobody else can train: Aegis Field Ambulance (heals the units next to it by 3 HP each turn), Crimson Shock Troops (capture a city the turn they move in), Solaris Mortar Truck (range 2, moves and fires), Ghost Recon Drone (flies 4, sees 2 tiles further), Bastion Guardian (18 HP; units next to it get +30% defense), Verdant Forest Stalker (+50% attack from a forest) and Tidewatch Hovercraft (crosses water). Each needs one tech, shown on the faction card.'],
     ['Navy','Research Naval Doctrine (Industry) and any city next to water can launch Patrol Boats (cheap, fast) and Landing Craft onto a free water tile beside it; Blue-Water Fleet adds Destroyers (range 2, +50% against ships) and Battleships (range 3). Ships sail water only. Infantry, Tanks and other short-range land units can\u2019t shoot at ships, but Snipers, Artillery, Flak and Helicopters can. To cross water, select a land unit and tap a Landing Craft next to it to board, sail it beside the shore, then tap a highlighted land tile to put the unit ashore (it can act again next turn). If the craft sinks, its passenger is lost. The Inland Sea map type puts a sea in the middle of the board.'],
@@ -5608,11 +5724,13 @@ $('helpBtn').onclick=()=>{
     ['Online rematch','When an online game ends the host can tap Rematch to bring everyone back to the lobby with the same factions and settings.'],
     ['Reconnecting','If a guest drops out the game retries on its own. A guest who reloads the page or reopens the app gets a Rejoin button on the title screen for the next six hours; the host keeps their seat until the host replaces them with the AI.'],
     ['Campaign','Title screen \u2192 Campaign: a random map of 10, 14 or 20 regions shared between you and three rival factions. Each campaign turn you attack one region next to yours; the battle is a normal game against that region\u2019s owner, on a map that matches the region (highlands, woodland, lakes or coast; capitals are bigger). Win and the region is yours; take a rival\u2019s capital (\u2605) and its whole faction surrenders to you. Every region has a perk (Supply depot +3 stars, Research station a free tech, Veteran garrison an extra veteran Infantry, Fortress walls on the HQ, Factory town +1 income, Watchtower longer sight): in a battle you get the perks of your regions bordering the contested one, and the defender gets theirs plus the contested region\u2019s own. Then the rivals move: they fight each other, and sometimes attack one of your regions, which you can defend in a battle or give up (never your capital: lose that and the campaign is over). Nothing else carries over between battles. Hold every region to win; a map code lets a friend play the same map.'],
+    ['Sentry','Select a unit and tap Sentry to leave it on watch: the Next button and the ready count skip it every turn until an enemy comes within 3 tiles (you get a notice) or you give it orders. Tap Wake to put it back on duty.'],
+    ['Army overview','The list button on the right shows every unit (health, whether it has acted, who is aboard a Landing Craft) and every city (level, income, what it is building toward). Tap a line to jump there.'],
     ['Pass & play','Menu \u2192 Custom \u2192 Players on this device: two to four people share one phone or computer. After each turn a hand-off screen hides the board until the next player taps Start turn, and everyone sees only their own explored map. Any remaining rivals are played by the computer.'],
     ['Danger zones','Tap the warning triangle (or press D) to shade every tile an enemy in sight could strike next turn.'],
     ['Surrender','A computer rival that is down to its HQ and hopelessly outgunned gives up instead of dragging out the ending.'],
-    ['Recon','Tap any rival unit or city to inspect it \u2014 stats, income, and the red zone shows where that unit can reach next turn. Your own units dim once they\u2019ve acted.'],
-    ['Multiplayer','Host an operation from the menu to get a 5-letter room code \u2014 up to three friends join with it. The host\u2019s device referees the match, so keep it online; if the host drops, guests can Export Save and finish the campaign solo. The host can set a per-turn timer in the lobby.'],
+    ['Recon','Tap any rival unit or city to inspect it: stats, income, and the red zone shows where that unit can reach next turn. Your own units dim once they\u2019ve acted.'],
+    ['Multiplayer','Host an operation from the menu to get a 5-letter room code: up to three friends join with it. The host\u2019s device referees the match, so keep it online; if the host drops, guests can Export Save and finish the campaign solo. The host can set a per-turn timer in the lobby.'],
     ['Difficulty','Menu \u2192 Custom. Easy rivals collect 60% of their income, train one unit a turn, research every other turn and are slow to attack. Normal: 80%, two units a turn. Hard: full income, three units a turn. Crazy rivals collect 70% extra, train in every city, start richer and research twice as fast.'],
     ['Undo','Single player: step back through this turn\u2019s moves, training, harvests and holds. Attacks, captures, supply drops, research and ending the turn are final.'],
     ['Music','Menu \u2192 Music switches the background music between Low, On and Off. The sound button mutes music and effects together.'],
@@ -5623,7 +5741,7 @@ $('helpBtn').onclick=()=>{
   ];
   $('ovTitle').textContent='Field Manual';
   $('ovTitle').className='';
-  $('ovBody').innerHTML=lines.map(l=>'<b style=\"color:var(--amber)\">'+l[0]+'</b> \u2014 '+l[1]).join('<br><br>');
+  $('ovBody').innerHTML=lines.map(l=>'<b style=\"color:var(--amber)\">'+l[0]+'</b>: '+l[1]).join('<br><br>');
   $('ovBody').style.textAlign='left';
   $('ovBody').style.maxWidth='560px';
   const btn=$('restart');
@@ -5646,7 +5764,7 @@ function resetOverlayButton(){
 
 
 /* ================================================================
-   MULTIPLAYER — peer-to-peer via WebRTC (PeerJS). Host is authoritative:
+   MULTIPLAYER: peer-to-peer via WebRTC (PeerJS). Host is authoritative:
    guests send actions, the host simulates and broadcasts full state plus
    an effect stream. Fog of war is computed per device from MYSIDE.
 ================================================================ */
@@ -5657,6 +5775,7 @@ const byId=id=>units.find(u=>u.id===id);
 /* ---- single action gateway: SP + host execute, guests transmit ---- */
 function act(a){
   if(gameOver||!a) return;
+  if(a.uid!=null&&(a.t==='move'||a.t==='atk'||a.t==='capture'||a.t==='board'||a.t==='unload'||a.t==='nuke')) sentry.delete(a.uid);
   coachNote(a);
   if(NET.client){
     if(side!==MYSIDE) return;
@@ -5735,7 +5854,7 @@ function doAction(s, a){
     const nu=units[units.length-1]; nu.moved=true; nu.attacked=true;
     if(s===MYSIDE) sfx.deploy();
     if(NET.on) log(s, meta(s).name+' deploys '+(k==='NUKE'?'a Nuclear Missile':UNIT_TYPES[k].name)+'.');
-    else log(s, k==='NUKE'?'Nuclear Missile assembled \u2014 ready to launch next turn.':UNIT_TYPES[k].name+' deployed.');
+    else log(s, k==='NUKE'?'Nuclear Missile assembled: ready to launch next turn.':UNIT_TYPES[k].name+' deployed.');
     refresh(); return;
   }
   const u=byId(a.uid);
@@ -5811,7 +5930,7 @@ const NET={
 
   /* ---------------- hosting ---------------- */
   startHost(){
-    if(!window.Peer){ mpMsg('\u26a0 P2P engine missing \u2014 re-download the game file.'); return; }
+    if(!window.Peer){ mpMsg('\u26a0 P2P engine missing: re-download the game file.'); return; }
     this.leave();
     this.myName=mpGetName();
     this.host=true; this.on=true; this._idTry=0;
@@ -5835,7 +5954,7 @@ const NET={
     peer.on('error', err=>{
       if(!this.host) return;
       if(err&&err.type==='unavailable-id'&&this._idTry<3){ this._idTry++; try{peer.destroy();}catch(e){} this.openPeer(); return; }
-      const em='\u26a0 Connection failed ('+(err&&err.type||'network')+') \u2014 check your internet and retry.';
+      const em='\u26a0 Connection failed ('+(err&&err.type||'network')+'): check your internet and retry.';
       if(!this.inGame) this.leave();
       mpMsg(em);
     });
@@ -5849,7 +5968,7 @@ const NET={
     if(!m||typeof m!=='object') return;
     if(m.t==='hello'){
       if(conn._side) return;   // one seat per connection
-      if(m.v!==1){ try{conn.send({t:'deny',m:'Version mismatch \u2014 both players need the same game file.'});}catch(e){} setTimeout(()=>{try{conn.close();}catch(e){}},400); return; }
+      if(m.v!==1){ try{conn.send({t:'deny',m:'Version mismatch: both players need the same game file.'});}catch(e){} setTimeout(()=>{try{conn.close();}catch(e){}},400); return; }
       const nm=String(m.name||'ALLY').slice(0,14).toUpperCase()||'ALLY';
       if(this.inGame){
         let slot=null;
@@ -5866,7 +5985,7 @@ const NET={
         return;
       }
       let sl=this.slots.find(x=>x.kind==='open');
-      if(!sl){ try{conn.send({t:'deny',m:'Lobby is full \u2014 ask the host to open a slot.'});}catch(e){} setTimeout(()=>{try{conn.close();}catch(e){}},400); return; }
+      if(!sl){ try{conn.send({t:'deny',m:'Lobby is full: ask the host to open a slot.'});}catch(e){} setTimeout(()=>{try{conn.close();}catch(e){}},400); return; }
       sl.kind='human'; sl.name=nm;
       this.humans[sl.s]={name:nm, conn};
       conn._side=sl.s;
@@ -5906,7 +6025,7 @@ const NET={
     h.conn=null;
     log('sys','\u26a0 '+h.name+' lost connection.');
     const takeover=()=>{ if(NET.humans[s]&&!NET.humans[s].conn) NET.aiTakeover(s); };
-    netBar('\u26a0 '+h.name+' disconnected \u2014 they can rejoin with the room code', 'Replace with AI', takeover);
+    netBar('\u26a0 '+h.name+' disconnected: they can rejoin with the room code', 'Replace with AI', takeover);
     if(side===s&&alive[s]&&!gameOver){ clearTimeout(this._takeT); this._takeT=setTimeout(takeover, 30000); }
   },
   /* back to the lobby with the same players, factions and settings */
@@ -5947,7 +6066,7 @@ const NET={
     if(!this.host||this.inGame||!this.slots) return;
     if(map&&!gameOver){ if(!confirm('Launch the online operation? Your current campaign will be abandoned.')) return; }
     const live=this.slots.slice(1).filter(x=>x.kind==='human'&&this.humans[x.s]&&this.humans[x.s].conn);
-    if(!live.length){ mpMsg('\u26a0 No allies connected yet \u2014 share the room code first.'); sfx.denied(); return; }
+    if(!live.length){ mpMsg('\u26a0 No allies connected yet: share the room code first.'); sfx.denied(); return; }
     // demote humans who dropped before launch, gather opponents in slot order
     const opp=this.slots.slice(1).filter(x=>{
       if(x.kind==='human'&&(!this.humans[x.s]||!this.humans[x.s].conn)){ x.kind='ai'; x.name=null; }
@@ -6033,7 +6152,7 @@ const NET={
 
   /* ---------------- joining ---------------- */
   join(){
-    if(!window.Peer){ mpMsg('\u26a0 P2P engine missing \u2014 re-download the game file.'); return; }
+    if(!window.Peer){ mpMsg('\u26a0 P2P engine missing: re-download the game file.'); return; }
     const code=($('mpCode').value||'').trim().toUpperCase();
     if(code.length<4){ mpMsg('Enter the 5-letter room code from your host.'); sfx.denied(); return; }
     this.leave();
@@ -6109,14 +6228,14 @@ const NET={
     if(gameOver) return;
     if(this._retry<6){
       this._retry++;
-      netBar('\u26a0 Connection to host lost \u2014 reconnecting ('+this._retry+'/6)\u2026');
+      netBar('\u26a0 Connection to host lost: reconnecting ('+this._retry+'/6)\u2026');
       setTimeout(()=>{
         if(!this.client||!this.inGame||this.hconn) return;
         if(this.peer&&!this.peer.destroyed) this.dial();
         else this.newClientPeer();
       }, 2500);
     } else {
-      netBar('\u2716 Host unreachable \u2014 check your connection (you can also export the save from the menu).', 'Try again', ()=>{ this._retry=0; netBar(null); this.clientDrop(); });
+      netBar('\u2716 Host unreachable: check your connection (you can also export the save from the menu).', 'Try again', ()=>{ this._retry=0; netBar(null); this.clientDrop(); });
     }
   },
   sendAction(a){
@@ -6176,7 +6295,7 @@ const NET={
   },
   renderLobby(){
     if(!this.slots) return;
-    mpMsg(this.host?(CAN_LINK?'Send the invite link, or share the code \u2014 allies pick Online \u25b8 Join.':'Share the code \u2014 allies pick Online \u25b8 Join.'):'Connected. Pick a faction and stand by.');
+    mpMsg(this.host?(CAN_LINK?'Send the invite link, or share the code: allies pick Online \u25b8 Join.':'Share the code: allies pick Online \u25b8 Join.'):'Connected. Pick a faction and stand by.');
     const box=$('mpSlots'); box.innerHTML='';
     this.slots.forEach((sl,i)=>{
       const d=document.createElement('div');
@@ -6185,7 +6304,7 @@ const NET={
       const nm=sl.kind==='host'?(sl.name||'HOST')+' \u2605 HOST'
              :sl.kind==='human'?sl.name
              :sl.kind==='ai'?'AI COMMANDER'
-             :sl.kind==='open'?'OPEN \u2014 waiting for ally\u2026':'\u2014 closed \u2014';
+             :sl.kind==='open'?'OPEN: waiting for ally\u2026':'closed';
       d.innerHTML='<span class="dot" style="background:'+(fac?fac.css:'var(--line)')+'"></span>'+
                   '<span class="nm">'+nm+'</span>'+
                   '<span class="fk">'+(fac?fac.name:'')+'</span>'+
@@ -6209,7 +6328,7 @@ const NET={
       const card=document.createElement('button');
       card.className='fcard'+(mine&&mine.fac===k?' sel':'')+(taken.has(k)?' taken':'');
       card.style.borderLeftColor=f.css;
-      card.innerHTML='<div class="fn" style="color:'+f.css+'">'+f.name+'</div><div class="fp">'+f.perk+'</div>';
+      card.innerHTML='<div class="fn" style="color:'+f.css+'">'+f.name+'</div>'+factionInfoHtml(k);
       card.onclick=()=>{
         if(taken.has(k)) return;
         sfx.select();
@@ -6305,7 +6424,7 @@ function showDefeat(){
   refresh();
   $('ovTitle').textContent='HQ Lost'; $('ovTitle').className='lose';
   $('ovBody').style.textAlign=''; $('ovBody').style.maxWidth='';
-  $('ovBody').textContent='Your headquarters has fallen, Commander. The fog is lifted \u2014 watch the battle until a victor emerges.';
+  $('ovBody').textContent='Your headquarters has fallen, Commander. The fog is lifted: watch the battle until a victor emerges.';
   const btn=$('restart');
   btn.textContent='Watch the battle';
   btn.onclick=()=>{ $('overlay').classList.remove('show'); resetOverlayButton(); };
@@ -6323,7 +6442,7 @@ const CAN_LINK=/^https?:$/.test(location.protocol);   // a file:// path is no us
 function inviteUrl(){ return location.origin+location.pathname+'#join='+NET.code; }
 $('mpCopyBtn').onclick=()=>{
   const url=inviteUrl();
-  const done=()=>{ mpMsg('Invite link copied \u2014 paste it to a friend.'); sfx.select(); };
+  const done=()=>{ mpMsg('Invite link copied: paste it to a friend.'); sfx.select(); };
   const fallback=()=>{
     const t=document.createElement('textarea'); t.value=url; t.setAttribute('readonly','');
     t.style.cssText='position:fixed;left:-9999px'; document.body.appendChild(t); t.select();
@@ -6335,7 +6454,7 @@ $('mpCopyBtn').onclick=()=>{
   else fallback();
 };
 $('mpShareBtn').onclick=()=>{
-  navigator.share({title:'Gridline Command', text:'Join my Gridline Command game \u2014 room '+NET.code, url:inviteUrl()}).catch(()=>{});
+  navigator.share({title:'Gridline Command', text:'Join my Gridline Command game: room '+NET.code, url:inviteUrl()}).catch(()=>{});
 };
 function openInviteFromUrl(){
   const m=/^#join=([A-Za-z0-9]{4,6})$/.exec(location.hash);
@@ -6345,7 +6464,7 @@ function openInviteFromUrl(){
   showSetup(); setupView('mp');
   $('mpCode').value=code;
   $('mpJoinBtn').classList.add('invited');
-  mpMsg('Invite to room '+code+' \u2014 pick a callsign, then tap Join.');
+  mpMsg('Invite to room '+code+': pick a callsign, then tap Join.');
   if(!$('mpName').value) $('mpName').focus();
 }
 function mpShowLobby(){
@@ -6357,7 +6476,7 @@ function mpShowLobby(){
   $('mpLobby').style.display='';
   $('mpHostOpts').style.display=NET.host?'':'none';
   $('mpWait').style.display=NET.host?'none':'';
-  $('mpCodeVal').textContent=NET.code||'\u2014';
+  $('mpCodeVal').textContent=NET.code||'-----';
 }
 function mpGetName(){
   let n=($('mpName').value||'').trim().toUpperCase().slice(0,14).replace(/[^A-Z0-9 _-]/g,'');
@@ -6422,7 +6541,7 @@ function newGame(){
   fitSaved=null; camDistGoal=null; camPhiGoal=null; cam.phi=0.96; $('fitBtn').classList.remove('on');
   $('turnBanner').classList.remove('show');
   pw=pw0();
-  gcfg={...cfg}; blockedHint=false; lastNuke={}; nukeWarned={}; mapReveals=[]; seenBy={};
+  gcfg={...cfg}; blockedHint=false; lastNuke={}; nukeWarned={}; mapReveals=[]; seenBy={}; sentry.clear();
   for(const k in aiSupportT) delete aiSupportT[k];
   for(const k in aiShipT) delete aiShipT[k];
   undoStack.length=0;
@@ -6486,9 +6605,9 @@ function newGame(){
   camGoal=null;
   homeCam(caps[P].x, caps[P].y);
   if($('log')) $('log').innerHTML='';
-  log('sys','\u2014 GRIDLINE COMMAND \u00b7 '+W+'\u00d7'+H+' \u00b7 '+(NET.on?cfg.enemies+' rival'+(cfg.enemies===1?'':'s'):cfg.enemies+' enem'+(cfg.enemies===1?'y':'ies'))+' \u2014');
-  log('sys','You command '+meta(P).name+(NET.on?' \u2014 '+meta(P).faction.name:'')+': '+meta(P).faction.perk);
-  for(const s of enemySides) log('sys','Hostile: '+meta(s).name+' \u2014 '+meta(s).faction.perk);
+  log('sys','GRIDLINE COMMAND \u00b7 '+W+'\u00d7'+H+' \u00b7 '+(NET.on?cfg.enemies+' rival'+(cfg.enemies===1?'':'s'):cfg.enemies+' enem'+(cfg.enemies===1?'y':'ies'))+'');
+  log('sys','You command '+meta(P).name+(NET.on?': '+meta(P).faction.name:'')+': '+meta(P).faction.perk);
+  for(const s of enemySides) log('sys','Hostile: '+meta(s).name+': '+meta(s).faction.perk);
   log('sys','The region is hidden under cloud cover. Push units outward to reveal it.');
   $('overlay').classList.remove('show');
   $('techPanel').classList.remove('show');
@@ -6563,7 +6682,7 @@ requestAnimationFrame(loop);
       seen[key]=1;
       var b=notice();
       document.getElementById('errText').textContent='\u26a0 Something went wrong: '+(msg||'unknown error')+
-        (e.lineno?' (line '+e.lineno+')':'')+'. The game keeps running \u2014 refresh if it stops responding.';
+        (e.lineno?' (line '+e.lineno+')':'')+'. The game keeps running: refresh if it stops responding.';
       clearTimeout(hideT);
       hideT=setTimeout(function(){ if(b.parentNode) b.remove(); },9000);
     }catch(_){}
