@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>Gridline Command — Modern Tactics</title>
-<meta name="description" content="Turn-based tactics: capture every enemy HQ. Low-poly 3D, four factions, solo against the AI or online with friends.">
+<meta name="description" content="Turn-based tactics: capture every enemy HQ. Seven factions, a campaign, navies and Titans: solo against the AI, pass-and-play or online with friends.">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0b1d27">
 <meta name="mobile-web-app-capable" content="yes">
@@ -66,6 +66,26 @@ button{font:inherit; transition:background .15s ease, color .15s ease, border-co
 .rb.off{color:var(--dim)}
 #fitBtn{position:fixed; z-index:11; right:calc(env(safe-area-inset-right,0px) + 12px); top:calc(env(safe-area-inset-top,0px) + 62px)}
 #fitBtn.on{border-color:var(--amber); color:var(--amber)}
+#armyBtn{position:fixed; z-index:11; right:calc(env(safe-area-inset-right,0px) + 12px); top:calc(env(safe-area-inset-top,0px) + 212px)}
+#armyPanel{position:fixed; inset:0; z-index:44; display:flex; align-items:flex-end; justify-content:center; background:rgba(8,12,10,.5)}
+#armyPanel[hidden]{display:none}
+.apInner{width:min(560px,100%); max-height:78vh; overflow-y:auto; background:rgba(20,27,22,.98); border:1px solid var(--line); border-radius:18px 18px 0 0;
+  padding:12px 14px calc(env(safe-area-inset-bottom,0px) + 14px)}
+.apHead{display:flex; justify-content:space-between; align-items:center; position:sticky; top:-12px; background:rgba(20,27,22,.98); padding:4px 0 8px}
+.apHead b{font-family:'Saira Condensed',sans-serif; font-size:18px; letter-spacing:.1em; text-transform:uppercase}
+.apHead button{background:none; border:1px solid var(--line); color:var(--text); border-radius:50%; width:32px; height:32px; cursor:pointer}
+.apSec{font-family:'Saira Condensed',sans-serif; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); margin:10px 0 4px}
+.apRow{display:flex; align-items:center; gap:10px; width:100%; padding:6px 8px; border-radius:10px; border:none; background:none; color:var(--text); cursor:pointer; text-align:left; font-size:12.5px}
+.apRow:hover,.apRow:focus-visible{background:rgba(255,255,255,.06)}
+.apRow img{width:30px; height:30px; object-fit:contain; flex:none}
+.apRow .ic{width:30px; height:30px; flex:none; display:grid; place-items:center; color:var(--amber)}
+.apRow .ic svg{width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2}
+.apRow .nm{flex:1; min-width:0}
+.apRow .nm b{display:block; font-weight:700}
+.apRow .nm span{color:var(--dim); font-size:11.5px}
+.apRow .st{font-size:11px; padding:2px 8px; border-radius:999px; background:rgba(255,255,255,.07); color:var(--dim); white-space:nowrap}
+.apRow .st.ready{color:#8fd89a; background:rgba(143,216,154,.12)}
+.apRow .st.watch{color:var(--amber); background:rgba(240,179,92,.12)}
 #dangerBtn{position:fixed; z-index:11; right:calc(env(safe-area-inset-right,0px) + 12px); top:calc(env(safe-area-inset-top,0px) + 112px)}
 #dangerBtn.on{border-color:var(--red); color:var(--red)}
 #powerBtn{position:fixed; z-index:11; right:calc(env(safe-area-inset-right,0px) + 12px); top:calc(env(safe-area-inset-top,0px) + 162px)}
@@ -79,7 +99,7 @@ button{font:inherit; transition:background .15s ease, color .15s ease, border-co
   display:flex; gap:8px}
 
 /* ---- bottom dock: Tech on the left, Next unit + End turn on the right ---- */
-body.nogame #hud, body.nogame .dock, body.nogame #topRight, body.nogame #fitBtn, body.nogame #dangerBtn, body.nogame #powerBtn, body.nogame #menuBtn{visibility:hidden}
+body.nogame #hud, body.nogame .dock, body.nogame #topRight, body.nogame #fitBtn, body.nogame #armyBtn, body.nogame #dangerBtn, body.nogame #powerBtn, body.nogame #menuBtn{visibility:hidden}
 .dock{position:fixed; z-index:12; bottom:calc(env(safe-area-inset-bottom,0px) + 12px);
   display:flex; flex-direction:column; align-items:center; gap:5px;
   padding:0; background:none; border:none; cursor:pointer; color:var(--text)}
@@ -340,7 +360,16 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
   padding:10px 12px; cursor:pointer; text-align:left; font-family:'Nunito',system-ui,sans-serif; color:var(--text);
   transition:transform .14s ease, border-color .14s ease, box-shadow .14s ease, background .14s ease}
 .fcard .fn{font-family:'Saira Condensed',sans-serif; font-size:16px; letter-spacing:.08em; text-transform:uppercase}
-.fcard .fp{font-size:10.5px; color:var(--dim); line-height:1.55; margin-top:4px}
+.fcard .fp, #campFacInfo .fp{font-size:10.5px; color:var(--dim); line-height:1.55; margin-top:4px}
+.fstyle{font-size:11.5px; line-height:1.45; margin-top:3px; color:var(--text)}
+.fstyle em{font-style:normal; color:var(--amber); font-size:10.5px; white-space:nowrap}
+.fstats{display:grid; grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); gap:2px 10px; margin:6px 0 2px}
+.fstats span{display:flex; align-items:center; gap:3px; font-size:10px; color:var(--dim)}
+.fstats i{font-style:normal; width:52px; flex:none}
+.fstats b{width:9px; height:6px; border-radius:2px; background:rgba(255,255,255,.12)}
+.fstats b.on{background:var(--amber)}
+#campFacInfo{margin:8px 0 2px; padding:10px 12px; border-radius:12px; background:var(--panel2); border:1px solid var(--line); border-left:5px solid var(--fc)}
+#campFacInfo .fn{font-family:'Saira Condensed',sans-serif; font-size:16px; letter-spacing:.08em; text-transform:uppercase}
 .fcard:hover{border-color:var(--dim); transform:translateY(-2px); box-shadow:0 8px 18px rgba(0,0,0,.4)}
 .fcard.sel{border-color:var(--amber); background:#221f15; box-shadow:inset 0 0 0 1px var(--amber)}
 .optRow{display:flex; gap:8px; flex-wrap:wrap}
@@ -545,6 +574,8 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
   <div class="hud-box hb-side"><span class="v" id="hudSide">YOU</span></div>
 </div>
 <button id="powerBtn" class="rb" title="Commander power (P)" aria-label="Commander power" hidden><svg viewBox="0 0 24 24"><path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/></svg></button>
+<button id="armyBtn" class="rb" title="Army overview (O)" aria-label="Army overview"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg></button>
+<div id="armyPanel" hidden><div class="apInner"><div class="apHead"><b>Army overview</b><button id="armyClose" aria-label="Close">&#10005;</button></div><div id="armyList"></div></div></div>
 <button id="dangerBtn" class="rb" title="Danger zones: where enemies in sight can strike next turn (D)" aria-label="Danger zones"><svg viewBox="0 0 24 24"><path d="M12 4 21 19.5H3z"/><path d="M12 10v4.5M12 17v.3"/></svg></button>
 <button id="fitBtn" class="rb" title="Whole map (V)" aria-label="Whole map"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
 <button id="menuBtn" class="rb" title="Menu" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h14"/></svg></button>
@@ -598,7 +629,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 <div id="setup">
   <div id="setupInner">
     <div id="homePane">
-      <h1><span class="op">Gridline</span> Command<span class="three">3D</span></h1>
+      <h1><span class="op">Gridline</span> Command</h1>
       <div class="tag">Turn-based tactics · capture the enemy HQ</div>
       <div class="homeBtns">
         <button id="resumeBtn" class="bigbtn primary" style="display:none">Resume<span>back to the battlefield</span></button>
@@ -674,6 +705,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
         <p class="campIntro">A random theatre of war split into regions held by you and three rival factions. Each turn you attack a region next to yours, which is fought as a normal game; win it and the region is yours. Take a rival&rsquo;s capital &#9733; and its whole faction surrenders. Between your battles the rivals fight each other, and sometimes come for you. Hold every region to win; lose your own capital and the campaign is over.</p>
         <div class="sec">Your faction</div>
         <div class="optRow" id="campFacRow"></div>
+        <div id="campFacInfo"></div>
         <div class="sec">Campaign length</div>
         <div class="optRow" id="campLenRow">
           <button class="opt" data-n="10">Short<span>10 regions</span></button>
@@ -843,6 +875,23 @@ const FACTIONS={
            perk:'Rapid deployment \u2014 starts with a second Infantry squad, Field Radio (+1 vision, villages revealed) and Marksmanship.',
            startTech:['RADIO','MARKS'], extraInf:1},
 };
+/* how each faction plays, at a glance: a style line, ratings out of 5, and how forgiving it is to learn */
+const FACTION_STYLE={
+  AEGIS:  {style:'Outlast the enemy: units heal every turn and carry extra HP.',           r:{Attack:3,Defense:4,Economy:2,Mobility:3,Intel:2}, learn:'Easy'},
+  CRIMSON:{style:'Strike first and fast: cheap units and the hardest-hitting power.',      r:{Attack:5,Defense:2,Economy:3,Mobility:4,Intel:2}, learn:'Medium'},
+  SOLARIS:{style:'Out-grow everyone: cheaper harvests, a cash windfall, long guns.',        r:{Attack:3,Defense:3,Economy:5,Mobility:2,Intel:2}, learn:'Easy'},
+  GHOST:  {style:'See everything first: wide vision, snipers that shoot 3 tiles, drones.',   r:{Attack:4,Defense:2,Economy:2,Mobility:3,Intel:5}, learn:'Hard'},
+  BASTION:{style:'Turtle and grind: walled cities and armoured Guardians.',                 r:{Attack:2,Defense:5,Economy:3,Mobility:2,Intel:2}, learn:'Easy'},
+  VERDANT:{style:'Grow tall: crops count double, cheap Develop, ambushes from forests.',    r:{Attack:3,Defense:3,Economy:4,Mobility:3,Intel:2}, learn:'Medium'},
+  TIDE:   {style:'Move first, everywhere: an extra squad, wide intel, hovercraft on water.', r:{Attack:3,Defense:2,Economy:2,Mobility:5,Intel:4}, learn:'Medium'},
+};
+function factionInfoHtml(k){
+  const f=FACTIONS[k], st=FACTION_STYLE[k], fu=UNIT_TYPES[FACTION_UNIT[k]];
+  const bars=st?'<div class="fstats">'+Object.entries(st.r).map(([n,v])=>'<span><i>'+n+'</i>'+'<b class="on"></b>'.repeat(v)+'<b></b>'.repeat(5-v)+'</span>').join('')+'</div>':'';
+  return (st?'<div class="fstyle">'+st.style+' <em>'+st.learn+' to learn</em></div>'+bars:'')+
+    '<div class="fp">'+f.perk+'</div>'+(f.power?'<div class="fpw"><b>Power \u00b7 '+f.power.name+':</b> '+f.power.desc+'</div>':'')+
+    (fu?'<div class="fpw"><b>Unique unit \u00b7 '+fu.name+'</b> ('+TECHS[UNIT_REQ[fu.key]].name+'): '+fu.desc.replace(/^[^.]*only\. /,'')+'</div>':'');
+}
 /* factions whose colours read alike on the board are kept apart when the AI picks rivals */
 const FACTION_CLASH={AEGIS:['TIDE'], TIDE:['AEGIS']};
 /* commander powers: each faction has one, usable once per game on your own turn */
@@ -1534,7 +1583,7 @@ function startTurn(s, first){
   if(pw.shield[s]&&--pw.shield[s]<=0) delete pw.shield[s];   // Hold the Line covers two rounds
   if(meta(s).faction.walls) map.flat().forEach(t=>{ if(t.city&&t.city.owner===s) t.city.walls=true; });
   if(s===MYSIDE&&!first&&myCam&&alive[MYSIDE]){ camGoal=myCam; myCam=null; }
-  if(s===MYSIDE) endGuard=performance.now()+700;
+  if(s===MYSIDE){ endGuard=performance.now()+700; setTimeout(()=>{ if(side===MYSIDE&&map) { computeVision(); wakeSentries(); refresh(); } },60); }
   turnCities[s]=cityCount(s);
   stars[s]+=isAI(s)?Math.round(income(s)*diff().inc):income(s);
   const medic=hasTech(s,'MEDIC'), hosp=hasTech(s,'HOSP');
@@ -3964,7 +4013,17 @@ function onTileClick(x,y){
 /* ================================================================
    HTML UI
 ================================================================ */
-const hasWork=u=>u.owner===MYSIDE && ((!u.attacked && (!u.moved || attackTargets(u).length>0)) || (!!u.cargo&&unloadSpots(u).length>0));
+const sentry=new Set();   // units left on watch: skipped by Next and the ready count until an enemy comes near or you give them orders
+const hasWork=u=>u.owner===MYSIDE && !sentry.has(u.id) && ((!u.attacked && (!u.moved || attackTargets(u).length>0)) || (!!u.cargo&&unloadSpots(u).length>0));
+/* at the start of your turn, a unit on watch wakes up when a visible enemy is within 3 tiles */
+function wakeSentries(){
+  for(const id of [...sentry]){
+    const u=units.find(q=>q.id===id);
+    if(!u||u.owner!==MYSIDE){ sentry.delete(id); continue; }
+    const e=units.find(q=>q.owner!==MYSIDE&&visXY(q.x,q.y)&&cheb(q,u)<=3);
+    if(e){ sentry.delete(id); toast(UNIT_TYPES[u.type].name+' on watch spots enemy '+UNIT_TYPES[e.type].name+'!','var(--amber)',()=>{ sel={kind:'unit',id:u.id}; panTo(u.x,u.y); refresh(); }); }
+  }
+}
 function readyCount(){ return gameOver?0:units.filter(hasWork).length; }
 function refresh(){
   if(!map) return;
@@ -4097,7 +4156,8 @@ $('techPanel').addEventListener('click',e=>{
 
 
 /* ---------------- SAVE / LOAD ---------------- */
-const SAVE_KEY='foothold-save-v1';
+const SAVE_KEY='foothold-save-v1', CAMP_SAVE_KEY='foothold-save-campaign';
+const saveKeyFor=o=>o&&o.campaign?CAMP_SAVE_KEY:SAVE_KEY;   // a campaign battle never overwrites (or is overwritten by) a quick game
 const CAN_STORE=(()=>{try{localStorage.setItem('__t','1');localStorage.removeItem('__t');return true;}catch(e){return false;}})();
 function serializeGame(){
   return JSON.stringify({
@@ -4123,9 +4183,9 @@ function serializeGame(){
 function autoSave(){
   if(NET.on) return; // multiplayer campaigns live on the host — no autosave
   if(!CAN_STORE||!map||gameOver||side!==MYSIDE) return;
-  try{ localStorage.setItem(SAVE_KEY, serializeGame()); }catch(e){}
+  try{ localStorage.setItem(saveKeyFor(gcfg), serializeGame()); }catch(e){}
 }
-function clearSave(){ if(CAN_STORE){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} } }
+function clearSave(){ if(CAN_STORE){ try{ localStorage.removeItem(saveKeyFor(gcfg)); }catch(e){} } }
 function hasSave(){ if(!CAN_STORE) return false; try{ return !!localStorage.getItem(SAVE_KEY); }catch(e){ return false; } }
 /* a save exported by an online guest: swap its side into the host seat so it plays on solo */
 function swapSaveSides(d, me){
@@ -4255,7 +4315,7 @@ function setupView(v){
   $('soloPane').style.display=v==='solo'?'':'none';
   $('mpPane').style.display=v==='mp'?'':'none';
   $('campPane').style.display=v==='camp'?'':'none';
-  if(v==='camp') renderCampaign();
+  if(v==='camp'){ renderCampaign(); tipOnce('campaign','Campaign: attack a region next to yours (dashed ring). Each battle is a normal game; perks from your neighbouring regions help you, and capturing a capital takes that whole faction.'); }
 }
 const SIZE_NAME={9:'small',11:'standard',13:'large',15:'huge'};
 /* ================= CAMPAIGN =================
@@ -4610,6 +4670,8 @@ function renderCampaign(){
       const b=document.createElement('button'); b.className='opt'+(campNewCfg.fac===k?' sel':''); b.style.setProperty('--fc',FACTIONS[k].css);
       b.innerHTML=FACTIONS[k].name; b.onclick=()=>{ campNewCfg.fac=k; sfx.select(); renderCampaign(); }; row.appendChild(b);
     }
+    const fi=$('campFacInfo'); fi.style.setProperty('--fc',FACTIONS[campNewCfg.fac].css);
+    fi.innerHTML='<div class="fn" style="color:'+FACTIONS[campNewCfg.fac].css+'">'+FACTIONS[campNewCfg.fac].name+'</div>'+factionInfoHtml(campNewCfg.fac);
     document.querySelectorAll('#campLenRow .opt').forEach(o=>o.classList.toggle('sel',+o.dataset.n===campNewCfg.n));
     document.querySelectorAll('#campDiffRow .opt').forEach(o=>o.classList.toggle('sel',o.dataset.diff===campNewCfg.diff));
     return;
@@ -4629,9 +4691,10 @@ function renderCampaign(){
     const r=c.regions[c.battle.region];
     card.innerHTML='<h4>'+(c.battle.kind==='attack'?'Assault on ':'Defence of ')+esc(r.name)+'</h4><div class="cs">Against '+FACTIONS[c.battle.enemy].name+' \u00b7 '+CAMP_TERRAIN[r.terrain]+' \u00b7 '+r.size+'\u00d7'+r.size+'</div>';
     const running=!!map&&!gameOver&&(gcfg||{}).campaign&&gcfg.campaign.id===c.battle.id;
-    let saved=false; try{ const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); saved=!!(d&&d.cfg&&d.cfg.campaign&&d.cfg.campaign.id===c.battle.id); }catch(e){}
+    // the battle's own slot (older builds kept it in the main slot)
+    let saved=null; for(const k of [CAMP_SAVE_KEY,SAVE_KEY]){ try{ const d=JSON.parse(localStorage.getItem(k)||'null'); if(!saved&&d&&d.cfg&&d.cfg.campaign&&d.cfg.campaign.id===c.battle.id) saved=d; }catch(e){} }
     if(running) btn('Back to the battle','',()=>{ $('setup').classList.remove('show'); sfx.select(); });
-    else if(saved) btn('Resume the battle','continue where you left off',()=>{ try{ const d=JSON.parse(localStorage.getItem(SAVE_KEY)); if(restoreGame(d)){ tutStop(); sfx.capture(); } }catch(e){} });
+    else if(saved) btn('Resume the battle','continue where you left off',()=>{ try{ if(restoreGame(saved)){ tutStop(); sfx.capture(); } }catch(e){} });
     else btn('Fight the battle','it was interrupted \u2014 start it again',()=>campBattle(c.battle.kind,c.battle.region,c.battle.enemy));
   } else if(c.defend){
     const r=c.regions[c.defend.region];
@@ -4689,9 +4752,7 @@ function showSetup(){
     const card=document.createElement('button');
     card.className='fcard'+(cfg.faction===k?' sel':'');
     card.style.borderLeftColor=f.css;
-    const fu=UNIT_TYPES[FACTION_UNIT[k]];
-    card.innerHTML=`<div class="fn" style="color:${f.css}">${f.name}</div><div class="fp">${f.perk}</div>`+(f.power?`<div class="fpw"><b>Power \u00b7 ${f.power.name}:</b> ${f.power.desc}</div>`:'')+
-      (fu?`<div class="fpw"><b>Unique unit \u00b7 ${fu.name}</b> (${TECHS[UNIT_REQ[fu.key]].name}): ${fu.desc.replace(/^[^.]*only\. /,'')}</div>`:'')+medalRow(k);
+    card.innerHTML=`<div class="fn" style="color:${f.css}">${f.name}</div>`+factionInfoHtml(k)+medalRow(k);
     card.onclick=()=>{
       cfg.faction=k;
       grid.querySelectorAll('.fcard').forEach(c=>c.classList.remove('sel'));
@@ -4715,7 +4776,8 @@ function showSetup(){
   $('resumeBtn').style.display=running?'':'none';
   // continue button if a save exists and no game is running
   const cb=$('continueBtn');
-  if(!running&&hasSave()){
+  let mainSave=null; try{ mainSave=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); }catch(e){}
+  if(!running&&mainSave&&!(mainSave.cfg&&mainSave.cfg.campaign)){
     cb.style.display='';
     try{
       const d=JSON.parse(localStorage.getItem(SAVE_KEY));
@@ -4737,7 +4799,7 @@ function confirmAbandon(btn){
   if(!map||gameOver||armedBtn===btn){ disarm(); return true; }
   disarm();
   armedBtn=btn; btn.dataset.html=btn.innerHTML; btn.classList.add('armed');
-  btn.innerHTML='Abandon current game?<span>tap again to start a new one</span>';
+  btn.innerHTML=(gcfg&&gcfg.campaign)?'Leave this campaign battle?<span>it stays saved \u2014 resume it from Campaign</span>':'Abandon current game?<span>tap again to start a new one</span>';
   armedT=setTimeout(disarm,4000);
   sfx.denied();
   return false;
@@ -4880,6 +4942,15 @@ function toast(msg,color,onTap){
   while(box.children.length>(innerWidth<700?2:3)) box.firstChild.remove();
   t.onclick=()=>{ if(onTap) onTap(); t.remove(); };   // tap a notice to dismiss it (some also jump to the spot)
   setTimeout(()=>{ t.classList.add('out'); setTimeout(()=>t.remove(),320); },3200+1200*(msg.split('\n').length-1));
+}
+/* one-time tips the first time you meet a mechanic (kept per device) */
+const TIPS_KEY='foothold-tips-seen';
+function tipOnce(k,msg){
+  if(NET.on&&!NET.inGame) return;
+  let seen={}; try{ seen=JSON.parse(localStorage.getItem(TIPS_KEY)||'{}'); }catch(e){}
+  if(seen[k]) return;
+  seen[k]=1; try{ localStorage.setItem(TIPS_KEY, JSON.stringify(seen)); }catch(e){}
+  toast('TIP \u2014 '+msg+'\n(tap to dismiss)','#8fd89a');
 }
 function toastFromLog(who,msg){
   const big=/ELIMINATED|SURRENDERS|NUCLEAR|COMMANDER POWER|ran out of time/i.test(msg);
@@ -5174,6 +5245,11 @@ function renderInfoBody(){
     const u=units.find(x=>x.id===sel.id);
     if(u){
       const t=UNIT_TYPES[u.type], mine=u.owner===MYSIDE&&!gameOver;
+      if(mine&&t.carry) tipOnce('lander','Landing Craft: select a land unit and tap this craft to board, sail next to a shore, then tap a highlighted land tile to put the unit ashore.');
+      else if(mine&&t.naval) tipOnce('ship','Ships sail water only. Infantry and Tanks can\u2019t shoot at them, but Snipers, Artillery, Flak, Helicopters and other ships can.');
+      else if(mine&&t.faction) tipOnce('funit','This is your faction\u2019s unique unit: '+t.desc.replace(/^[^.]*only\. /,''));
+      else if(mine&&u.type==='TTN') tipOnce('titan','Titans: 36 HP and hard to kill, but they only move 1 tile. Helicopters and Artillery are their counters.');
+      else if(mine&&tutDone()) tipOnce('sentry','Got a unit you want to leave in place? Tap Sentry and the Next button will skip it until an enemy comes close.');
       por.innerHTML=`<img src="${unitIcon(u.type,u.owner)}" alt="">`;
       por.style.setProperty('--fc', meta(u.owner).css);
       title.textContent=t.name;
@@ -5210,6 +5286,12 @@ function renderInfoBody(){
         train.appendChild(actBtn({icon:heal?'heal':'hold', name:heal?'Heal':u.moved?'Done':'Hold',
           title:heal?'End this unit’s turn — heals '+hv+' HP next turn':u.moved?'End this unit’s turn':'Skip this unit’s turn',
           onclick:()=>{ act({t:'hold',uid:u.id}); sel=null; refresh(); }}));
+      }
+      if(mine&&u.type!=='NUKE'){
+        const on=sentry.has(u.id);
+        train.appendChild(actBtn({icon:'eye', name:on?'Wake':'Sentry', cls:'more',
+          title:on?'Back on duty: counts as ready again':'Leave this unit on watch: Next skips it every turn until an enemy comes within 3 tiles',
+          onclick:()=>{ if(on) sentry.delete(u.id); else { sentry.add(u.id); if(!u.attacked&&!u.moved) act({t:'hold',uid:u.id}); } sfx.select(); sel=null; refresh(); }}));
       }
       // a unit standing on a resource can harvest it (doesn't use the unit's action)
       const rt=tileAt(u.x,u.y);
@@ -5292,6 +5374,8 @@ function renderInfoBody(){
     if(occupied) body.textContent='A unit is standing on the city: only ships can launch from here.';
     let locked=0;
     if(full) body.textContent='Your army is at full strength. Grow or capture cities to support more units (each city supports its level + 1).';
+    if(c.level>=titanLevel()&&!occupied) tipOnce('titanCity','This city can now field a Titan, the super unit: one per city of level 4 or more.');
+    if(coast&&hasTech(MYSIDE,'NAVAL')) tipOnce('harbour','Cities next to water launch ships onto a free water tile beside them, even with a unit standing on the city.');
     if(c.level>=titanLevel()&&!occupied){
       const tc=unitCost(MYSIDE,'TTN'), have=titanCount(MYSIDE), cap=titanCap(MYSIDE);
       train.appendChild(actBtn({k:'TTN', img:unitIcon('TTN',MYSIDE), name:'Titan', cost:tc, cls:'super', disabled:stars[MYSIDE]<tc||full||have>=cap,
@@ -5356,6 +5440,35 @@ function nextUnit(){
 $('nextBtn').onclick=nextUnit;
 $('fitBtn').onclick=toggleFit;
 $('dangerBtn').onclick=toggleDanger;
+function openArmy(){
+  if(!map) return;
+  const list=$('armyList'); list.innerHTML='';
+  const row=(img,title,sub,stat,cls,go)=>{ const b=document.createElement('button'); b.className='apRow';
+    b.innerHTML=img+'<span class="nm"><b>'+title+'</b><span>'+sub+'</span></span>'+(stat?'<span class="st '+(cls||'')+'">'+stat+'</span>':'');
+    b.onclick=()=>{ $('armyPanel').hidden=true; go(); sfx.select(); refresh(); }; list.appendChild(b); };
+  const mine=units.filter(u=>u.owner===MYSIDE).sort((a,b)=>(hasWork(b)-hasWork(a))||UNIT_TYPES[a.type].name.localeCompare(UNIT_TYPES[b.type].name));
+  const sec=t=>{ const d=document.createElement('div'); d.className='apSec'; d.textContent=t; list.appendChild(d); };
+  sec('Units \u00b7 '+mine.length+' of '+armyCap(MYSIDE)+(side===MYSIDE?' \u00b7 '+readyCount()+' ready':''));
+  for(const u of mine){
+    const t=UNIT_TYPES[u.type];
+    const stat=sentry.has(u.id)?'On watch':side!==MYSIDE?'':hasWork(u)?'Ready':u.attacked?'Done':u.moved?'Moved':'Ready';
+    row('<img src="'+unitIcon(u.type,MYSIDE)+'" alt="">', t.name+(u.vet?' \u2605':''), 'HP '+u.hp+'/'+u.maxHp+(u.cargo?' \u00b7 carrying '+UNIT_TYPES[u.cargo.type].name:'')+' \u00b7 '+(tileAt(u.x,u.y).city?'in a city':tileAt(u.x,u.y).terrain),
+      stat, stat==='Ready'?'ready':stat==='On watch'?'watch':'', ()=>{ sel={kind:'unit',id:u.id}; panTo(u.x,u.y); });
+  }
+  const cities=[]; for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.owner===MYSIDE) cities.push({x,y,c}); }
+  cities.sort((a,b)=>b.c.capital-a.c.capital||b.c.level-a.c.level);
+  sec('Cities \u00b7 '+cities.length+' \u00b7 +'+income(MYSIDE)+'\u2605 a turn');
+  for(const {x,y,c} of cities){
+    const busy=unitAt(x,y);
+    row('<span class="ic">'+svgIcon('city')+'</span>', (c.capital?'Headquarters':'City')+' \u00b7 level '+c.level,
+      '+'+cityIncome(c)+'\u2605 \u00b7 '+(c.level<MAX_LEVEL?'pop '+c.pop+'/'+(c.level+1):'fully grown')+(coastal(x,y)?' \u00b7 harbour':'')+(c.rw&&c.rw.length?' \u00b7 reward waiting':''),
+      busy?'Occupied':'Can train', busy?'':'ready', ()=>{ sel={kind:'city',x,y}; panTo(x,y); });
+  }
+  $('armyPanel').hidden=false;
+}
+$('armyBtn').onclick=openArmy;
+$('armyClose').onclick=()=>{ $('armyPanel').hidden=true; sfx.select(); };
+$('armyPanel').addEventListener('click',e=>{ if(e.target.id==='armyPanel') $('armyPanel').hidden=true; });
 $('hoGo').onclick=()=>{
   if(performance.now()<hoGuard) return;
   $('handoff').hidden=true; curtainUp=false; sfx.select();
@@ -5370,6 +5483,7 @@ function syncPower(){
   if(b.hidden) return;
   const ready=pw.used[MYSIDE]==null;
   b.classList.toggle('ready', ready&&side===MYSIDE);
+  if(ready&&side===MYSIDE&&turn>=3&&tutDone()) tipOnce('power','Your commander power is ready: tap the lightning button. It works once per game, so save it for the turn that matters.');
   b.classList.toggle('spent', !ready);
   b.style.setProperty('--fc', f.css);
 }
@@ -5475,6 +5589,8 @@ window.addEventListener('keydown',e=>{
   if(e.key==='m'||e.key==='M'){ $('muteBtn').click(); return; }
   if(map&&(e.key==='v'||e.key==='V')){ toggleFit(); return; }
   if(map&&(e.key==='d'||e.key==='D')){ toggleDanger(); return; }
+  if(map&&(e.key==='o'||e.key==='O')){ if($('armyPanel').hidden) openArmy(); else $('armyPanel').hidden=true; return; }
+  if(e.key==='Escape'&&!$('armyPanel').hidden){ $('armyPanel').hidden=true; return; }
   if(map&&!gameOver&&(e.key==='p'||e.key==='P')){ $('powerBtn').click(); return; }
   if(map&&(e.key==='h'||e.key==='H')){ $('helpBtn').click(); return; }
   if(gameOver) return;
@@ -5608,6 +5724,8 @@ $('helpBtn').onclick=()=>{
     ['Online rematch','When an online game ends the host can tap Rematch to bring everyone back to the lobby with the same factions and settings.'],
     ['Reconnecting','If a guest drops out the game retries on its own. A guest who reloads the page or reopens the app gets a Rejoin button on the title screen for the next six hours; the host keeps their seat until the host replaces them with the AI.'],
     ['Campaign','Title screen \u2192 Campaign: a random map of 10, 14 or 20 regions shared between you and three rival factions. Each campaign turn you attack one region next to yours; the battle is a normal game against that region\u2019s owner, on a map that matches the region (highlands, woodland, lakes or coast; capitals are bigger). Win and the region is yours; take a rival\u2019s capital (\u2605) and its whole faction surrenders to you. Every region has a perk (Supply depot +3 stars, Research station a free tech, Veteran garrison an extra veteran Infantry, Fortress walls on the HQ, Factory town +1 income, Watchtower longer sight): in a battle you get the perks of your regions bordering the contested one, and the defender gets theirs plus the contested region\u2019s own. Then the rivals move: they fight each other, and sometimes attack one of your regions, which you can defend in a battle or give up (never your capital: lose that and the campaign is over). Nothing else carries over between battles. Hold every region to win; a map code lets a friend play the same map.'],
+    ['Sentry','Select a unit and tap Sentry to leave it on watch: the Next button and the ready count skip it every turn until an enemy comes within 3 tiles (you get a notice) or you give it orders. Tap Wake to put it back on duty.'],
+    ['Army overview','The list button on the right shows every unit (health, whether it has acted, who is aboard a Landing Craft) and every city (level, income, what it is building toward). Tap a line to jump there.'],
     ['Pass & play','Menu \u2192 Custom \u2192 Players on this device: two to four people share one phone or computer. After each turn a hand-off screen hides the board until the next player taps Start turn, and everyone sees only their own explored map. Any remaining rivals are played by the computer.'],
     ['Danger zones','Tap the warning triangle (or press D) to shade every tile an enemy in sight could strike next turn.'],
     ['Surrender','A computer rival that is down to its HQ and hopelessly outgunned gives up instead of dragging out the ending.'],
@@ -5657,6 +5775,7 @@ const byId=id=>units.find(u=>u.id===id);
 /* ---- single action gateway: SP + host execute, guests transmit ---- */
 function act(a){
   if(gameOver||!a) return;
+  if(a.uid!=null&&(a.t==='move'||a.t==='atk'||a.t==='capture'||a.t==='board'||a.t==='unload'||a.t==='nuke')) sentry.delete(a.uid);
   coachNote(a);
   if(NET.client){
     if(side!==MYSIDE) return;
@@ -6209,7 +6328,7 @@ const NET={
       const card=document.createElement('button');
       card.className='fcard'+(mine&&mine.fac===k?' sel':'')+(taken.has(k)?' taken':'');
       card.style.borderLeftColor=f.css;
-      card.innerHTML='<div class="fn" style="color:'+f.css+'">'+f.name+'</div><div class="fp">'+f.perk+'</div>';
+      card.innerHTML='<div class="fn" style="color:'+f.css+'">'+f.name+'</div>'+factionInfoHtml(k);
       card.onclick=()=>{
         if(taken.has(k)) return;
         sfx.select();
@@ -6422,7 +6541,7 @@ function newGame(){
   fitSaved=null; camDistGoal=null; camPhiGoal=null; cam.phi=0.96; $('fitBtn').classList.remove('on');
   $('turnBanner').classList.remove('show');
   pw=pw0();
-  gcfg={...cfg}; blockedHint=false; lastNuke={}; nukeWarned={}; mapReveals=[]; seenBy={};
+  gcfg={...cfg}; blockedHint=false; lastNuke={}; nukeWarned={}; mapReveals=[]; seenBy={}; sentry.clear();
   for(const k in aiSupportT) delete aiSupportT[k];
   for(const k in aiShipT) delete aiShipT[k];
   undoStack.length=0;
