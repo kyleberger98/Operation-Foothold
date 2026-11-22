@@ -4356,12 +4356,24 @@ function genCampaign(seed, n, fac, diffKey){
     while(!connected()&&spare.length) link(spare.shift(),true);
   }
   // names and terrain
-  const A=['Kessel','Varn','Ostra','Brenn','Halden','Corvo','Lumen','Marrow','Tessa','Dunmore','Iver','Kael','Sorrel','Vesk','Ardent','Pell','Rook','Saxe','Talon','Ember','Grist','Holt','Juno','Nadir'];
-  const B=['Ridge','Point','Flats','Hollow','Reach','Gate','Fields','Crossing','Heights','Basin','Bay','Vale','Marsh','Pass','Shore','Downs'];
+  // names that sound like real countries, provinces and states, each a little off; one part of the world per map
+  const NAME_SETS=[
+    ['Nebraskia','Montara','Dakotah','Ontarion','Quebeck','Albertia','Kentuckia','Virginna','Carolinia','Floridia','Texara','Arizonne',
+     'Nevadia','Oregonne','Coloradia','Missora','Ohiona','Vermonte','Alaskia','Manitova','Saskatia','Minnesoda','Peruna','Chilera',
+     'Patagona','Argentia','Brazilla','Venezula','Colombra','Bolivra','Cubaro'],
+    ['Normandi','Bavarra','Prussa','Saxonna','Tuscara','Lombarda','Castilo','Andalusa','Galicca','Bretonia','Flandria','Hollandt',
+     'Swedonia','Norvia','Finnlund','Denmora','Polania','Bohemora','Moravin','Silesca','Hungra','Austrava','Helvetta','Portugo',
+     'Grecca','Albanor','Serbana','Croatya','Romanya','Bulgara','Latvenia','Estonne','Ukrayna','Belarra','Crimeo','Icelund',
+     'Scotlund','Walesse','Irelan','Kernowa','Sicillo','Sardinna','Corsicca','Bosnara','Moldavo'],
+    ['Anatola','Armenna','Siberra','Mongola','Manchura','Kamchatta','Yakutsa','Persana','Arabba','Egypta','Libyra','Kenyara',
+     'Congora','Angolla','Namiba','Madagasca','Kazakha','Tibetta','Nepala','Burmah','Siamo','Bengara','Punjara','Ceylona',
+     'Ethiopa','Sudana','Morocca','Tunisa','Somalla','Zambeza'],
+  ];
+  const NAMES=pick(NAME_SETS);
   const used=new Set();
   regions.forEach((r,i)=>{
     r.id=i; r.nb=[...nb[i]]; r.lane=[...lanes[i]];
-    let nm; do{ nm=pick(A)+' '+pick(B); }while(used.has(nm)); used.add(nm); r.name=nm;
+    let nm; do{ nm=pick(NAMES); }while(used.has(nm)); used.add(nm); r.name=nm;
     const edge=Math.min(r.x, r.y, CAMP_W-r.x, CAMP_H-r.y);
     r.terrain=edge<11&&R()<0.55?pick(['sea','lakes']):pick(['classic','classic','highland','woods','lakes']);
     r.size=R()<0.55?9:11; r.owner=null; r.capital=false;
