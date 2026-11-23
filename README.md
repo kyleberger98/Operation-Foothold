@@ -13,6 +13,7 @@ The whole game is one file, `gridline-command.html`. It also runs offline: downl
 - **Navy:** coastal cities build Patrol Boats, Landing Craft, Destroyers and Battleships; Landing Craft ferry land units across water.
 - **Map types and modifiers:** Classic, Highlands, Woodland, Lakes, Inland Sea and Mirrored maps, plus optional No fog, Double income, Early Titans and No powers.
 - **Campaign:** conquer a random map of regions one battle at a time against three rival factions; each battle is a normal game.
+- **Diplomacy:** war, 10-turn peace treaties and alliances (shared sight, shared victory) with every faction, plus star gifts and tribute. Computer rivals weigh offers by strength, threats and trust; online, other players answer your proposals.
 - **Commander rank:** every finished game earns XP toward 30 ranks, which unlock board themes (Autumn, Desert, Winter, Tropical, Dusk, Ashlands), unit finishes and city flag emblems. Looks only, never gameplay.
 - **Two modes:** Conquest (capture every HQ) and Score attack (30 turns, highest score wins).
 - **Stars and medals:** every solo win is rated one to three stars, and each faction keeps its best medal per difficulty.
