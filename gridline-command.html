@@ -67,6 +67,33 @@ button{font:inherit; transition:background .15s ease, color .15s ease, border-co
 #fitBtn{position:fixed; z-index:11; right:calc(env(safe-area-inset-right,0px) + 12px); top:calc(env(safe-area-inset-top,0px) + 62px)}
 #fitBtn.on{border-color:var(--amber); color:var(--amber)}
 #armyBtn{position:fixed; z-index:11; right:calc(env(safe-area-inset-right,0px) + 12px); top:calc(env(safe-area-inset-top,0px) + 212px)}
+#dipBtn{position:fixed; z-index:11; right:calc(env(safe-area-inset-right,0px) + 12px); top:calc(env(safe-area-inset-top,0px) + 262px)}
+@media (max-height:520px){ #dipBtn{top:calc(env(safe-area-inset-top,0px) + 212px); right:calc(env(safe-area-inset-right,0px) + 64px)} }
+#dipBtn .badge{position:absolute; top:-3px; right:-3px; min-width:18px; height:18px; padding:0 4px; border-radius:99px; background:var(--amber); color:#1b160c; font-size:11px; font-weight:800; line-height:18px}
+#dipBtn .badge[hidden]{display:none}
+#dipPanel{position:fixed; inset:0; z-index:44; display:flex; align-items:flex-end; justify-content:center; background:rgba(8,12,10,.5)}
+#dipPanel[hidden]{display:none}
+.dpCard{border:1px solid var(--line); border-radius:12px; padding:10px 11px; margin:8px 0; background:rgba(255,255,255,.025)}
+.dpCard.out{opacity:.45}
+.dpHead{display:flex; align-items:center; gap:9px}
+.dpDot{width:13px; height:13px; border-radius:50%; flex:none; box-shadow:0 0 0 2px rgba(255,255,255,.12)}
+.dpName{flex:1; min-width:0; font-weight:800; font-size:14px}
+.dpName span{display:block; font-weight:400; font-size:11px; color:var(--dim)}
+.dpChip{font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; padding:3px 9px; border-radius:99px; white-space:nowrap}
+.dpChip.war{color:#ff9384; background:rgba(232,98,90,.14)}
+.dpChip.peace{color:var(--amber); background:rgba(240,179,92,.14)}
+.dpChip.ally{color:#8fd89a; background:rgba(143,216,154,.14)}
+.dpChip.out{color:var(--dim); background:rgba(255,255,255,.06)}
+.dpLine{font-size:11.5px; color:var(--dim); margin-top:5px; line-height:1.45}
+.dpLine b{color:var(--text); font-weight:700}
+.dpMood{font-weight:800}
+.dpBtns{display:flex; gap:6px; flex-wrap:wrap; margin-top:9px}
+.dpBtns button{background:var(--panel2); border:1px solid var(--line); border-radius:8px; color:var(--text); font:700 12px 'Nunito',system-ui,sans-serif; padding:7px 10px; cursor:pointer}
+.dpBtns button:disabled{opacity:.4; cursor:default}
+.dpBtns button.go{border-color:#5aa7e8; color:#cfe6fb}
+.dpBtns button.warn{border-color:var(--red); color:#ffb4aa}
+.dpBtns button.ok{border-color:#5fb878; color:#bdf0c8}
+.dpNote{font-size:11px; color:var(--dim); margin-top:6px}
 #armyPanel{position:fixed; inset:0; z-index:44; display:flex; align-items:flex-end; justify-content:center; background:rgba(8,12,10,.5)}
 #armyPanel[hidden]{display:none}
 .apInner{width:min(560px,100%); max-height:78vh; overflow-y:auto; background:rgba(20,27,22,.98); border:1px solid var(--line); border-radius:18px 18px 0 0;
@@ -99,7 +126,7 @@ button{font:inherit; transition:background .15s ease, color .15s ease, border-co
   display:flex; gap:8px}
 
 /* ---- bottom dock: Tech on the left, Next unit + End turn on the right ---- */
-body.nogame #hud, body.nogame .dock, body.nogame #topRight, body.nogame #fitBtn, body.nogame #armyBtn, body.nogame #dangerBtn, body.nogame #powerBtn, body.nogame #menuBtn{visibility:hidden}
+body.nogame #hud, body.nogame .dock, body.nogame #topRight, body.nogame #fitBtn, body.nogame #armyBtn, body.nogame #dipBtn, body.nogame #dangerBtn, body.nogame #powerBtn, body.nogame #menuBtn{visibility:hidden}
 .dock{position:fixed; z-index:12; bottom:calc(env(safe-area-inset-bottom,0px) + 12px);
   display:flex; flex-direction:column; align-items:center; gap:5px;
   padding:0; background:none; border:none; cursor:pointer; color:var(--text)}
@@ -596,6 +623,8 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
 </div>
 <button id="powerBtn" class="rb" title="Commander power (P)" aria-label="Commander power" hidden><svg viewBox="0 0 24 24"><path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/></svg></button>
 <button id="armyBtn" class="rb" title="Army overview (O)" aria-label="Army overview"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg></button>
+<button id="dipBtn" class="rb" title="Diplomacy (Y)" aria-label="Diplomacy"><svg viewBox="0 0 24 24"><path d="M3 11.5 7 8l3.2 1.6L13 8l4 1.5 4 2"/><path d="m7 8 5 5.2c.7.7 1.8.7 2.4 0 .6-.6.6-1.6 0-2.2L12.6 9"/><path d="M3 11.5 9.5 18c.6.6 1.5.6 2.1 0M21 11.5l-4.5 4.6"/></svg><span class="badge" id="dipBadge" hidden>1</span></button>
+<div id="dipPanel" hidden><div class="apInner"><div class="apHead"><b>Diplomacy</b><button id="dipClose" aria-label="Close">&#10005;</button></div><div id="dipList"></div></div></div>
 <div id="armyPanel" hidden><div class="apInner"><div class="apHead"><b>Army overview</b><button id="armyClose" aria-label="Close">&#10005;</button></div><div id="armyList"></div></div></div>
 <button id="dangerBtn" class="rb" title="Danger zones: where enemies in sight can strike next turn (D)" aria-label="Danger zones"><svg viewBox="0 0 24 24"><path d="M12 4 21 19.5H3z"/><path d="M12 10v4.5M12 17v.3"/></svg></button>
 <button id="fitBtn" class="rb" title="Whole map (V)" aria-label="Whole map"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
@@ -977,7 +1006,7 @@ function usePower(s){
 function aiUsePower(me){
   if(!powerReady(me)||!diff().sharp||turn<4) return;
   const k=meta(me).faction.power.key, mine=units.filter(u=>u.owner===me&&u.type!=='NUKE');
-  const foes=units.filter(e=>e.owner!==me);
+  const foes=units.filter(e=>hostile(e.owner,me));
   const inRange=mine.filter(u=>attackTargets(u).length).length;   // units that can strike right now
   let hq=null; for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.capital&&c.owner===me) hq={x,y}; }
   const cornered=!!hq&&foes.some(e=>cheb(e,hq)<=2);
@@ -1021,7 +1050,31 @@ const mapType=()=>MAP_TYPES[((gcfg||cfg).map)]||MAP_TYPES.classic;
 const mod=k=>{ const m=(gcfg||cfg).mods; return !!(m&&m.includes(k)); };
 let gcfg=null, blockedHint=false, lastNuke={}, nukeWarned={}, mapReveals=[];   // settings of the game being played (the menu's cfg can change underneath it)
 const diff=()=>DIFFS[(gcfg||cfg).diff]||DIFFS.normal;
-const isAI=s=>s!==P && !HOT.includes(s) && !(NET.on&&NET.humans[s]);   // the host's own side and remote humans are people
+const isAI=s=>s!==P && !HOT.includes(s) && !(NET.on&&NET.humans[s]);
+/* ---------------- DIPLOMACY ----------------
+   Every pair of factions is at war unless they sign peace (PEACE_TURNS long, can be renewed) or ally.
+   Peace: no attacks, no captures, no entering the other's territory. Alliance: all of that plus shared sight
+   and passing through each other's units. When only allies remain, they share the victory. */
+const PEACE_TURNS=10;
+const dip0=()=>({rel:{}, offers:[], rep:{}, good:{}, last:{}, win:null, oid:1});
+let dip=dip0();
+const relKey=(a,b)=>a<b?a+'|'+b:b+'|'+a;
+const relRec=(a,b)=>dip.rel[relKey(a,b)]||null;
+function relOf(a,b){ if(a===b) return 'self'; const r=dip.rel[relKey(a,b)]; return r?r.s:'war'; }
+const hostile=(a,b)=>!!a&&!!b&&a!==b&&relOf(a,b)==='war';
+const friendly=(a,b)=>a===b||relOf(a,b)==='ally';
+const peaceWith=s=>turnOrder.filter(o=>o!==s&&relOf(s,o)==='peace');
+/* who controls each tile: a city's border, the nearer city winning (as drawn on the board) */
+function terrGrid(){
+  const own=Array.from({length:H},()=>Array(W).fill(null)), dist=Array.from({length:H},()=>Array(W).fill(99));
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const c=tileAt(x,y).city; if(!c||!c.owner) continue;
+    const r=c.border||1;
+    for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){ const nx=x+dx, ny=y+dy; if(!inb(nx,ny)) continue;
+      const d=Math.max(Math.abs(dx),Math.abs(dy)); if(d<dist[ny][nx]){ dist[ny][nx]=d; own[ny][nx]=c.owner; } }
+  }
+  return own;
+}   // the host's own side and remote humans are people
 let playerMeta={};      // side id -> {faction, name, body, trim, flag, css}
 let enemySides=[];      // ['A1','A2',...]
 let turnOrder=[];       // [P, ...enemySides]
@@ -1666,6 +1719,7 @@ function myTurnNotices(){
       turnNotes.push('Units standing on your cities block training: move one off to recruit.');
     }
   }
+  { const n=dip.offers.filter(o=>o.to===s&&alive[o.from]).length; if(n) turnNotes.push('\u2696 '+n+' diplomatic offer'+(n>1?'s':'')+' waiting: open Diplomacy.'); }
   { const at=recapAt; toast([turnHead(s),...turnNotes].join('\n'), turnNotes.length?'var(--amber)':meta(s).css, at?()=>panTo(at.x,at.y):null); }
   turnNotes.length=0;
 }
@@ -1733,6 +1787,7 @@ function startTurn(s, first){
     if(gameMode()==='score'&&turn>=SCORE_TURNS){ sel=null; endGame(scoreLeader()); return; }   // time is up: the top score wins
     turn++;   // counts on even after the player is knocked out
   }
+  dipTurn(s, s===turnOrder.find(x=>alive[x])&&!first);
   undoStack.length=0;   // undo never reaches back past the start of a turn
   if(NET.host&&NET.inGame) NET.turnEnds=(NET.timer&&(s===P||NET.humans[s]))?Date.now()+NET.timer*1000:0;
   if(NET.host&&NET.inGame&&NET.humans[s]&&!NET.humans[s].conn&&alive[s]){
@@ -1935,7 +1990,7 @@ function forecast(u,d){
   let splashN=0;
   if(UNIT_TYPES[u.type].splash){
     const R=blastR(u);
-    splashN=units.filter(e=>e.owner!==u.owner && e!==d &&
+    splashN=units.filter(e=>hostile(e.owner,u.owner) && e!==d &&
       Math.max(Math.abs(e.x-d.x),Math.abs(e.y-d.y))<=R).length;
   }
   return {dmg,kills,advances,rdmg,dies,cAtk:atkMult(u,d)>1,cDef:defMult(u,d)>1,splashN};
@@ -1953,6 +2008,7 @@ function reachable(u){
   const maxMv=uMove(u);
   const seen=new Map(); seen.set(key(u.x,u.y),0);
   const out=new Map();
+  const pp=peaceWith(u.owner), tg=pp.length?terrGrid():null;   // treaty partners' land is closed (a unit already inside may walk out)
   let frontier=[{x:u.x,y:u.y,d:0}];
   while(frontier.length){
     const cur=frontier.shift();
@@ -1964,7 +2020,9 @@ function reachable(u){
       const k=key(nx,ny);
       if(seen.has(k)&&seen.get(k)<=cur.d+1) continue;
       if(!passable(u,nx,ny)) continue;
-      if(unitAt(nx,ny)) continue;
+      if(tg){ const o=tg[ny][nx]; if(o&&pp.includes(o)&&tg[cur.y][cur.x]!==o) continue; }
+      const blk=unitAt(nx,ny);
+      if(blk){ if(blk.owner!==u.owner&&relOf(blk.owner,u.owner)==='ally'){ seen.set(k,cur.d+1); frontier.push({x:nx,y:ny,d:cur.d+1}); } continue; }   // pass through allies, never stop on them
       seen.set(k,cur.d+1);
       out.set(k,{x:nx,y:ny});
       frontier.push({x:nx,y:ny,d:cur.d+1});
@@ -1985,9 +2043,9 @@ function attackTargets(u){
   const rg=uRange(u);
   if(u.owner!==MYSIDE&&rg>visionR(u.owner)&&!hasTech(u.owner,'SAT')&&!mod('nofog')){   // long-range guns need a spotter, for the computer too
     const seen=sightOf(u.owner);
-    return units.filter(e=>e.owner!==u.owner && cheb(u,e)<=rg && seen[e.y][e.x] && canHit(u,e));
+    return units.filter(e=>hostile(e.owner,u.owner) && cheb(u,e)<=rg && seen[e.y][e.x] && canHit(u,e));
   }
-  return units.filter(e=>e.owner!==u.owner && cheb(u,e)<=rg && (u.owner!==MYSIDE || visXY(e.x,e.y)) && canHit(u,e));
+  return units.filter(e=>hostile(e.owner,u.owner) && cheb(u,e)<=rg && (u.owner!==MYSIDE || visXY(e.x,e.y)) && canHit(u,e));
 }
 // detonate a nuclear missile on a target tile: full splash everywhere in radius, then consume the launcher
 function nukeStrike(u,tx,ty){
@@ -1995,7 +2053,7 @@ function nukeStrike(u,tx,ty){
   fx.faceTarget(u,{x:tx,y:ty});
   // direct hit on anything sitting on the target tile
   const direct=unitAt(tx,ty);
-  if(direct && direct.owner!==u.owner){
+  if(direct && hostile(direct.owner,u.owner)){
     const dt=UNIT_TYPES[direct.type];
     let dmg=Math.max(1, Math.round(ut.atk*4.5));
     if(hasTech(direct.owner,'CIVDEF')) dmg=civdef(direct,dmg);
@@ -2044,7 +2102,7 @@ function splashDamage(u,cx,cy){
   const R=blastR(u);
   const hit=units.filter(e=>{
     const d=Math.max(Math.abs(e.x-cx),Math.abs(e.y-cy));
-    return e.owner!==u.owner && d>=1 && d<=R;
+    return hostile(e.owner,u.owner) && d>=1 && d<=R;
   });
   for(const e of hit){
     const et=UNIT_TYPES[e.type];
@@ -2139,7 +2197,7 @@ function moveUnit(u,x,y){
 /* capturing takes a unit that began its turn on the city, and uses its action */
 function canCapture(u){
   const c=u&&inb(u.x,u.y)?tileAt(u.x,u.y).city:null;
-  return !!(c&&c.owner!==u.owner&&(!u.moved||UNIT_TYPES[u.type].blitz)&&!u.attacked&&u.type!=='NUKE');
+  return !!(c&&c.owner!==u.owner&&(!c.owner||hostile(c.owner,u.owner))&&(!u.moved||UNIT_TYPES[u.type].blitz)&&!u.attacked&&u.type!=='NUKE');
 }
 function captureCity(u){
   if(!canCapture(u)) return false;
@@ -2189,9 +2247,201 @@ function eliminate(s, by, surrendered){
   else log('sys',`${meta(s).name} has been ELIMINATED${NET.on?(by&&meta(by)?' by '+meta(by).name:''):(by===MYSIDE?' by your forces':'')}!`);
   if(!surrendered) sfx.boom(); else sfx.capture();
   const rem=turnOrder.filter(x=>alive[x]);
-  if(rem.length<=1) endGame(rem[0]||by);
+  dip.offers=dip.offers.filter(o=>o.from!==s&&o.to!==s);
+  const allies=rem.length>1&&rem.every(a=>rem.every(b=>friendly(a,b)));   // only allies left: they win together
+  if(allies){ dip.win=[...rem]; endGame(rem.includes(MYSIDE)?MYSIDE:rem[0]); }
+  else if(rem.length<=1) endGame(rem[0]||by);
   else if(hotOn()){ if(!HOT.some(h=>alive[h])) showDefeat(); }   // every player here is out: watch the computers finish
   else if(s===MYSIDE) showDefeat();   // rivals fight on; the beaten player can watch
+}
+
+/* ---- diplomacy: treaties, offers and how the computer judges them ---- */
+const dipName=s=>(hotOn()&&HOT.includes(s))?pname(s)+' ('+meta(s).name+')':meta(s).name;
+function dipNote(msg, who){   // log it; toast it when it concerns the player on this screen
+  log('sys', msg);
+  if(who&&who.includes(MYSIDE)&&(!hotOn()||side===MYSIDE)) toast(msg, 'var(--amber)');
+}
+function setRel(a,b,st){
+  const k=relKey(a,b);
+  if(st==='war') delete dip.rel[k];
+  else dip.rel[k]={s:st, since:turn, until:st==='peace'?turn+PEACE_TURNS:0};
+  dip.offers=dip.offers.filter(o=>!((o.from===a&&o.to===b)||(o.from===b&&o.to===a))||o.kind==='tribute');
+}
+/* why a pair can't sign something right now ('' = allowed) */
+function dipBlock(a,b,kind){
+  if(!alive[a]||!alive[b]||a===b) return 'not possible';
+  const r=relOf(a,b);
+  if(kind==='peace'){
+    if(r==='ally') return 'already allies';
+    if(r==='peace'&&relRec(a,b).until-turn>2) return 'peace already holds';
+    return '';
+  }
+  if(kind==='ally'){
+    if(r==='ally') return 'already allies';
+    if(r!=='peace') return 'make peace first';
+    if(turn-relRec(a,b).since<2) return 'peace must hold for 2 turns first';
+    if(!turnOrder.some(o=>alive[o]&&o!==a&&o!==b&&!friendly(o,a)&&!friendly(o,b))) return 'an alliance needs a common rival';
+    return '';
+  }
+  return '';
+}
+function strength(s){ return sidePower(s)+1; }
+/* how keen the computer side `me` is on a deal with `x`: a score and the main reason against */
+function aiMood(me, x, kind){
+  const pm=strength(me), px=strength(x), ratio=px/pm;
+  const others=turnOrder.filter(o=>alive[o]&&o!==me&&o!==x);
+  const warPow=others.filter(o=>hostile(me,o)).reduce((m,o)=>Math.max(m,strength(o)),0)/pm;
+  const trust=-(dip.rep[x]||0)*2.5, good=Math.min(3,dip.good[x+'>'+me]||0);
+  const dd={easy:0.8,normal:0.2,hard:-0.4,crazy:-1.2}[(gcfg||cfg).diff]||0;
+  const leader=others.length>0&&scoreLeader()===x;
+  const parts=[];   // [value, reason-against]
+  if(kind==='peace'){
+    parts.push([ratio>1.25?2.2:ratio>0.9?0.8:ratio<0.55?-2.6:-0.6, 'they think they are winning']);
+    parts.push([warPow>0.8?1.4:warPow>0.4?0.6:0, '']);
+    parts.push([trust, 'they don’t trust you after a broken treaty']);
+    parts.push([good, '']);
+    parts.push([dd, 'they are spoiling for a fight']);
+    parts.push([leader?-1.2:0, 'they won’t let the leader off the hook']);
+    parts.push([turn<4?-1.5:0, 'it is too early']);
+    parts.push([others.length?0:-1.5, 'only one of you can rule the region']);
+    const r=relRec(me,x);
+    if(r&&r.s==='peace') parts.push([1, '']);   // renewing an existing peace is easy
+  } else if(kind==='ally'){
+    const common=others.filter(o=>!friendly(o,me)&&!friendly(o,x)), cp=common.reduce((m,o)=>Math.max(m,strength(o)),0)/pm;
+    parts.push([cp>1?2.2:cp>0.7?1.4:0.4, 'there is no common rival worth it']);
+    parts.push([trust*1.3, 'they don’t trust you after a broken treaty']);
+    parts.push([good, '']);
+    parts.push([dd*0.6, 'they prefer to stand alone']);
+    parts.push([leader?-2:0, 'you are too far ahead']);
+    parts.push([ratio<0.35?-1:0, 'you are too weak to be worth it']);
+  }
+  const score=parts.reduce((m,p)=>m+p[0],0);
+  const worst=parts.filter(p=>p[1]&&p[0]<0).sort((a,b)=>a[0]-b[0])[0];
+  return {score, why:worst?worst[1]:'they are not interested'};
+}
+const AI_NEED={peace:1, ally:2};
+function aiAccepts(me, x, kind){ const m=aiMood(me,x,kind); return {ok:m.score>=AI_NEED[kind], why:m.why}; }
+function aiPaysTribute(me, x, n){ return strength(x)/strength(me)>=1.8&&stars[me]>=n&&relOf(me,x)!=='ally'; }
+function signDeal(a,b,kind){
+  if(kind==='peace'){ const renew=relOf(a,b)==='peace'; setRel(a,b,'peace');
+    dipNote((renew?'Peace renewed: ':'Peace: ')+dipName(a)+' and '+dipName(b)+' stop fighting for '+PEACE_TURNS+' turns.', [a,b]); }
+  else { setRel(a,b,'ally'); dipNote('Alliance: '+dipName(a)+' and '+dipName(b)+' now share sight and fight side by side.', [a,b]); }
+  if(a===MYSIDE||b===MYSIDE) sfx.capture();
+}
+/* one diplomatic action by side s (validated here: runs on the host or solo) */
+function dipAction(s, a){
+  const to=a.to;
+  if(a.op==='accept'||a.op==='decline'){
+    const o=dip.offers.find(q=>q.id===a.id&&q.to===s); if(!o) return false;
+    dip.offers=dip.offers.filter(q=>q!==o);
+    if(!alive[o.from]) return true;
+    if(a.op==='decline'){ dipNote(dipName(s)+' turned down '+dipName(o.from)+(o.kind==='tribute'?'’s demand for tribute.':'’s offer of '+(o.kind==='ally'?'an alliance.':'peace.')), [o.from,s]); return true; }
+    if(o.kind==='tribute'){ const n=Math.min(o.n, stars[s]); stars[s]-=n; stars[o.from]+=n; dipNote(dipName(s)+' paid '+n+'★ tribute to '+dipName(o.from)+'.', [o.from,s]); return true; }
+    if(dipBlock(o.from,s,o.kind)) return true;
+    signDeal(o.from, s, o.kind); return true;
+  }
+  if(!turnOrder.includes(to)||to===s||!alive[to]) return false;
+  if(a.op==='propose'){
+    if(a.kind!=='peace'&&a.kind!=='ally') return false;
+    const bl=dipBlock(s,to,a.kind); if(bl) return false;
+    if(isAI(to)){
+      const r=aiAccepts(to,s,a.kind); dip.last[s+'>'+to]=turn;
+      if(r.ok) signDeal(s,to,a.kind);
+      else dipNote(dipName(to)+' refuses '+(a.kind==='ally'?'an alliance':'peace')+': '+r.why+'.', [s,to]);
+      return true;
+    }
+    if(dip.offers.some(o=>o.from===s&&o.to===to&&o.kind===a.kind)) return false;
+    dip.offers.push({id:dip.oid++, from:s, to, kind:a.kind, turn});
+    dipNote(dipName(s)+' offers '+dipName(to)+' '+(a.kind==='ally'?'an alliance.':'peace.'), [s,to]);
+    return true;
+  }
+  if(a.op==='war'){
+    const r=relRec(s,to); if(!r||r.s!=='peace') return false;
+    const early=turn<r.until; setRel(s,to,'war');
+    if(early) dip.rep[s]=(dip.rep[s]||0)+1;   // breaking a treaty early: every faction remembers
+    dipNote(dipName(s)+' declares WAR on '+dipName(to)+(early?', breaking their peace treaty.':'.'), [s,to]);
+    if(to===MYSIDE||s===MYSIDE) sfx.boom();
+    return true;
+  }
+  if(a.op==='leave'){
+    if(relOf(s,to)!=='ally') return false;
+    setRel(s,to,'peace'); dipNote(dipName(s)+' leaves the alliance with '+dipName(to)+'. A '+PEACE_TURNS+'-turn peace follows.', [s,to]);
+    return true;
+  }
+  if(a.op==='gift'){
+    const n=a.n|0; if(n<1||n>50||stars[s]<n) return false;
+    stars[s]-=n; stars[to]+=n; const k=s+'>'+to; dip.good[k]=(dip.good[k]||0)+n/5;
+    dipNote(dipName(s)+' sent '+n+'★ to '+dipName(to)+'.', [s,to]);
+    return true;
+  }
+  if(a.op==='demand'){
+    const n=a.n|0; if(n<1||n>50) return false;
+    if(isAI(to)){
+      dip.last[s+'>'+to+'$']=turn;
+      if(aiPaysTribute(to,s,n)){ stars[to]-=n; stars[s]+=n; dipNote(dipName(to)+' pays '+n+'★ tribute to '+dipName(s)+'.', [s,to]); }
+      else { const k=to+'>'+s; dip.good[k]=(dip.good[k]||0)-1; dipNote(dipName(to)+' refuses to pay tribute to '+dipName(s)+'.', [s,to]); }
+      return true;
+    }
+    if(dip.offers.some(o=>o.from===s&&o.to===to&&o.kind==='tribute')) return false;
+    dip.offers.push({id:dip.oid++, from:s, to, kind:'tribute', n, turn});
+    dipNote(dipName(s)+' demands '+n+'★ tribute from '+dipName(to)+'.', [s,to]);
+    return true;
+  }
+  return false;
+}
+/* start of each side's turn: its own unanswered offers lapse; at the top of a round treaties age */
+function dipTurn(s, roundStart){
+  dip.offers=dip.offers.filter(o=>o.from!==s&&alive[o.to]&&alive[o.from]);
+  if(!roundStart) return;
+  for(const k in dip.good) dip.good[k]*=0.85;
+  for(const [k,r] of Object.entries(dip.rel)){
+    if(r.s!=='peace') continue;
+    const [a,b]=k.split('|');
+    if(!alive[a]||!alive[b]){ delete dip.rel[k]; continue; }
+    if(turn>=r.until){ delete dip.rel[k]; dipNote('The peace between '+dipName(a)+' and '+dipName(b)+' has ended: they are at war again.', [a,b]); }
+    else if(r.until-turn===2&&(!isAI(a)||!isAI(b))) dipNote('Peace between '+dipName(a)+' and '+dipName(b)+' ends in 2 turns. It can be renewed in Diplomacy.', [a,b]);
+  }
+}
+/* two sides are in contact when either has units within 3 tiles of the other's cities or units */
+function inContact(a,b){
+  const ua=units.filter(u=>u.owner===a), ub=units.filter(u=>u.owner===b);
+  const cities=o=>{ const r=[]; for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.owner===o) r.push({x,y}); } return r; };
+  const ca=cities(a), cb=cities(b);
+  return ua.some(u=>ub.some(v=>cheb(u,v)<=3)||cb.some(c=>cheb(u,c)<=3))||ub.some(v=>ca.some(c=>cheb(v,c)<=3));
+}
+/* the computer's own diplomacy: at most one move a turn, never pestering the same side more than every 4 turns.
+   It only reaches out for peace with a side it is actually fighting. */
+function aiDiplomacy(me){
+  if(turn<3) return;
+  const others=turnOrder.filter(o=>alive[o]&&o!==me).sort(()=>Math.random()-0.5);
+  const ready=x=>turn-(dip.last[me+'>'+x]??-99)>=4;
+  const propose=(x,kind)=>{
+    dip.last[me+'>'+x]=turn;
+    if(isAI(x)){ if(aiAccepts(x,me,kind).ok) signDeal(me,x,kind); return; }
+    if(dip.offers.some(o=>o.from===me&&o.to===x&&o.kind===kind)) return;
+    dip.offers.push({id:dip.oid++, from:me, to:x, kind, turn});
+    dipNote(dipName(me)+' offers '+dipName(x)+' '+(kind==='ally'?'an alliance':'peace')+'. Answer in Diplomacy.', [x]);
+  };
+  for(const x of others){
+    if(!ready(x)) continue;
+    const r=relOf(me,x);
+    if(r==='war'&&!dipBlock(me,x,'peace')&&aiMood(me,x,'peace').score>=1.6&&inContact(me,x)){ propose(x,'peace'); return; }
+    if(r==='peace'){
+      const rr=relRec(me,x);
+      if(rr.until-turn<=2&&aiMood(me,x,'peace').score>=1){ propose(x,'peace'); return; }
+      if(!dipBlock(me,x,'ally')&&aiMood(me,x,'ally').score>=2.2){ propose(x,'ally'); return; }
+      if(turn>8&&strength(me)>strength(x)*2&&turn-(dip.last[me+'>'+x+'$']??-99)>=6){
+        dip.last[me+'>'+x+'$']=turn; dip.last[me+'>'+x]=turn;
+        const n=Math.max(3,Math.min(8,Math.round((stars[x]||0)/3)));
+        if(isAI(x)){ if(aiPaysTribute(x,me,n)){ stars[x]-=n; stars[me]+=n; dipNote(dipName(x)+' pays '+n+'★ tribute to '+dipName(me)+'.', [x,me]); } }
+        else if(!dip.offers.some(o=>o.from===me&&o.to===x&&o.kind==='tribute')){
+          dip.offers.push({id:dip.oid++, from:me, to:x, kind:'tribute', n, turn});
+          dipNote(dipName(me)+' demands '+n+'★ tribute. Answer in Diplomacy.', [x]);
+        }
+        return;
+      }
+    }
+  }
 }
 
 /* ---------------- AI ---------------- */
@@ -2233,7 +2483,7 @@ const aiSupportT={}, aiShipT={};   // turn each AI last built its support unit (
 function counterPick(me,c,pool){
   if(pool.includes('TTN')) return 'TTN';
   const fu=FACTION_UNIT[meta(me).faction.key];
-  const near=units.filter(q=>q.owner!==me&&cheb(q,c)<=7), n=t=>near.filter(q=>q.type===t).length;
+  const near=units.filter(q=>hostile(q.owner,me)&&cheb(q,c)<=7), n=t=>near.filter(q=>q.type===t).length;
   const mine=units.filter(q=>q.owner===me), m=t=>mine.filter(q=>q.type===t).length;
   if(n('HEL')>m('AA')&&pool.includes('AA')) return 'AA';                       // flak against helicopters
   if(n('TNK')+n('TTN')>=2&&m('HEL')<2&&pool.includes('HEL')) return 'HEL';      // gunships against armour
@@ -2250,6 +2500,7 @@ async function aiTurn(me){
       if(!gameOver){ const nx=nextAlive(me); setTimeout(()=>{ if(gen===g0&&!gameOver) startTurn(nx); }, aiDelay(700)); }
       return;
     }
+    aiDiplomacy(me);
   }
   const banner=$('turnBanner');
   banner.textContent='\u25c2 '+meta(me).name.toUpperCase()+' TURN \u25b8';
@@ -2284,7 +2535,7 @@ async function aiTurn(me){
     if(waterShare()>=0.15){ const nv=['NAVAL','FLEET']; order=[...order.slice(0,4).filter(k=>!nv.includes(k)),'NAVAL',...order.slice(4,8).filter(k=>!nv.includes(k)),'FLEET',...order.slice(8).filter(k=>!nv.includes(k))]; }   // a watery map calls for a navy
     const fuReq=UNIT_REQ[FACTION_UNIT[meta(me).faction.key]];
     if(fuReq){ const chain=[TECHS[fuReq].req,fuReq].filter(Boolean); order=[...order.slice(0,2).filter(k=>!chain.includes(k)),...chain,...order.slice(2).filter(k=>!chain.includes(k))]; }
-    if(D.sharp&&!hasTech(me,'AIRDEF')&&units.some(q=>q.owner!==me&&q.type==='HEL')) order=['RADIO','AIRDEF',...order.filter(k=>k!=='RADIO'&&k!=='AIRDEF')];
+    if(D.sharp&&!hasTech(me,'AIRDEF')&&units.some(q=>hostile(q.owner,me)&&q.type==='HEL')) order=['RADIO','AIRDEF',...order.filter(k=>k!=='RADIO'&&k!=='AIRDEF')];
     for(const k of order){
       if(hasTech(me,k)||(TECHS[k].req&&!hasTech(me,TECHS[k].req))) continue;
       if(stars[me]>=techCost(k,me)+(TECHS[k].tier>=4?2:4)){ research(me,k); if(++learned>=D.techs) break; }
@@ -2309,7 +2560,7 @@ async function aiTurn(me){
   if(D.sharp&&titanCount(me)<titanCap(me)&&armySize(me)<armyCap(me)){
     const tc=unitCost(me,'TTN'), home=[];
     for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.owner===me) home.push({x,y}); }
-    saving=stars[me]<tc&&stars[me]>=tc/2&&armySize(me)>=3&&!units.some(q=>q.owner!==me&&home.some(h=>cheb(q,h)<=3));
+    saving=stars[me]<tc&&stars[me]>=tc/2&&armySize(me)>=3&&!units.some(q=>hostile(q.owner,me)&&home.some(h=>cheb(q,h)<=3));
   }
   for(const c of cities){
     if(saving||trained>=D.train||armySize(me)>=armyCap(me)) break;
@@ -2326,7 +2577,7 @@ async function aiTurn(me){
       refresh();
       continue;
     }
-    const enemyAir=units.filter(q=>q.owner!==me&&q.type==='HEL'&&cheb(q,c)<=6).length>units.filter(q=>q.owner===me&&q.type==='AA').length;
+    const enemyAir=units.filter(q=>hostile(q.owner,me)&&q.type==='HEL'&&cheb(q,c)<=6).length>units.filter(q=>q.owner===me&&q.type==='AA').length;
     const mine=units.filter(q=>q.owner===me);
     const artFull=mine.filter(q=>q.type==='ART').length*3>=Math.max(3,mine.length);
     const ok=k=>unitUnlocked(me,k) && unitCost(me,k)<=stars[me] && !(k==='ART'&&artFull) && (k!=='AA'||enemyAir) && (k!=='TTN'||canFieldTitan(me,tileAt(c.x,c.y).city));
@@ -2348,7 +2599,7 @@ async function aiTurn(me){
   // the navy: on a watery map, keep a few warships off the coast, more when the enemy brings its own
   if(D.sharp&&hasTech(me,'NAVAL')&&armySize(me)<armyCap(me)){
     const myShips=units.filter(q=>q.owner===me&&naval(q)&&q.type!=='LND').length;
-    const foeShips=units.filter(q=>q.owner!==me&&naval(q)).length;
+    const foeShips=units.filter(q=>hostile(q.owner,me)&&naval(q)).length;
     const landArmy=units.filter(q=>q.owner===me&&!naval(q)&&q.type!=='NUKE').length;
     const want=Math.min(3, Math.ceil(foeShips*0.75)+(waterShare()>=0.15?1:0));   // ships can't take cities: keep the navy a supporting arm
     if(myShips<want&&landArmy>=4&&turn-(aiShipT[me]??-99)>=2){ aiShipT[me]=turn;
@@ -2373,12 +2624,12 @@ async function aiTurn(me){
     aiRewards(me);
   }
   // objectives: every rival's cities and units
-  const objs=[];
+  const objs=[], tgo=peaceWith(me).length?terrGrid():null, closed=(x,y)=>tgo&&tgo[y][x]&&relOf(me,tgo[y][x])==='peace';
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const c=tileAt(x,y).city;
-    if(c&&c.owner!==me) objs.push({x,y,w:c.capital?0:1});
+    if(c&&c.owner!==me&&(!c.owner||hostile(c.owner,me))&&!closed(x,y)) objs.push({x,y,w:c.capital?0:1});
   }
-  units.filter(u=>u.owner!==me).forEach(u=>objs.push({x:u.x,y:u.y,w:2}));
+  units.filter(u=>hostile(u.owner,me)).forEach(u=>objs.push({x:u.x,y:u.y,w:2}));
   for(let y=0;y<H;y++)for(let x=0;x<W;x++) if(tileAt(x,y).ruin) objs.push({x,y,w:0.5});
 
   const aiPromote=()=>units.filter(q=>q.owner===me&&canPromote(q)&&q.hp<=q.maxHp-3).forEach(promote);
@@ -2386,7 +2637,7 @@ async function aiTurn(me){
   // threats to the HQ: enemy units close enough to reach it soon
   let hq=null;
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.capital&&c.owner===me) hq={x,y}; }
-  const hqThreat=!!hq&&units.some(q=>q.owner!==me&&cheb(q,hq)<=3);
+  const hqThreat=!!hq&&units.some(q=>hostile(q.owner,me)&&cheb(q,hq)<=3);
   const val=q=>UNIT_TYPES[q.type].cost+(q.vet?3:0);
   // sharper AIs weigh each attack with the battle forecast and skip ones that only feed the enemy
   const bestTarget=u=>{
@@ -2416,7 +2667,7 @@ async function aiTurn(me){
       let bestT=null, bestN=0;
       for(let y=0;y<H;y++)for(let x=0;x<W;x++){
         if(cheb({x,y},u)>rg) continue;
-        const n=units.filter(e=>e.owner!==me && Math.max(Math.abs(e.x-x),Math.abs(e.y-y))<=R)
+        const n=units.filter(e=>hostile(e.owner,me) && Math.max(Math.abs(e.x-x),Math.abs(e.y-y))<=R)
                      .reduce((m,e)=>m+(hasTech(e.owner,'CIVDEF')?0.35:1),0);
         if(n>bestN){ bestN=n; bestT={x,y}; }
       }
@@ -2444,7 +2695,7 @@ async function aiTurn(me){
       if(goal&&(cheb(goal,u)>1||onCity)){
         let best=null, bs=1e9;
         for(const p of reachable(u).values()){
-          const danger=units.filter(e=>e.owner!==me&&cheb(e,p)<=uRange(e)+1).length;
+          const danger=units.filter(e=>hostile(e.owner,me)&&cheb(e,p)<=uRange(e)+1).length;
           const sc=Math.max(0,cheb(p,goal)-1)*3+danger*2+(tileAt(p.x,p.y).city?20:0);
           if(sc<bs){ bs=sc; best=p; }
         }
@@ -2455,7 +2706,7 @@ async function aiTurn(me){
     if(UNIT_TYPES[u.type].sight){
       const kill=attackTargets(u).find(t=>{ const f=forecast(u,t); return f.kills||!f.rdmg; });
       if(kill){ attack(u,kill); refresh(); continue; }
-      const foes=units.filter(e=>e.owner!==me);
+      const foes=units.filter(e=>hostile(e.owner,me));
       let best=null, bs=1e9;
       for(const p of reachable(u).values()){
         const near=foes.reduce((m,e)=>Math.min(m,cheb(e,p)),99);
@@ -2481,7 +2732,7 @@ async function aiTurn(me){
         if(hqThreat&&hq&&!unitAt(hq.x,hq.y)&&r.has(key(hq.x,hq.y))){ best={x:hq.x,y:hq.y}; bestScore=-2; }
         if(bestScore>=0&&!wounded) for(const p of r.values()){
           const c=tileAt(p.x,p.y).city;
-          if((c&&c.owner!==me)||tileAt(p.x,p.y).ruin){ best=p; bestScore=-1; break; }
+          if((c&&c.owner!==me&&(!c.owner||hostile(c.owner,me)))||tileAt(p.x,p.y).ruin){ best=p; bestScore=-1; break; }
         }
         if(bestScore>=0){
           for(const p of r.values()){
@@ -2494,7 +2745,7 @@ async function aiTurn(me){
               const d=cheb(p,o);
               s=Math.min(s, (o.w===2&&ranged?Math.max(0,d-uRange(u)+1):d)*3+o.w);
             }
-            if(ranged&&units.some(e=>e.owner!==me&&cheb(e,p)<=1)) s+=4;   // don't walk up to melee range
+            if(ranged&&units.some(e=>hostile(e.owner,me)&&cheb(e,p)<=1)) s+=4;   // don't walk up to melee range
             if(tileAt(p.x,p.y).terrain==='forest') s-=0.5;
             if(s<bestScore){bestScore=s;best=p;}
           }
@@ -2782,12 +3033,12 @@ function setHover(h){
   if(sel&&sel.kind==='unit'&&side===MYSIDE&&!gameOver){
     const su=units.find(q=>q.id===sel.id);
     let tu=unitAt(h.x,h.y); if(tu&&tu.owner!==MYSIDE&&!visXY(h.x,h.y)) tu=null;
-    if(su&&su.owner===MYSIDE&&tu&&tu.owner!==MYSIDE&&attackTargets(su).includes(tu)){
+    if(su&&su.owner===MYSIDE&&tu&&hostile(tu.owner,MYSIDE)&&attackTargets(su).includes(tu)){
       txt=fcText(forecast(su,tu),tu)+(COARSE?'':' <span style="color:var(--dim)">\u00b7 click to fire</span>');
       cvs.style.cursor='crosshair';
     } else if(su&&!tu&&reachable(su).has(key(h.x,h.y))){
       const c=tileAt(h.x,h.y).city;
-      txt='\u25b8 Move here'+(c&&c.owner!==MYSIDE?': <b>capture the '+(c.capital?'HQ':'city')+' next turn</b>':'');
+      txt='\u25b8 Move here'+(c&&c.owner!==MYSIDE&&(!c.owner||hostile(c.owner,MYSIDE))?': <b>capture the '+(c.capital?'HQ':'city')+' next turn</b>':'');
       cvs.style.cursor='pointer';
     } else cvs.style.cursor='grab';
   } else cvs.style.cursor='grab';
@@ -3058,9 +3309,8 @@ function sightOf(s){
   const g=Array.from({length:H},()=>Array(W).fill(sees));
   if(sees) return g;
   const rev=(x,y,r)=>{ for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++) if(inb(x+dx,y+dy)) g[y+dy][x+dx]=true; };
-  const vr=visionR(s);
-  for(const u of units) if(u.owner===s) rev(u.x,u.y,vr+(UNIT_TYPES[u.type].sight||0));
-  for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.owner===s) rev(x,y,c.scout?Math.max(vr,4):vr); }
+  for(const u of units) if(friendly(u.owner,s)) rev(u.x,u.y,visionR(u.owner)+(UNIT_TYPES[u.type].sight||0));
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.owner&&friendly(c.owner,s)){ const vr=visionR(c.owner); rev(x,y,c.scout?Math.max(vr,4):vr); } }
   return g;
 }
 function markSeen(s){
@@ -3068,9 +3318,9 @@ function markSeen(s){
   const rev=(x,y,r)=>{ for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++) if(inb(x+dx,y+dy)) g[y+dy][x+dx]=true; };
   if(hasTech(s,'SAT')){ for(const row of g) row.fill(true); return g; }
   const vr=visionR(s);
-  for(const u of units) if(u.owner===s) rev(u.x,u.y,vr+(UNIT_TYPES[u.type].sight||0));
+  for(const u of units) if(friendly(u.owner,s)) rev(u.x,u.y,visionR(u.owner)+(UNIT_TYPES[u.type].sight||0));
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const t=tileAt(x,y);
-    if(t.city&&t.city.owner===s) rev(x,y,t.city.scout?Math.max(vr,4):vr);
+    if(t.city&&t.city.owner&&friendly(t.city.owner,s)) rev(x,y,t.city.scout?Math.max(visionR(t.city.owner),4):visionR(t.city.owner));
     if(hasTech(s,'RADIO')&&(t.city||t.ruin)) g[y][x]=true; }
   for(const r of mapReveals) if(r.s===s) rev(r.x,r.y,r.r);
   return g;
@@ -3084,10 +3334,10 @@ function computeVision(){
     const see=(x,y,r)=>{ for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){ const nx=x+dx, ny=y+dy; if(inb(nx,ny)){ explored[ny][nx]=true; visNow[ny][nx]=true; } } };
     const vr=visionR(MYSIDE);
     if(hasTech(MYSIDE,'RADIO')) for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const t=tileAt(x,y); if(t.city||t.ruin) explored[y][x]=true; }
-    for(const u of units) if(u.owner===MYSIDE) see(u.x,u.y,vr+(UNIT_TYPES[u.type].sight||0));
+    for(const u of units) if(friendly(u.owner,MYSIDE)) see(u.x,u.y,(u.owner===MYSIDE?vr:visionR(u.owner))+(UNIT_TYPES[u.type].sight||0));   // allies share sight
     for(let y=0;y<H;y++)for(let x=0;x<W;x++){
       const c=tileAt(x,y).city;
-      if(c&&c.owner===MYSIDE) see(x,y,c.scout?Math.max(vr,4):vr);
+      if(c&&c.owner&&friendly(c.owner,MYSIDE)){ const r=c.owner===MYSIDE?vr:visionR(c.owner); see(x,y,c.scout?Math.max(r,4):r); }
     }
   }
   syncDim();
@@ -3657,7 +3907,7 @@ const hlMatAllDanger=new THREE.MeshBasicMaterial({color:0xff4a3d, transparent:tr
 function dangerTiles(){
   const out=new Set();
   for(const e of units){
-    if(e.owner===MYSIDE||e.type==='NUKE'||!visXY(e.x,e.y)) continue;
+    if(!hostile(e.owner,MYSIDE)||e.type==='NUKE'||!visXY(e.x,e.y)) continue;
     const rg=uRange({...e,walked:false}), spots=[{x:e.x,y:e.y}];
     if(!(UNIT_TYPES[e.type].siege&&!hasTech(e.owner,'SPG'))) for(const p of reachable({...e,moved:false,attacked:false}).values()) spots.push(p);
     for(const p of spots) for(let dy=-rg;dy<=rg;dy++)for(let dx=-rg;dx<=rg;dx++){
@@ -3671,7 +3921,7 @@ function toggleDanger(){
   dangerOn=!dangerOn;
   $('dangerBtn').classList.toggle('on',dangerOn);
   sfx.select();
-  if(dangerOn&&!units.some(e=>e.owner!==MYSIDE&&visXY(e.x,e.y))) toast('Danger zones on: no enemy in sight right now.','var(--red)');
+  if(dangerOn&&!units.some(e=>hostile(e.owner,MYSIDE)&&visXY(e.x,e.y))) toast('Danger zones on: no enemy in sight right now.','var(--red)');
   refresh();
 }
 function syncHighlights(){
@@ -3753,7 +4003,7 @@ function syncHighlights(){
   for(const p of reachable(u).values()){
     const tt=tileAt(p.x,p.y);
     const yy=(tt.terrain==='water'?TOP-0.14:TOP)+0.02;
-    const capturable=tt.city&&tt.city.owner!==MYSIDE;
+    const capturable=tt.city&&tt.city.owner!==MYSIDE&&(!tt.city.owner||hostile(tt.city.owner,MYSIDE));
     const m=new THREE.Mesh(hlGeoPlane, capturable?hlMatCap:hlMatMove);
     m.rotation.x=-Math.PI/2; m.position.set(wx(p.x),yy,wz(p.y));
     hlGroup.add(m);
@@ -4155,7 +4405,7 @@ function onTileClick(x,y){
       if(su.type==='NUKE' && !su.attacked && cheb(su,{x,y})<=uRange(su) && explored[y][x]){
         if(COARSE && !(pa&&pa.uid===su.id&&pa.tx===x&&pa.ty===y)){
           pendingAtk={uid:su.id,tx:x,ty:y};
-          const n=units.filter(e=>e.owner!==MYSIDE && Math.max(Math.abs(e.x-x),Math.abs(e.y-y))<=blastR(su)).length;
+          const n=units.filter(e=>hostile(e.owner,MYSIDE) && Math.max(Math.abs(e.x-x),Math.abs(e.y-y))<=blastR(su)).length;
           refresh();
           $('forecast').innerHTML=
             '\u2622 NUCLEAR STRIKE here: hits <b>'+n+'</b> in blast<br><b style="color:var(--red)">\u25b8 TAP AGAIN TO CONFIRM LAUNCH</b>';
@@ -4211,7 +4461,7 @@ function wakeSentries(){
   for(const id of [...sentry]){
     const u=units.find(q=>q.id===id);
     if(!u||u.owner!==MYSIDE){ sentry.delete(id); continue; }
-    const e=units.find(q=>q.owner!==MYSIDE&&visXY(q.x,q.y)&&cheb(q,u)<=3);
+    const e=units.find(q=>hostile(q.owner,MYSIDE)&&visXY(q.x,q.y)&&cheb(q,u)<=3);
     if(e){ sentry.delete(id); toast(UNIT_TYPES[u.type].name+' on watch spots enemy '+UNIT_TYPES[e.type].name+'!','var(--amber)',()=>{ sel={kind:'unit',id:u.id}; panTo(u.x,u.y); refresh(); }); }
   }
 }
@@ -4220,6 +4470,7 @@ function refresh(){
   if(!map) return;
   computeVision();
   $('hudStars').textContent=stars[MYSIDE];
+  syncDipBadge();
   $('hudIncome').textContent='+'+income(MYSIDE);
   $('hudTurn').textContent=gameMode()==='score'?turn+'/'+SCORE_TURNS:turn;
   syncPower();
@@ -4359,7 +4610,7 @@ function serializeGame(){
     stars:{...stars},
     tech:Object.fromEntries(turnOrder.map(s=>[s,[...tech[s]]])),
     turn, uid, stats:{...stats},
-    tc:{...turnCities}, ln:{...lastNuke}, rv:mapReveals, me:hotOn()?P:MYSIDE, tl:tally, pw,
+    tc:{...turnCities}, ln:{...lastNuke}, rv:mapReveals, me:hotOn()?P:MYSIDE, tl:tally, pw, dip,
     hot:hotOn()?[...HOT]:0, hs:side, ex:hotOn()?{...exploredBy,[MYSIDE]:explored}:0,
     names:Object.fromEntries(turnOrder.map(s=>[s,meta(s).name])),
     units:units.map(u=>({...u})),
@@ -4391,6 +4642,14 @@ function swapSaveSides(d, me){
   d.units.forEach(u=>u.owner=sw(u.owner));
   d.map.forEach(row=>row.forEach(t=>{ if(t.c&&t.c.o) t.c.o=sw(t.c.o); }));
   if(d.rv) d.rv.forEach(r=>r.s=sw(r.s));
+  if(d.dip){   // treaties, offers and memories follow the swapped seats
+    const swPair=(k,sep)=>k.split(sep).map(x=>x.endsWith('$')?sw(x.slice(0,-1))+'$':sw(x)).join(sep);
+    const rel={}; for(const k in d.dip.rel||{}){ const [a,b]=k.split('|').map(sw); rel[relKey(a,b)]=d.dip.rel[k]; } d.dip.rel=rel;
+    d.dip.rep=swKeys(d.dip.rep);
+    for(const f of ['good','last']){ const o={}; for(const k in d.dip[f]||{}) o[swPair(k,'>')]=d.dip[f][k]; d.dip[f]=o; }
+    (d.dip.offers||[]).forEach(o=>{ o.from=sw(o.from); o.to=sw(o.to); });
+    if(d.dip.win) d.dip.win=d.dip.win.map(sw);
+  }
   d.me=P;
   return d;
 }
@@ -4406,6 +4665,7 @@ function restoreGame(data, net){
     nukeWarned={}; blockedHint=false; seenBy={};
     tally=data.tl?JSON.parse(JSON.stringify(data.tl)):{};
     pw=Object.assign(pw0(), data.pw?JSON.parse(JSON.stringify(data.pw)):{});
+    dip=Object.assign(dip0(), data.dip?JSON.parse(JSON.stringify(data.dip)):{});
     $('endBar').hidden=true;
     if(!net) NET.leave();
     pendingAtk=null;
@@ -5468,7 +5728,7 @@ function renderInfoBody(){
       }
       if(mine&&canCapture(u)) train.appendChild(actBtn({icon:'flag', name:'Capture', cls:'more',
         title:'Take this city: uses the unit\u2019s action', onclick:()=>{ act({t:'capture',uid:u.id}); sel=null; refresh(); }}));
-      else if(mine&&!u.attacked&&tileAt(u.x,u.y).city&&tileAt(u.x,u.y).city.owner!==MYSIDE)
+      else if(mine&&!u.attacked&&tileAt(u.x,u.y).city&&tileAt(u.x,u.y).city.owner!==MYSIDE&&(!tileAt(u.x,u.y).city.owner||hostile(tileAt(u.x,u.y).city.owner,MYSIDE)))
         body.textContent='Holding a rival city: you can capture it at the start of your next turn if this unit is still here.';
       if(mine&&canPromote(u)) train.appendChild(actBtn({icon:'star', name:'Promote', cls:'more',
         title:'Veteran: +5 max HP and a full heal. Free: promote now or save it as an emergency heal.',
@@ -5661,6 +5921,85 @@ function openArmy(){
   $('armyPanel').hidden=false;
 }
 $('armyBtn').onclick=openArmy;
+/* ---- diplomacy screen: every faction, where you stand with it, and what you can offer ---- */
+let dipArm=null;
+function dipMoodLabel(s){
+  const r=relOf(s,MYSIDE), m=aiMood(s,MYSIDE,r==='war'?'peace':'ally').score;
+  if(r==='ally') return ['Loyal ally','#8fd89a'];
+  if(r==='peace') return m>=2.6?['Wants an alliance','#8fd89a']:m>=1.4?['Friendly','#b8e08a']:dip.rep[MYSIDE]?['Distrustful','#ff9384']:['Keeps the peace','var(--amber)'];
+  return m>=1.8?['Wants peace','#8fd89a']:m>=1?['Open to talks','#b8e08a']:m>=-0.5?['Wary','var(--amber)']:['Hostile','#ff9384'];
+}
+function renderDip(){
+  const L=$('dipList'); if(!L||!map) return;
+  L.innerHTML='';
+  const myTurn=side===MYSIDE&&!gameOver&&alive[MYSIDE];
+  const sec=t=>{ const d=document.createElement('div'); d.className='apSec'; d.textContent=t; L.appendChild(d); };
+  const btn=(box,label,cls,dis,fn)=>{ const b=document.createElement('button'); b.textContent=label; if(cls) b.className=cls; b.disabled=!!dis||!myTurn; if(typeof dis==='string') b.title=dis; b.onclick=()=>{ sfx.select(); fn(); }; box.appendChild(b); return b; };
+  const send=a=>{ dipArm=null; act({t:'dip',...a}); setTimeout(()=>{ refresh(); renderDip(); },30); };
+  const inc=dip.offers.filter(o=>o.to===MYSIDE&&alive[o.from]);
+  if(inc.length){
+    sec('Offers to you');
+    for(const o of inc){
+      const c=document.createElement('div'); c.className='dpCard';
+      const what=o.kind==='tribute'?'demands <b>'+o.n+'\u2605 tribute</b>':o.kind==='ally'?'proposes an <b>alliance</b>: shared sight, no attacks, shared victory':'proposes <b>peace</b> for '+PEACE_TURNS+' turns';
+      c.innerHTML=`<div class="dpHead"><i class="dpDot" style="background:${meta(o.from).css}"></i><div class="dpName">${esc(dipName(o.from))}<span>${what}</span></div></div>`;
+      const bx=document.createElement('div'); bx.className='dpBtns'; c.appendChild(bx);
+      btn(bx, o.kind==='tribute'?'Pay '+o.n+'\u2605':'Accept', 'ok', o.kind==='tribute'&&stars[MYSIDE]<o.n?'Not enough stars':false, ()=>send({op:'accept', id:o.id}));
+      btn(bx, o.kind==='tribute'?'Refuse':'Decline', '', false, ()=>send({op:'decline', id:o.id}));
+      if(!myTurn){ const n=document.createElement('div'); n.className='dpNote'; n.textContent='Answer on your turn.'; c.appendChild(n); }
+      L.appendChild(c);
+    }
+  }
+  sec('Factions'+(myTurn?'':' \u00b7 actions on your turn'));
+  for(const s of turnOrder){
+    if(s===MYSIDE) continue;
+    const f=meta(s).faction, r=relOf(s,MYSIDE), rr=relRec(s,MYSIDE), out=!alive[s];
+    const c=document.createElement('div'); c.className='dpCard'+(out?' out':'');
+    const chip=out?['out','Eliminated']:r==='ally'?['ally','Alliance']:r==='peace'?['peace','Peace \u00b7 '+Math.max(0,rr.until-turn)+' turns']:['war','War'];
+    const who=(NET.on&&!isAI(s))||(hotOn()&&HOT.includes(s))?'Player'+(hotOn()?' \u00b7 '+esc(pname(s)):''):'Computer';
+    c.innerHTML=`<div class="dpHead"><i class="dpDot" style="background:${meta(s).css}"></i><div class="dpName">${esc(meta(s).name)}<span>${who} \u00b7 ${esc((FACTION_STYLE[f.key]||{}).style||f.perk||'')}</span></div><span class="dpChip ${chip[0]}">${chip[1]}</span></div>`;
+    if(!out){
+      const nUnits=units.filter(u=>u.owner===s&&u.type!=='NUKE').length;
+      const rel=k=>turnOrder.filter(o=>o!==s&&alive[o]&&relOf(s,o)===k).map(o=>o===MYSIDE?'you':esc(meta(o).name));
+      const wars=rel('war'), peace=rel('peace'), allies=rel('ally');
+      let html=`<div class="dpLine"><b>${cityCount(s)}</b> cities \u00b7 <b>${nUnits}</b> units \u00b7 score <b>${scoreOf(s)}</b>${dip.rep[s]?' \u00b7 <b style="color:#ff9384">broke '+dip.rep[s]+' treat'+(dip.rep[s]>1?'ies':'y')+'</b>':''}</div>`;
+      html+=`<div class="dpLine">${wars.length?'At war with <b>'+wars.join(', ')+'</b>':'At war with no one'}${peace.length?' \u00b7 peace with <b>'+peace.join(', ')+'</b>':''}${allies.length?' \u00b7 allied with <b>'+allies.join(', ')+'</b>':''}</div>`;
+      if(isAI(s)){ const [ml,mc]=dipMoodLabel(s); html+=`<div class="dpLine">Attitude to you: <span class="dpMood" style="color:${mc}">${ml}</span></div>`; }
+      const pend=dip.offers.filter(o=>o.from===MYSIDE&&o.to===s);
+      if(pend.length) html+=`<div class="dpLine" style="color:var(--amber)">Waiting for their answer: ${pend.map(o=>o.kind==='tribute'?o.n+'\u2605 tribute':o.kind==='ally'?'alliance':'peace').join(', ')}</div>`;
+      c.insertAdjacentHTML('beforeend', html);
+      const bx=document.createElement('div'); bx.className='dpBtns'; c.appendChild(bx);
+      const waiting=k=>pend.some(o=>o.kind===k);
+      if(r==='war') btn(bx,'Offer peace','go',dipBlock(MYSIDE,s,'peace')||waiting('peace'),()=>send({op:'propose',to:s,kind:'peace'}));
+      if(r==='peace'){
+        if(rr.until-turn<=2) btn(bx,'Renew peace','go',dipBlock(MYSIDE,s,'peace')||waiting('peace'),()=>send({op:'propose',to:s,kind:'peace'}));
+        btn(bx,'Offer alliance','go',dipBlock(MYSIDE,s,'ally')||waiting('ally'),()=>send({op:'propose',to:s,kind:'ally'}));
+        const arm=dipArm===s;
+        const w=btn(bx,arm?'Tap again: break the treaty':'Declare war','warn',false,()=>{ if(dipArm===s) send({op:'war',to:s}); else { dipArm=s; renderDip(); } });
+        if(arm) w.focus();
+      }
+      if(r==='ally') btn(bx,'Leave alliance','warn',false,()=>send({op:'leave',to:s}));
+      btn(bx,'Gift 5\u2605','',stars[MYSIDE]<5?'Not enough stars':false,()=>send({op:'gift',to:s,n:5}));
+      if(r!=='ally') btn(bx,'Demand 5\u2605','',waiting('tribute'),()=>send({op:'demand',to:s,n:5}));
+      const why=r==='peace'?dipBlock(MYSIDE,s,'ally'):r==='war'?dipBlock(MYSIDE,s,'peace'):'';
+      if(why&&myTurn){ const n=document.createElement('div'); n.className='dpNote'; n.textContent=(r==='peace'?'Alliance: ':'Peace: ')+why+'.'; c.appendChild(n); }
+    }
+    L.appendChild(c);
+  }
+  const help=document.createElement('div'); help.className='dpNote'; help.style.marginTop='10px';
+  help.textContent='Peace lasts '+PEACE_TURNS+' turns: no attacks, no captures, and neither side may enter the other\u2019s territory. Allies also share sight, can pass through each other\u2019s units and win together. Declaring war before a peace runs out breaks a treaty, and every faction remembers.';
+  L.appendChild(help);
+}
+function openDip(){ if(!map) return; dipArm=null; renderDip(); $('dipPanel').hidden=false; }
+function syncDipBadge(){
+  const n=map?dip.offers.filter(o=>o.to===MYSIDE&&alive[o.from]).length:0, b=$('dipBadge');
+  if(b){ b.hidden=!n; b.textContent=n; }
+  $('dipBtn').hidden=!map||turnOrder.length<2;
+  if(!$('dipPanel').hidden) renderDip();
+}
+$('dipBtn').onclick=openDip;
+$('dipClose').onclick=()=>{ $('dipPanel').hidden=true; sfx.select(); };
+$('dipPanel').addEventListener('click',e=>{ if(e.target.id==='dipPanel') $('dipPanel').hidden=true; });
 $('armyClose').onclick=()=>{ $('armyPanel').hidden=true; sfx.select(); };
 $('armyPanel').addEventListener('click',e=>{ if(e.target.id==='armyPanel') $('armyPanel').hidden=true; });
 $('hoGo').onclick=()=>{
@@ -5783,6 +6122,7 @@ window.addEventListener('keydown',e=>{
   if(e.key==='m'||e.key==='M'){ $('muteBtn').click(); return; }
   if(map&&(e.key==='v'||e.key==='V')){ toggleFit(); return; }
   if(map&&(e.key==='d'||e.key==='D')){ toggleDanger(); return; }
+  if(map&&(e.key==='y'||e.key==='Y')){ if($('dipPanel').hidden) openDip(); else $('dipPanel').hidden=true; return; }
   if(map&&(e.key==='o'||e.key==='O')){ if($('armyPanel').hidden) openArmy(); else $('armyPanel').hidden=true; return; }
   if(e.key==='Escape'&&!$('armyPanel').hidden){ $('armyPanel').hidden=true; return; }
   if(map&&!gameOver&&(e.key==='p'||e.key==='P')){ $('powerBtn').click(); return; }
@@ -5831,6 +6171,7 @@ async function keepAwake(on){
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&map&&!gameOver) keepAwake(true); });
 function endGame(winner){
+  if(dip.win&&dip.win.includes(MYSIDE)&&!hotOn()) winner=MYSIDE;   // a shared victory is your victory too
   keepAwake(false);
   $('handoff').hidden=true; curtainUp=false; noticesDue=false;
   const firstTime=!gameOver;
@@ -5849,7 +6190,9 @@ function endGame(winner){
   btn.onclick=()=>{ $('overlay').classList.remove('show'); rejoinInfo(null); NET.leave(); showSetup(); };
   const tally=` Turn ${turn} \u00b7 ${stats.kills} enemy units destroyed \u00b7 ${stats.losses} lost.`;
   const timeUp=gameMode()==='score'&&turnOrder.filter(s=>alive[s]).length>1;
-  if(winner===MYSIDE){ t.textContent='Victory'; t.className='win';
+  if(dip.win&&winner===MYSIDE&&!hotOn()){ t.textContent='Allied victory'; t.className='win';
+    b.textContent='Every rival is beaten: you share the region with '+dip.win.filter(x=>x!==MYSIDE).map(x=>meta(x).name).join(' and ')+'.'+tally; }
+  else if(winner===MYSIDE){ t.textContent='Victory'; t.className='win';
     b.textContent=(timeUp?'Time is up: you finished with the highest score, Commander.'
                   :NET.on?'All rival factions eliminated. The region is yours, Commander.'
                          :'All enemy factions eliminated. The region is yours, Commander.')+tally; }
@@ -5857,7 +6200,8 @@ function endGame(winner){
     b.textContent=(timeUp?'Time is up: '+meta(winner).name+' finished with the highest score.'
                   :winner&&playerMeta[winner]?meta(winner).name+' controls the region.'
                                                      :'Hostile forces overran your headquarters.')+tally; }
-  if(hotOn()){ t.textContent=pname(winner)+' wins'; t.className='win';
+  if(hotOn()&&dip.win){ t.textContent='Allied victory'; t.className='win'; b.textContent=dip.win.map(x=>HOT.includes(x)?pname(x):meta(x).name).join(' and ')+' share the region. Turn '+turn+'.'; }
+  else if(hotOn()){ t.textContent=pname(winner)+' wins'; t.className='win';
     b.textContent=meta(winner).name+(timeUp?' finished with the highest score.':' holds the region.')+' Turn '+turn+'.'; }
   { const d=document.createElement('div'); d.className='ovScore'; d.innerHTML=resultHtml(winner, firstTime); b.appendChild(d); }
   if(firstTime&&!hotOn()){ const d=document.createElement('div'); d.innerHTML=xpHtml(awardXP(winner===MYSIDE)); b.appendChild(d.firstChild); renderRankBtn(); }
@@ -5915,6 +6259,7 @@ $('helpBtn').onclick=()=>{
     ['Veterans','A unit with three kills can be promoted for +5 max HP and a full heal. It is free, so you can save it as an emergency heal.'],
     ['Commander powers','Every faction has one power you can use once per game, on your own turn: tap the lightning button. Aegis heals everything \u00b7 Crimson double damage this turn \u00b7 Solaris a turn and a half of income \u00b7 Ghost +25% damage and no return fire this turn \u00b7 Iron Bastion half damage for two rounds \u00b7 Verdant +1 population in every city \u00b7 Tidewatch a free Infantry at every city. Rivals above Easy use theirs too.'],
     ['Map types','Custom setup: Classic, Highlands (mountain passes), Woodland (forest everywhere, so +50% defense is easy to find), Lakes (water splits the land) or Mirrored (both corners get the same land, the fairest choice for friends).'],
+    ['Diplomacy','Tap the handshake button (Y) to see every faction: who is at war with whom, their strength and their attitude to you. Offer peace (10 turns, renewable: no attacks, no captures, no entering each other\u2019s territory), an alliance (shared sight, pass through each other\u2019s units, and you win together when only allies remain), gift stars or demand tribute. Declaring war before a peace runs out breaks a treaty and every faction remembers. Computer rivals judge offers by who is winning, who else threatens them and whether they trust you.'],
     ['Rank and unlocks','Every finished game earns XP (more for longer games, a little extra for a win) and climbs your commander rank, 30 ranks in all. Ranks unlock board themes, unit finishes and city flag emblems in Profile. They only change looks, never a battle.'],
     ['Modifiers','Custom setup or the online host can add No fog, Double income, Early Titans (any city can field one) or No powers. Games with No fog, Double income or Early Titans don\u2019t earn medals.'],
     ['Online rematch','When an online game ends the host can tap Rematch to bring everyone back to the lobby with the same factions and settings.'],
@@ -6024,7 +6369,7 @@ $('undoBtn').onclick=undo;
 /* host/solo: validate and execute one action for side s */
 function doAction(s, a){
   if(gameOver||!a||side!==s||!alive[s]) return;
-  for(const f of ['x','y','uid','tid','pick']) if(a[f]!==undefined&&!Number.isInteger(a[f])) return;   // malformed (or tampered) action
+  for(const f of ['x','y','uid','tid','pick','id','n']) if(a[f]!==undefined&&!Number.isInteger(a[f])) return;   // malformed (or tampered) action
   const T=a.t;
   if(NET.on&&s!==MYSIDE&&!isAI(s)) markSeen(s);
   if(T==='endturn'){ if(NET.on) log('sys', meta(s).name+' ends the turn.'); startTurn(nextAlive(s)); return; }
@@ -6032,6 +6377,7 @@ function doAction(s, a){
   if(T==='harvest'){ if(harvest(a.x,a.y,s)) refresh(); return; }
   if(T==='develop'){ if(develop(s,a.x,a.y)) refresh(); return; }
   if(T==='power'){ if(usePower(s)) refresh(); return; }
+  if(T==='dip'){ if(dipAction(s,a)) refresh(); return; }
   if(T==='reward'){ if(applyReward(s,a.x,a.y,a.pick)) refresh(); return; }
   if(T==='train'||T==='nukebuild'){
     const k=T==='nukebuild'?'NUKE':a.k;
@@ -6319,7 +6665,7 @@ const NET={
       alive:{...alive}, stars:{...stars},
       tech:Object.fromEntries(turnOrder.map(s=>[s,[...tech[s]]])),
       turn, uid, side, over:gameOver, winner:this.winner, stats:{...stats},
-      tm:this.timer, tl:this.turnEnds?Math.max(0,this.turnEnds-Date.now()):0, tc:{...turnCities}, rv:mapReveals, ln:{...lastNuke}, tl:tally, pw,
+      tm:this.timer, tl:this.turnEnds?Math.max(0,this.turnEnds-Date.now()):0, tc:{...turnCities}, rv:mapReveals, ln:{...lastNuke}, tl:tally, pw, dip,
       units:units.map(u=>({...u})),
       explored:null,
       map:map.map(row=>row.map(t=>({t:t.terrain, c:packCity(t.city), r:t.resource||0, ru:t.ruin?1:0})))
@@ -6582,7 +6928,7 @@ function applyNetState(d, evts){
   side=d.side;
   NET.humansList=d.humans||[];
   NET.timer=d.tm||0; NET.turnEnds=d.tl?Date.now()+d.tl:0;
-  turnCities=d.tc||{}; tally=d.tl||{}; pw=Object.assign(pw0(), d.pw||{});
+  turnCities=d.tc||{}; tally=d.tl||{}; pw=Object.assign(pw0(), d.pw||{}); dip=Object.assign(dip0(), d.dip||{});
   for(const r of d.rv||[]) if(r.s===MYSIDE) revealAround(r.x,r.y,r.r);
   if(terr) buildBoard();
   if(sel){
@@ -6747,7 +7093,7 @@ function newGame(){
   pendingAtk=null;
   setBoardSize(cfg.size);
   // assign factions: player picks, enemies draw distinct factions from the rest
-  enemySides=[]; playerMeta={}; alive={[P]:true};
+  enemySides=[]; playerMeta={}; alive={[P]:true}; dip=dip0();
   playerMeta[P]=mkMeta(FACTIONS[cfg.faction]);
   const pool=Object.keys(FACTIONS).filter(f=>f!==cfg.faction);
   for(let i=pool.length-1;i>0;i--){const j=rnd(i+1);[pool[i],pool[j]]=[pool[j],pool[i]];}
