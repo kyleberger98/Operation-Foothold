@@ -12,6 +12,13 @@ Made in Blender by `env.py` (low-poly, flat colours, same pipeline as `art/units
 | PUMP | Oil on land: pumpjack (the `beam` piece rocks in game) |
 | RIG | Oil at sea: offshore rig with derrick and helipad |
 | DROP | Supply drop: crate with parachute |
+| PLAZA, HALL, HQ | City square, town hall (level 1 centre), capital headquarters |
+| HOUSE, HOUSE2, FLATS, TOWER | Buildings added as a city levels up (one per level) |
+| WALLS | City walls reward |
+| REEDS, LILY | Shoreline decoration on lakes |
+
+The `team` colour on roofs, trim and wall towers is swapped in game for the owner's colour (warm grey while neutral).
+Inland water is not a Blender model: it's a rippling surface built in game (shader waves, teal shallows, shore foam).
 
 Rebuild:
 ```
