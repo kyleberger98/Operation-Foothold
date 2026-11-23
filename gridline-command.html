@@ -304,6 +304,27 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 .md.s2{border-color:#c9d1d6; color:#e6ecef}
 .md.s3{border-color:var(--amber); background:rgba(240,179,92,.16); color:var(--amber)}
 #progLine{color:var(--amber)}
+/* commander rank and profile */
+.rkBadge{display:inline-flex; align-items:center; justify-content:center; width:44px; height:48px; flex:none; font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:19px;
+  clip-path:polygon(50% 0,100% 22%,100% 78%,50% 100%,0 78%,0 22%); color:#1b160c}
+.rkBadge.t1{background:linear-gradient(180deg,#d39a68,#8e5a32)} .rkBadge.t2{background:linear-gradient(180deg,#eef3f6,#9aa6ae)} .rkBadge.t3{background:linear-gradient(180deg,#ffd98a,#c08a2c)}
+.rkBadge.sm{width:24px; height:26px; font-size:12px}
+i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
+#profileBtn{flex-direction:row; justify-content:center; gap:10px}
+#profileBtn .pbTxt{display:flex; flex-direction:column; align-items:flex-start; gap:1px}
+.rkHead{display:flex; gap:14px; align-items:center; margin:6px 0 4px}
+.rkHead .rkName{font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:22px; letter-spacing:.06em; color:var(--amber)}
+.rkHead .rkSub{font-size:11.5px; color:var(--dim)}
+.xpBar{height:8px; border-radius:99px; background:#1b231d; border:1px solid var(--line); overflow:hidden; margin:6px 0 2px}
+.xpBar i{display:block; height:100%; background:linear-gradient(90deg,#c08a2c,#f0b35c)}
+.xpTxt{font-size:11px; color:var(--dim)}
+.cosRow .opt{min-width:82px}
+.cosRow .opt b{display:block; margin:0 auto 4px; width:34px; height:20px; border-radius:5px; border:1px solid rgba(255,255,255,.18)}
+.cosRow .opt canvas{display:block; margin:0 auto 4px; border-radius:3px}
+.cosRow .opt.locked{opacity:.45}
+.ovXp{margin-top:12px; padding:9px 10px; border:1px solid var(--line); border-radius:9px; background:rgba(0,0,0,.18); text-align:left}
+.ovXp .xpHead{display:flex; gap:10px; align-items:center; font-size:12.5px}
+.ovXp .rkUp{color:var(--amber); font-weight:700}
 .ovScore{margin-top:14px; color:var(--text); font-size:13px}
 .ovStars{font-size:34px; letter-spacing:.14em; color:var(--amber); line-height:1; text-shadow:0 0 18px rgba(240,179,92,.45)}
 .ovStars i{font-style:normal; color:#3c4a40; text-shadow:none}
@@ -641,6 +662,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
           <button id="customBtn" class="bigbtn">Custom</button>
           <button id="mpOpenBtn" class="bigbtn">Online</button>
         </div>
+        <button id="profileBtn" class="bigbtn"><i id="pbBadge" class="rkBadge t1">1</i><div class="pbTxt">Profile<span id="pbInfo">rank and unlocks</span></div></button>
         <button id="tutBtn" class="bigbtn">How to play<span>a guided first game</span></button>
       </div>
       <div class="saveNote">Your campaign auto-saves every move on this device.</div>
@@ -697,6 +719,11 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
       <button id="importBtn" class="opt">⬆ Import Save<span>load from file</span></button>
       <input type="file" id="importFile" accept=".json,application/json" style="display:none">
     </div>
+    </div>
+    <div id="profilePane" style="display:none">
+      <button class="backBtn" data-back>◂ Back</button>
+      <h3>Commander profile</h3>
+      <div id="profileBody"></div>
     </div>
     <div id="campPane" style="display:none">
       <button class="backBtn" data-back>◂ Back</button>
@@ -1196,6 +1223,101 @@ function recordResult(won, stars, score){
   const ob=p.best[bk]||0, nb=score>ob; if(nb) p.best[bk]=score;
   try{ localStorage.setItem(PROG_KEY, JSON.stringify(p)); }catch(e){}
   return {up, old, nb, ob};
+}
+/* ---- commander rank: earned only by playing games; unlocks change looks, never gameplay ---- */
+const RANKS=['Recruit','Private','Private First Class','Lance Corporal','Corporal','Sergeant','Staff Sergeant','Sergeant First Class','Master Sergeant','First Sergeant',
+  'Sergeant Major','Warrant Officer','Chief Warrant Officer','Second Lieutenant','First Lieutenant','Captain','Senior Captain','Major','Senior Major','Lieutenant Colonel',
+  'Colonel','Senior Colonel','Brigadier','Major General','Lieutenant General','General','Senior General','Army General','Field Marshal','Supreme Commander'];
+const rankNeed=n=>150+50*(n-1);   // XP to climb from rank n to n+1: about 140 games to reach the top
+function rankOf(xp){ let n=1; xp=xp||0; while(n<RANKS.length&&xp>=rankNeed(n)){ xp-=rankNeed(n); n++; } return {n, name:RANKS[n-1], into:xp, need:n<RANKS.length?rankNeed(n):0}; }
+const rankTier=n=>n<=10?1:n<=20?2:3;
+const rankBadge=(n,sm)=>`<i class="rkBadge ${sm?'sm ':''}t${rankTier(n)}">${n}</i>`;
+/* XP for one finished game: mostly for playing it out, a little extra for winning */
+const gameXP=won=>50+5*Math.min(turn,40)+(won?50:0);
+const THEMES={
+  temperate:{name:'Temperate', rank:1, sw:'#4f6b47'},
+  autumn:{name:'Autumn', rank:3, sw:'#b3652a', m:{'M.plains':0x7d8a45,'M.plains2':0x75803f,'M.plains3':0x86924c,'M.forest':0x5f5a2c,'S.plains':0x4a4a28,'S.forest':0x3c3a1e,'M.leaf':0xc0782c,'M.leaf2':0xa65a22,
+    'E.leaf':0xd27a2a,'E.leaf2':0xb3521f,'E.leafY':0xe8b13c,'E.pine':0x3f5a30,'E.pine2':0x55693a,'E.pine3':0x34482a,'E.grass':0x8a8a40}, hemi:[0xf0e2c8,0x5a4a2a,0.62], sun:[0xffd9a8,0.98]},
+  desert:{name:'Desert', rank:6, sw:'#d2b06e', m:{'M.plains':0xc4a262,'M.plains2':0xbb9a59,'M.plains3':0xcbaa6c,'M.forest':0x9c8a4a,'M.mountain':0x9a6544,'S.plains':0x8f6f3c,'S.forest':0x6f5f30,'S.mountain':0x6f4a32,
+    'M.leaf':0x8f9440,'M.leaf2':0x7a8436,'E.pine':0x5f7a3a,'E.pine2':0x6f8a42,'E.pine3':0x4f6a32,'E.leaf':0x7f9a3e,'E.leaf2':0x6a8a36,'E.leafY':0xa8b04a,'E.rock':0xb07850,'E.rock2':0x95633f,'E.rockD':0x7a5034,
+    'E.snow':0xd9a46c,'M.rock':0xa8744c,'shore':0xe6cf98,'M.sand':0xd8c08a}, deep:0x1a6a78, shallow:0x45b3a3, ocean:0x1a5e6a,
+    hemi:[0xf4e6c8,0x7a5f3a,0.56], sun:[0xfff0cc,0.92], sky:['#1d4660','#3d7290','#b9a77f','#7d6a4c'], fog:0xa89a76},
+  winter:{name:'Winter', rank:10, sw:'#dfe6ea', m:{'M.plains':0xdfe6ea,'M.plains2':0xd5dde2,'M.plains3':0xe7edf0,'M.forest':0xc4d0d4,'M.mountain':0x8a959c,'S.plains':0x7d8a92,'S.forest':0x6a777e,'S.mountain':0x5a646c,
+    'M.leaf':0xb9c6c9,'M.leaf2':0xa9b8bc,'E.pine':0x2c4d42,'E.pine2':0x3a5d50,'E.pine3':0x24403a,'E.leaf':0xc6d2d4,'E.leaf2':0xaebcc0,'E.leafY':0xd8e0e2,'E.grass':0xc9d3d6,'E.rock':0x8d979e,'shore':0xe9eef0,'M.sand':0xcfd6d9},
+    deep:0x2a5672, shallow:0x86b9c9, ocean:0x24506a, hemi:[0xeaf2ff,0x6a7a88,0.7], sun:[0xf2f6ff,0.88], sky:['#1a2a3a','#3a5a74','#8aa6b8','#4a6478'], fog:0x8aa6b8},
+  tropical:{name:'Tropical', rank:14, sw:'#34cbc4', m:{'M.plains':0x3f7c36,'M.plains2':0x397331,'M.plains3':0x46853c,'M.forest':0x2a6f34,'S.plains':0x3c7a32,'S.forest':0x245f2c,'M.leaf':0x3fa046,'M.leaf2':0x4ab452,
+    'E.pine':0x2a8a42,'E.pine2':0x38a050,'E.pine3':0x1f7034,'E.leaf':0x48b84a,'E.leaf2':0x36a040,'E.leafY':0x8cc046,'E.grass':0x4f9a40,'shore':0xf2e2a6,'M.sand':0xeedc9a},
+    deep:0x0f6f96, shallow:0x34cbc4, ocean:0x0f6688, hemi:[0xe8fbff,0x3f7a3a,0.58], sun:[0xfff4dc,0.95], sky:['#0c4a6e','#1f7aa0','#5fb8cc','#1a6e8a'], fog:0x4aa8bf},
+  dusk:{name:'Dusk', rank:19, sw:'#c2604a', m:{'E.glass':[0x86bfd6,0x5a6a40],'E.lit':[0xffd98e,0xe0a040]}, deep:0x2a4466, shallow:0x4a7a8a, ocean:0x2a3550,
+    hemi:[0x9a8ab8,0x3a3a30,0.55], sun:[0xff9a5a,0.95], fill:0x6a5aa8, sky:['#1a1030','#4a2a50','#c2604a','#3a2440'], fog:0x7a4248},
+  ash:{name:'Ashlands', rank:25, sw:'#e0562a', m:{'M.plains':0x4a4a46,'M.plains2':0x44443f,'M.plains3':0x52524c,'M.forest':0x3a3a34,'M.mountain':0x3a3436,'S.plains':0x2a2a28,'S.forest':0x262622,'S.mountain':0x231f20,
+    'M.leaf':0x5a5a40,'M.leaf2':0x4f4f38,'E.pine':0x2f3a2c,'E.pine2':0x3a4432,'E.pine3':0x283226,'E.leaf':0x6a5a3a,'E.leaf2':0x5a4a30,'E.leafY':0x8a6a3a,'E.rock':0x4a4446,'E.rock2':0x3a3436,'E.rockD':0x2a2426,
+    'E.snow':[0xe0562a,0xa02a08],'E.grass':0x5a5a44,'shore':0x5a5650,'M.sand':0x6a6258}, deep:0x1f3a44, shallow:0x2f5a5a, ocean:0x1a2c34,
+    hemi:[0xd8c0b0,0x3a2a24,0.6], sun:[0xffc49a,0.95], sky:['#120c0c','#2e1a18','#6a3a2a','#24140f'], fog:0x4a2c22},
+};
+const FINISHES={std:{name:'Standard', rank:1}, gunmetal:{name:'Gunmetal', rank:4, c:0x4a5258}, arctic:{name:'Arctic', rank:8, c:0xe8eef2}, bronze:{name:'Bronze', rank:12, c:0xa8703c},
+  carbon:{name:'Carbon', rank:16, c:0x1c1f22}, chrome:{name:'Chrome', rank:21, c:0xc4ccd2}, gold:{name:'Gold', rank:27, c:0xe8b84a}};
+const EMBLEMS={none:{name:'Plain', rank:1}, star:{name:'Star', rank:2}, chevron:{name:'Chevron', rank:5}, bolt:{name:'Bolt', rank:9}, diamond:{name:'Diamond', rank:13},
+  crown:{name:'Crown', rank:17}, shield:{name:'Shield', rank:23}, laurel:{name:'Laurel', rank:28}, gstar:{name:'Gold star', rank:30}};
+function cosmetics(){ const p=loadProg(), c=Object.assign({theme:'temperate',finish:'std',emblem:'none'}, p.cos||{}), n=rankOf(p.xp).n;
+  if(!THEMES[c.theme]||THEMES[c.theme].rank>n) c.theme='temperate';
+  if(!FINISHES[c.finish]||FINISHES[c.finish].rank>n) c.finish='std';
+  if(!EMBLEMS[c.emblem]||EMBLEMS[c.emblem].rank>n) c.emblem='none';
+  return c; }
+function setCosmetic(k,v){ const p=loadProg(); p.cos=Object.assign({}, p.cos||{}, {[k]:v}); try{ localStorage.setItem(PROG_KEY, JSON.stringify(p)); }catch(e){} }
+function unlocksAt(n){
+  const out=[];
+  for(const [k,t] of Object.entries(THEMES)) if(t.rank===n) out.push(t.name+' board theme');
+  for(const [k,t] of Object.entries(FINISHES)) if(t.rank===n) out.push(t.name+' unit finish');
+  for(const [k,t] of Object.entries(EMBLEMS)) if(t.rank===n) out.push(t.name+' flag emblem');
+  return out;
+}
+function awardXP(won){
+  const p=loadProg(), before=rankOf(p.xp), g=gameXP(won);
+  p.xp=(p.xp||0)+g; p.played=(p.played||0)+1;
+  try{ localStorage.setItem(PROG_KEY, JSON.stringify(p)); }catch(e){}
+  const after=rankOf(p.xp), unl=[];
+  for(let n=before.n+1;n<=after.n;n++) unl.push(...unlocksAt(n));
+  return {g, before, after, unl};
+}
+function xpHtml(r){
+  const a=r.after, pct=a.need?Math.round(a.into/a.need*100):100;
+  return `<div class="ovXp"><div class="xpHead">${rankBadge(a.n,true)}<div><b>+${r.g} XP</b> · ${a.name}`+
+    (a.n>r.before.n?` <span class="rkUp">Promoted!</span>`:'')+`</div></div>`+
+    `<div class="xpBar"><i style="width:${pct}%"></i></div>`+
+    `<div class="xpTxt">${a.need?a.into+' / '+a.need+' XP to '+RANKS[a.n]:'Top rank reached'}</div>`+
+    (r.unl.length?`<div class="xpTxt rkUp">Unlocked: ${r.unl.join(', ')}. Pick it in Profile.</div>`:'')+`</div>`;
+}
+function renderProfile(){
+  const p=loadProg(), r=rankOf(p.xp), c=cosmetics(), pct=r.need?Math.round(r.into/r.need*100):100;
+  let stars=0; for(const f in (p.medals||{})) for(const d in p.medals[f]) stars+=p.medals[f][d];
+  let next=null; for(let n=r.n+1;n<=RANKS.length&&!next;n++){ const u=unlocksAt(n); if(u.length) next={n,u}; }
+  const row=(kind,table,cur,sw)=>`<div class="optRow cosRow">`+Object.entries(table).map(([k,t])=>{
+    const lock=t.rank>r.n;
+    return `<button class="opt${k===cur?' sel':''}${lock?' locked':''}" data-cos="${kind}" data-k="${k}"${lock?' disabled':''}>${sw(k,t)}${t.name}<span>${lock?'Rank '+t.rank:k===cur?'in use':'unlocked'}</span></button>`; }).join('')+`</div>`;
+  $('profileBody').innerHTML=
+    `<div class="rkHead">${rankBadge(r.n)}<div><div class="rkName">${r.name}</div><div class="rkSub">Rank ${r.n} of ${RANKS.length} · ${p.played||0} game${(p.played||0)===1?'':'s'} played</div></div></div>`+
+    `<div class="xpBar"><i style="width:${pct}%"></i></div>`+
+    `<div class="xpTxt">${r.need?r.into+' / '+r.need+' XP to '+RANKS[r.n]:'Top rank reached: every unlock is yours'}. Every finished game earns XP: more for longer games and a little extra for a win.</div>`+
+    (next?`<div class="xpTxt" style="color:var(--amber);margin-top:4px">Next unlock at rank ${next.n}: ${next.u.join(', ')}</div>`:'')+
+    `<div class="xpTxt" style="margin-top:4px">★ ${stars} medal stars · ${p.wins||0} solo wins</div>`+
+    `<div class="sec">Board theme</div>`+row('theme',THEMES,c.theme,(k,t)=>`<b style="background:${t.sw}"></b>`)+
+    `<div class="sec">Unit finish <span class="secNote">trim on your own units</span></div>`+row('finish',FINISHES,c.finish,(k,t)=>`<b style="background:${t.c!=null?'#'+new THREE.Color(t.c).getHexString():'linear-gradient(90deg,#5aa7e8,#e85a5a)'}"></b>`)+
+    `<div class="sec">City flag emblem <span class="secNote">on the flags of your cities</span></div>`+row('emblem',EMBLEMS,c.emblem,(k)=>`<canvas width="40" height="24" data-em="${k}"></canvas>`)+
+    `<div class="saveNote" style="text-align:left">Unlocks only change how things look. They never affect a battle, and online opponents play on equal terms.</div>`;
+  $('profileBody').querySelectorAll('canvas[data-em]').forEach(cv=>{ const g=cv.getContext('2d'); g.fillStyle='#4f86c6'; g.fillRect(0,0,40,24); if(cv.dataset.em!=='none') drawEmblem(g, cv.dataset.em, 40, 24); });
+  $('profileBody').querySelectorAll('[data-cos]').forEach(b=>b.onclick=()=>{
+    setCosmetic(b.dataset.cos, b.dataset.k); sfx.select();
+    if(b.dataset.cos==='theme') applyTheme(b.dataset.k);
+    if(b.dataset.cos==='finish') refreshUnitFinish();
+    if(b.dataset.cos==='emblem'&&map) syncCities();
+    renderProfile();
+  });
+}
+function renderRankBtn(){
+  const p=loadProg(), r=rankOf(p.xp); if(!$('pbInfo')) return;
+  $('pbBadge').className='rkBadge t'+rankTier(r.n); $('pbBadge').textContent=r.n;
+  $('pbInfo').textContent=r.name+(r.need?' · '+r.into+'/'+r.need+' XP':'');
 }
 /* the result panel on the end screen: stars, score, what it is made of, and how the rivals did */
 function resultHtml(winner, firstTime){
@@ -2725,6 +2847,41 @@ waterMat.onBeforeCompile=sh=>{
     '#include <begin_vertex>\n  vec4 wpW=modelMatrix*vec4(position,1.0);\n  transformed.y+=sin(wpW.x*5.1+uTime*1.25)*0.0032+sin(wpW.z*6.7-uTime*1.05+wpW.x*2.3)*0.0026;');
 };
 const shoreSand=new THREE.MeshLambertMaterial({color:0xcdbb8c});
+/* board themes (Profile): recolour the shared terrain, scenery, water and light */
+let themeBase=null, curTheme='temperate';
+function themeTarget(k){
+  const [a,b]=k.split('.');
+  return a==='M'?M[b]:a==='S'?Mside[b]:a==='E'?ENV_MATS[b]:k==='shore'?shoreSand:null;
+}
+function skyTex(st){
+  const c=document.createElement('canvas'); c.width=4; c.height=256;
+  const g=c.getContext('2d'), gr=g.createLinearGradient(0,0,0,256);
+  gr.addColorStop(0,st[0]); gr.addColorStop(0.5,st[1]); gr.addColorStop(0.72,st[2]); gr.addColorStop(1,st[3]);
+  g.fillStyle=gr; g.fillRect(0,0,4,256); return new THREE.CanvasTexture(c);
+}
+function applyTheme(k, rebuild=true){
+  const th=THEMES[k]||THEMES.temperate;
+  if(!themeBase){
+    themeBase={mats:{}, deep:WATER_DEEP.getHex(), shallow:WATER_SHALLOW.getHex(), ocean:ocean.material.color.getHex(), sky:scene.background, fog:scene.fog.color.getHex(),
+      hemi:[hemi.color.getHex(), hemi.groundColor.getHex(), hemi.intensity], sun:[sun.color.getHex(), sun.intensity], fill:fill.color.getHex()};
+    const keys=new Set(); for(const t of Object.values(THEMES)) for(const kk in (t.m||{})) keys.add(kk);
+    for(const kk of keys){ const m=themeTarget(kk); if(m) themeBase.mats[kk]=[m.color.getHex(), m.emissive?m.emissive.getHex():0]; }
+  }
+  const B=themeBase;
+  for(const kk in B.mats){ const m=themeTarget(kk), v=(th.m||{})[kk], base=B.mats[kk];
+    const col=v==null?base[0]:Array.isArray(v)?v[0]:v, emi=Array.isArray(v)?v[1]:base[1];
+    m.color.setHex(col); if(m.emissive) m.emissive.setHex(emi); }
+  WATER_DEEP.setHex(th.deep??B.deep); WATER_SHALLOW.setHex(th.shallow??B.shallow);
+  ocean.material.color.setHex(th.ocean??B.ocean);
+  if(scene.background!==B.sky&&scene.background) scene.background.dispose();
+  scene.background=th.sky?skyTex(th.sky):B.sky;
+  scene.fog.color.setHex(th.fog??B.fog);
+  const hm=th.hemi||B.hemi; hemi.color.setHex(hm[0]); hemi.groundColor.setHex(hm[1]); hemi.intensity=hm[2];
+  const sn=th.sun||B.sun; sun.color.setHex(sn[0]); sun.intensity=sn[1];
+  fill.color.setHex(th.fill??B.fill);
+  const changed=curTheme!==k; curTheme=k;
+  if(changed&&rebuild&&map) { buildBoard(); refresh(); }   // water shading is baked per tile
+}
 const foamMat=new THREE.MeshBasicMaterial({color:0xf2fbfb, transparent:true, opacity:0.55, depthWrite:false});
 const WATER_DEEP=new THREE.Color(0x174a6a), WATER_SHALLOW=new THREE.Color(0x2a7f8c);
 function waterSurface(x,y){
@@ -3107,6 +3264,7 @@ function drawCityLabel(sp,city){
 
 /* ---- static board ---- */
 function buildBoard(){
+  applyTheme(cosmetics().theme, false);
   freeTree(boardGroup,false); freeTree(fogGroup,false); freeTree(terrGroup,false);
   boardGroup.clear(); terrGroup.clear(); terrSig=''; dimGroup.clear(); dimSig=''; pickTiles=[]; cityDecor={}; tileGroups={}; resourceDecor={}; dropDecor={}; pumpjacks=[]; forestTrees={};
   fogGroup.clear(); fogClouds={}; dissolving=[];
@@ -3282,13 +3440,39 @@ function syncTerritory(){
     }
   }
 }
+/* flag emblems: drawn once per colour and shape */
+function drawEmblem(g, em, w, h){
+  const cx=w/2, cy=h/2, r=h*0.34;
+  g.fillStyle=em==='gstar'?'#ffd56a':'#ffffff'; g.strokeStyle='rgba(0,0,0,.35)'; g.lineWidth=Math.max(1,h/24);
+  g.beginPath();
+  const star=(R,ri)=>{ for(let i=0;i<10;i++){ const a=-Math.PI/2+i*Math.PI/5, rr=i%2?ri:R; g.lineTo(cx+Math.cos(a)*rr, cy+Math.sin(a)*rr); } };
+  if(em==='star'||em==='gstar') star(r*1.15, r*0.48);
+  else if(em==='chevron'){ g.moveTo(cx-r*1.3,cy-r*0.4); g.lineTo(cx,cy+r*0.5); g.lineTo(cx+r*1.3,cy-r*0.4); g.lineTo(cx+r*1.3,cy+r*0.15); g.lineTo(cx,cy+r*1.05); g.lineTo(cx-r*1.3,cy+r*0.15); }
+  else if(em==='bolt'){ g.moveTo(cx+r*0.25,cy-r*1.1); g.lineTo(cx-r*0.6,cy+r*0.15); g.lineTo(cx-r*0.02,cy+r*0.15); g.lineTo(cx-r*0.3,cy+r*1.1); g.lineTo(cx+r*0.65,cy-r*0.2); g.lineTo(cx+r*0.05,cy-r*0.2); }
+  else if(em==='diamond'){ g.moveTo(cx,cy-r*1.1); g.lineTo(cx+r*0.8,cy); g.lineTo(cx,cy+r*1.1); g.lineTo(cx-r*0.8,cy); }
+  else if(em==='crown'){ g.moveTo(cx-r,cy+r*0.7); g.lineTo(cx-r*1.1,cy-r*0.7); g.lineTo(cx-r*0.45,cy-r*0.05); g.lineTo(cx,cy-r*0.95); g.lineTo(cx+r*0.45,cy-r*0.05); g.lineTo(cx+r*1.1,cy-r*0.7); g.lineTo(cx+r,cy+r*0.7); }
+  else if(em==='shield'){ g.moveTo(cx-r*0.85,cy-r*0.95); g.lineTo(cx+r*0.85,cy-r*0.95); g.lineTo(cx+r*0.85,cy); g.quadraticCurveTo(cx+r*0.7,cy+r*0.8,cx,cy+r*1.1); g.quadraticCurveTo(cx-r*0.7,cy+r*0.8,cx-r*0.85,cy); }
+  else if(em==='laurel'){ for(const sd of [-1,1]) for(let i=0;i<5;i++){ const a=Math.PI*(0.62+i*0.17), x=cx+sd*Math.cos(a)*r*-1, y=cy+Math.sin(a)*r*-1+r*0.15;
+      g.moveTo(x+r*0.22,y); g.ellipse(x,y,r*0.22,r*0.11,sd*(a-Math.PI/2),0,Math.PI*2); }
+    g.moveTo(cx+r*0.28,cy-r*0.2); star(r*0.32,r*0.14); }
+  g.closePath(); g.fill(); g.stroke();
+}
+const emblemTexCache={};
+function emblemTex(col, em){
+  const k=col+em; if(emblemTexCache[k]) return emblemTexCache[k];
+  const c=document.createElement('canvas'); c.width=96; c.height=58; const g=c.getContext('2d');
+  g.fillStyle='#'+new THREE.Color(col).getHexString(); g.fillRect(0,0,96,58); drawEmblem(g, em, 96, 58);
+  const t=new THREE.CanvasTexture(c); return emblemTexCache[k]=t;
+}
 function syncCities(){
   syncTerritory();
   for(const k in cityDecor){
     const [x,y]=k.split(',').map(Number);
     const city=tileAt(x,y).city;
     const cd=cityDecor[k];
-    cd.flagMat.color.setHex(city.owner?meta(city.owner).flag:NEUTRAL_FLAG);
+    { const em=city.owner&&city.owner===MYSIDE&&!hotOn()?cosmetics().emblem:'none', tex=em!=='none'?emblemTex(meta(city.owner).flag, em):null;
+      if(cd.flagMat.map!==tex){ cd.flagMat.map=tex; cd.flagMat.needsUpdate=true; }
+      cd.flagMat.color.setHex(tex?0xffffff:city.owner?meta(city.owner).flag:NEUTRAL_FLAG); }
     drawCityLabel(cd.sprite, city);
     { const occ=!!unitAt(x,y); cd.sprite.position.set(0, TOP+(occ?0.04:0.55), occ?0.48:0.25); cd.sprite.center.set(0.5, occ?1:0.5); }   // hangs below the tile when a unit's label is above it
     if(cd.roof) cd.roof.color.setHex(city.owner?meta(city.owner).flag:NEUTRAL_ROOF);
@@ -3414,6 +3598,9 @@ const dyingUnits=[], deathDelay={};
 function freeUnitMesh(g){ freeTree(g,false); for(const m of g.userData.mats||[]) m.dispose(); }
 let labelF=1, labelShow=true;
 let fullResync=false;   // set while a whole game is being rebuilt (new game, load, undo): no death animations
+/* your own units wear the finish picked in Profile (on your screen only) */
+function unitTrim(o){ const f=FINISHES[cosmetics().finish]; return (o===MYSIDE&&!hotOn()&&f&&f.c!=null)?f.c:meta(o).trim; }
+function refreshUnitFinish(){ for(const g of unitMeshes.values()) if(g.userData.mats&&g.userData.owner) g.userData.mats[1].color.setHex(unitTrim(g.userData.owner)); }
 function syncUnits(){
   const live=new Set();
   for(const u of units){
@@ -3421,9 +3608,9 @@ function syncUnits(){
     let g=unitMeshes.get(u.id);
     if(!g){
       const fm={body:new THREE.MeshLambertMaterial({color:meta(u.owner).body}),
-                trim:new THREE.MeshLambertMaterial({color:meta(u.owner).trim})};
+                trim:new THREE.MeshLambertMaterial({color:unitTrim(u.owner)})};
       g=(BUILDERS[u.type]||BUILDERS.INF)(fm);
-      g.userData.mats=[fm.body,fm.trim];
+      g.userData.mats=[fm.body,fm.trim]; g.userData.owner=u.owner;
       g.rotation.y=(u.owner===MYSIDE)?Math.PI:0; // face the enemy side
       const lbl=makeLabel(); lbl.position.y=(UNIT_TYPES[u.type].fly?0.95:Math.max(0.72,(UNIT_TOP[u.type]||0)+0.12));
       lbl.visible=labelShow;
@@ -4319,6 +4506,8 @@ function setupView(v){
   $('soloPane').style.display=v==='solo'?'':'none';
   $('mpPane').style.display=v==='mp'?'':'none';
   $('campPane').style.display=v==='camp'?'':'none';
+  $('profilePane').style.display=v==='profile'?'':'none';
+  if(v==='profile') renderProfile();
   if(v==='camp'){ renderCampaign(); tipOnce('campaign','Campaign: attack a region next to yours (dashed ring). Each battle is a normal game; perks from your neighbouring regions help you, and capturing a capital takes that whole faction.'); }
 }
 const SIZE_NAME={9:'small',11:'standard',13:'large',15:'huge'};
@@ -4773,7 +4962,7 @@ function showSetup(){
   document.querySelectorAll('#diffRow .opt').forEach(o=>o.classList.toggle('sel', o.dataset.diff===(DIFFS[cfg.diff]?cfg.diff:'normal')));
   renderMapOpts('mapRow','modRow',cfg,()=>{});
   $('quickInfo').textContent=FACTIONS[cfg.faction].name+' · '+SIZE_NAME[cfg.size]+((MAP_TYPES[cfg.map]&&cfg.map!=='classic')?' '+MAP_TYPES[cfg.map].name.toLowerCase():'')+' map · '+cfg.enemies+' enem'+(cfg.enemies===1?'y':'ies')+' · '+(DIFFS[cfg.diff]||DIFFS.normal).name+(cfg.mode==='score'?' · score attack':'');
-  renderProgress();
+  renderProgress(); renderRankBtn();
   renderHot();
   if(cfg.hot>1) $('quickInfo').textContent+=' · pass & play ('+cfg.hot+' players)';
   const running=!!map&&!gameOver;
@@ -4833,6 +5022,7 @@ $('tutBtn').onclick=()=>{
 };
 $('customBtn').onclick=()=>{ disarm(); setupView('solo'); sfx.select(); };
 $('campBtn').onclick=()=>{ disarm(); setupView('camp'); sfx.select(); };
+$('profileBtn').onclick=()=>{ disarm(); setupView('profile'); sfx.select(); };
 $('mpOpenBtn').onclick=()=>{ disarm(); setupView('mp'); sfx.select();
   if(!navigator.onLine) mpMsg('⚠ You are offline: online play needs an internet connection. Solo games work offline.');
   else if(!window.Peer) mpMsg('⚠ P2P engine failed to load: re-download the game file.'); };
@@ -5670,6 +5860,7 @@ function endGame(winner){
   if(hotOn()){ t.textContent=pname(winner)+' wins'; t.className='win';
     b.textContent=meta(winner).name+(timeUp?' finished with the highest score.':' holds the region.')+' Turn '+turn+'.'; }
   { const d=document.createElement('div'); d.className='ovScore'; d.innerHTML=resultHtml(winner, firstTime); b.appendChild(d); }
+  if(firstTime&&!hotOn()){ const d=document.createElement('div'); d.innerHTML=xpHtml(awardXP(winner===MYSIDE)); b.appendChild(d.firstChild); renderRankBtn(); }
   const camp=(gcfg||{}).campaign;
   if(camp&&!NET.on&&!hotOn()){
     const line=firstTime?campaignResult(camp, winner===MYSIDE):null;
@@ -5724,6 +5915,7 @@ $('helpBtn').onclick=()=>{
     ['Veterans','A unit with three kills can be promoted for +5 max HP and a full heal. It is free, so you can save it as an emergency heal.'],
     ['Commander powers','Every faction has one power you can use once per game, on your own turn: tap the lightning button. Aegis heals everything \u00b7 Crimson double damage this turn \u00b7 Solaris a turn and a half of income \u00b7 Ghost +25% damage and no return fire this turn \u00b7 Iron Bastion half damage for two rounds \u00b7 Verdant +1 population in every city \u00b7 Tidewatch a free Infantry at every city. Rivals above Easy use theirs too.'],
     ['Map types','Custom setup: Classic, Highlands (mountain passes), Woodland (forest everywhere, so +50% defense is easy to find), Lakes (water splits the land) or Mirrored (both corners get the same land, the fairest choice for friends).'],
+    ['Rank and unlocks','Every finished game earns XP (more for longer games, a little extra for a win) and climbs your commander rank, 30 ranks in all. Ranks unlock board themes, unit finishes and city flag emblems in Profile. They only change looks, never a battle.'],
     ['Modifiers','Custom setup or the online host can add No fog, Double income, Early Titans (any city can field one) or No powers. Games with No fog, Double income or Early Titans don\u2019t earn medals.'],
     ['Online rematch','When an online game ends the host can tap Rematch to bring everyone back to the lobby with the same factions and settings.'],
     ['Reconnecting','If a guest drops out the game retries on its own. A guest who reloads the page or reopens the app gets a Rejoin button on the title screen for the next six hours; the host keeps their seat until the host replaces them with the AI.'],
