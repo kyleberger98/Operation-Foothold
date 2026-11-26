@@ -29,6 +29,9 @@ PALETTE.update({
     'palm': 0x8a6a44, 'palmD': 0x6e5234, 'frond': 0x3f9a46, 'frond2': 0x2f7f3a, 'coco': 0x5a3a20,
     'cactus': 0x4f8a4a, 'cactusD': 0x3c6f3a, 'flower': 0xf06a8a, 'charred': 0x2a2422, 'ember': 0xff7a2a,
     'drift': 0xf2f6f8, 'gold': 0xe8b84a, 'goldD': 0xb08428, 'pole': 0x3a3f44,
+    # buildings
+    'barn': 0xa8432e, 'roofD': 0x4a4f55, 'brick': 0x9a5a44, 'concrete': 0xa4a9ad, 'smoke': 0xd8dcdf, 'awn1': 0xe0a03a, 'awn2': 0x3f86c6, 'awn3': 0xd8483b,
+    'plank': 0xa07448, 'log': 0x7a5232, 'water2': 0x2f6f90,
 })
 MATLIST[:] = list(PALETTE.keys())
 
@@ -425,13 +428,116 @@ def flagpole(key):
     return m
 
 
+def farm(key):
+    """farmstead: a red barn with a grey roof, a silo, a fenced patch of crops"""
+    m = Model(key)
+    m.box(0.2, 0.12, 0.14, 'barn', (-0.12, 0.06, -0.1), bevel=0.006)
+    gable(m, 0.22, 0.16, 0.08, 'roofD', (-0.12, 0.16, -0.1))
+    m.box(0.05, 0.07, 0.006, 'white', (-0.12, 0.035, -0.029), bevel=0)
+    m.cyl(0.045, 0.045, 0.2, 'concrete', (0.06, 0.1, -0.14), seg=10)
+    m.sph(0.046, 'roofD', (0.06, 0.2, -0.14), seg=10, rings=5, scale=(1, 0.6, 1))
+    m.box(0.5, 0.012, 0.22, 'soil', (0.0, 0.006, 0.17), bevel=0.003)
+    for i in range(5):
+        x = -0.2+i*0.1
+        for j in range(2):
+            m.cyl(0.006, 0.006, 0.05, 'wheat2', (x, 0.035, 0.11+j*0.11), seg=4)
+            m.ico(0.018, 'wheat', (x, 0.065, 0.11+j*0.11), sub=0, scale=(1, 1.3, 1))
+    for x in (-0.26, 0.26):
+        m.cyl(0.006, 0.006, 0.06, 'wood', (x, 0.03, 0.17), seg=4)
+    m.box(0.52, 0.008, 0.008, 'wood', (0, 0.05, 0.28), bevel=0)
+    return m
+
+
+def lumbercamp(key):
+    """a sawmill hut, a stack of logs and a chopping stump"""
+    m = Model(key)
+    m.box(0.13, 0.08, 0.1, 'plank', (0, 0.04, 0), bevel=0.006)
+    gable(m, 0.15, 0.12, 0.05, 'woodD', (0, 0.105, 0))
+    m.box(0.03, 0.05, 0.006, 'woodD', (0.02, 0.025, 0.051), bevel=0)
+    for i, (y, z) in enumerate([(0.012, 0.08), (0.012, 0.105), (0.012, 0.13), (0.035, 0.093), (0.035, 0.118)]):
+        m.cyl(0.012, 0.012, 0.13, 'log', (0.11, y, z), (0, 0, PI/2), seg=6)
+    m.cyl(0.02, 0.024, 0.025, 'log', (-0.1, 0.012, 0.08), seg=7)
+    m.limb((-0.1, 0.025, 0.08), (-0.08, 0.07, 0.09), 0.006, 'wood', round_=True, seg=4)
+    m.box(0.02, 0.012, 0.006, 'steel', (-0.08, 0.07, 0.09), bevel=0)
+    return m
+
+
+def quarry(key):
+    """stone quarry: cut blocks, a small derrick crane and a cart"""
+    m = Model(key)
+    for x, z, h in [(-0.06, 0.0, 0.05), (0.02, 0.03, 0.04), (0.0, -0.05, 0.06), (0.07, -0.02, 0.03)]:
+        m.box(0.06, h, 0.06, 'stone', (x, h/2, z), bevel=0.004)
+    m.limb((0.1, 0.0, 0.07), (0.1, 0.2, 0.07), 0.012, 'yellow', round_=True, seg=5)
+    m.limb((0.1, 0.19, 0.07), (-0.02, 0.15, 0.0), 0.009, 'yellow', round_=True, seg=5)
+    m.limb((-0.02, 0.15, 0.0), (-0.02, 0.07, 0.0), 0.003, 'dark', round_=True, seg=4)
+    m.box(0.07, 0.03, 0.045, 'metal', (-0.1, 0.03, 0.08), bevel=0.004)
+    for sx in (-1, 1):
+        m.cyl(0.012, 0.012, 0.006, 'dark', (-0.1+sx*0.025, 0.012, 0.105), (PI/2, 0, 0), seg=6)
+    return m
+
+
+def port(key):
+    """a jetty on the water: pier deck, bollards, a crane and crates"""
+    m = Model(key)
+    for x in (-0.18, 0.0, 0.18):
+        for z in (-0.06, 0.06):
+            m.cyl(0.012, 0.012, 0.12, 'log', (x, -0.02, z), seg=5)
+    m.box(0.46, 0.02, 0.17, 'plank', (0, 0.04, 0), bevel=0.003)
+    for x in (-0.2, 0.2):
+        m.cyl(0.012, 0.014, 0.03, 'dark', (x, 0.065, 0.07), seg=6)
+    m.box(0.06, 0.05, 0.05, 'wood', (-0.08, 0.075, -0.03), bevel=0.004)
+    m.box(0.05, 0.04, 0.05, 'red', (-0.02, 0.07, -0.04), bevel=0.004)
+    m.limb((0.12, 0.05, -0.04), (0.12, 0.24, -0.04), 0.014, 'red', round_=True, seg=5)
+    m.limb((0.12, 0.23, -0.04), (0.0, 0.2, 0.1), 0.01, 'red', round_=True, seg=5)
+    m.limb((0.0, 0.2, 0.1), (0.0, 0.1, 0.1), 0.003, 'dark', round_=True, seg=4)
+    return m
+
+
+def factory(key):
+    """brick factory with saw-tooth roof and two smoking chimneys"""
+    m = Model(key)
+    m.box(0.3, 0.12, 0.2, 'brick', (0, 0.06, 0), bevel=0.006)
+    for i in range(3):
+        m.box(0.1, 0.05, 0.2, 'roofD', (-0.1+i*0.1, 0.145, 0), bevel=0.003, taper=(0.1, 1, 0.0))
+        m.box(0.004, 0.04, 0.19, 'glass', (-0.148+i*0.1, 0.14, 0), bevel=0)
+    windows(m, -0.12, 0.12, 0.06, 1, 0, 0.101, 4, ww=0.035, wh=0.03)
+    m.box(0.06, 0.07, 0.006, 'concrete', (0.0, 0.035, 0.102), bevel=0)
+    for x, h in [(0.18, 0.3), (0.24, 0.24)]:
+        m.cyl(0.022, 0.026, h, 'brick', (x, h/2, -0.06), seg=8)
+        m.cyl(0.026, 0.026, 0.012, 'dark', (x, h, -0.06), seg=8)
+    for x, y, r in [(0.18, 0.34, 0.035), (0.2, 0.39, 0.045), (0.24, 0.28, 0.03), (0.26, 0.33, 0.04)]:
+        m.ico(r, 'smoke', (x, y, -0.06), sub=1)
+    m.box(0.08, 0.04, 0.06, 'metal', (-0.2, 0.02, 0.06), bevel=0.004)
+    return m
+
+
+def market(key):
+    """a market square: striped awning stalls, crates of goods and a fountain"""
+    m = Model(key)
+    m.box(0.44, 0.01, 0.44, 'pave', (0, 0.005, 0), bevel=0.003)
+    m.cyl(0.07, 0.075, 0.03, 'stone', (0, 0.02, 0), seg=10)
+    m.cyl(0.055, 0.055, 0.006, 'water2', (0, 0.034, 0), seg=10)
+    m.cyl(0.012, 0.014, 0.07, 'stone', (0, 0.06, 0), seg=6)
+    for i, (x, z, rot, col) in enumerate([(-0.15, -0.13, 0, 'awn1'), (0.15, -0.13, 0, 'awn2'), (-0.15, 0.14, PI, 'awn3'), (0.15, 0.14, PI, 'awn1')]):
+        with m.at((x, 0, z), (0, rot, 0)):
+            m.box(0.12, 0.04, 0.06, 'wood', (0, 0.02, 0), bevel=0.003)
+            for k in range(3):
+                m.box(0.04, 0.012, 0.04, ['ore', 'red', 'leaf'][(i+k) % 3], (-0.04+k*0.04, 0.046, 0), bevel=0)
+            for sx in (-1, 1):
+                m.cyl(0.004, 0.004, 0.1, 'woodD', (sx*0.055, 0.05, -0.03), seg=4)
+            m.box(0.14, 0.008, 0.09, col, (0, 0.1, 0.0), (0.3, 0, 0), bevel=0)
+            m.box(0.14, 0.009, 0.03, 'white', (0, 0.101, 0.0), (0.3, 0, 0), bevel=0)
+    return m
+
+
 MODELS = [pine('PINE'), pine('PINE2', tiers=2, h=0.4, r=0.15, cols=('pine2', 'pine')), pine('FIR', tiers=4, h=0.54, r=0.14, cols=('pine3', 'pine', 'pine2')),
           broadleaf('OAK'), bush('BUSH'), mountain('MTN1', 1), mountain('MTN2', 7), boulders('ROCKS'),
           crop('CROP'), ore('ORE'), pumpjack('PUMP'), oilrig('RIG'), supplydrop('DROP'),
           plaza('PLAZA'), townhall('HALL'), hq('HQ'), house('HOUSE'), house('HOUSE2', two=True), flats('FLATS'), tower('TOWER'),
           citywalls('WALLS'), reeds('REEDS'), lilies('LILY'),
           palm('PALM'), palm('PALM2', lean=-0.12, h=0.42, seed=5), cactus('CACTUS'), snowpine('SNOWPINE'), snowpine('SNOWFIR', tiers=4, h=0.54, r=0.14),
-          deadtree('DEAD'), deadtree('DEAD2', seed=9), drift('DRIFT'), flagpole('POLE')]
+          deadtree('DEAD'), deadtree('DEAD2', seed=9), drift('DRIFT'), flagpole('POLE'),
+          farm('FARM'), lumbercamp('CAMP'), quarry('QUARRY'), port('PORT'), factory('FACTORY'), market('MARKET')]
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else 'out'
 os.makedirs(OUT, exist_ok=True)
@@ -459,9 +565,10 @@ if 'render' in sys.argv:
     so.rotation_euler = (Vector((8, -6, 14)).to_track_quat('Z', 'Y')).to_euler()
     w = bpy.data.worlds.new('w'); scn.world = w; w.use_nodes = True; w.node_tree.nodes['Background'].inputs['Strength'].default_value = 1.2
     scn.render.engine = 'CYCLES'; scn.cycles.samples = 48; scn.cycles.use_denoising = True; scn.render.film_transparent = True
-    scn.render.resolution_x, scn.render.resolution_y = 1800, 1000
+    rows = (len(MODELS)+7)//8
+    scn.render.resolution_x, scn.render.resolution_y = 1800, 260*rows+160
     cd = bpy.data.cameras.new('c'); cd.type = 'ORTHO'; cd.ortho_scale = 9.6; cam = bpy.data.objects.new('c', cd); col.objects.link(cam); scn.camera = cam
-    t = Vector((0, -1.2, 0.2)); p = t+Vector((0, -math.cos(0.55), math.sin(0.55)))*20; cam.location = p; cam.rotation_euler = (t-p).to_track_quat('-Z', 'Y').to_euler()
+    t = Vector((0, -(rows-1)*0.6, 0.2)); p = t+Vector((0, -math.cos(0.55), math.sin(0.55)))*20; cam.location = p; cam.rotation_euler = (t-p).to_track_quat('-Z', 'Y').to_euler()
     scn.render.filepath = os.path.join(OUT, 'env_lineup.png'); bpy.ops.render.render(write_still=True)
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, 'env.blend'))
 print('done')
