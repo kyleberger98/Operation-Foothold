@@ -20,6 +20,7 @@ Made in Blender by `env.py` (low-poly, flat colours, same pipeline as `art/units
 | SNOWPINE, SNOWFIR, DRIFT | Winter theme scenery |
 | DEAD, DEAD2 | Ashlands theme: charred trees with embers |
 | POLE | City flagpole with a gold finial (the waving cloth is drawn in game) |
+| FARM, CAMP, QUARRY, PORT, FACTORY, MARKET | Buildings you put on your territory |
 
 The `team` colour on roofs, trim and wall towers is swapped in game for the owner's colour (warm grey while neutral).
 Inland water is not a Blender model: it's a rippling surface built in game (shader waves, teal shallows, shore foam).
