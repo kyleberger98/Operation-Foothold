@@ -16,6 +16,10 @@ Made in Blender by `env.py` (low-poly, flat colours, same pipeline as `art/units
 | HOUSE, HOUSE2, FLATS, TOWER | Buildings added as a city levels up (one per level) |
 | WALLS | City walls reward |
 | REEDS, LILY | Shoreline decoration on lakes |
+| PALM, PALM2, CACTUS | Desert and Tropical theme scenery |
+| SNOWPINE, SNOWFIR, DRIFT | Winter theme scenery |
+| DEAD, DEAD2 | Ashlands theme: charred trees with embers |
+| POLE | City flagpole with a gold finial (the waving cloth is drawn in game) |
 
 The `team` colour on roofs, trim and wall towers is swapped in game for the owner's colour (warm grey while neutral).
 Inland water is not a Blender model: it's a rippling surface built in game (shader waves, teal shallows, shore foam).

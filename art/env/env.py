@@ -25,6 +25,10 @@ PALETTE.update({
     'pave': 0x9a958a, 'pave2': 0x7e796f, 'stone': 0x9d978c, 'roofG': 0x5d646b,
     # shores
     'reed': 0x6b9440, 'cattail': 0x6a4a2c, 'lily': 0x4f9a4a, 'pink': 0xf2a7c8,
+    # theme scenery (unlocked board themes)
+    'palm': 0x8a6a44, 'palmD': 0x6e5234, 'frond': 0x3f9a46, 'frond2': 0x2f7f3a, 'coco': 0x5a3a20,
+    'cactus': 0x4f8a4a, 'cactusD': 0x3c6f3a, 'flower': 0xf06a8a, 'charred': 0x2a2422, 'ember': 0xff7a2a,
+    'drift': 0xf2f6f8, 'gold': 0xe8b84a, 'goldD': 0xb08428, 'pole': 0x3a3f44,
 })
 MATLIST[:] = list(PALETTE.keys())
 
@@ -337,11 +341,97 @@ def lilies(key):
     return m
 
 
+def palm(key, lean=0.18, h=0.5, seed=1):
+    """palm tree: a curved, ringed trunk, drooping fronds and a few coconuts"""
+    import random
+    R = random.Random(seed)
+    m = Model(key)
+    n = 6
+    pts = [(lean*(i/n)**1.6, h*i/n, 0.0) for i in range(n+1)]
+    for i in range(n):
+        m.limb(pts[i], pts[i+1], 0.034-0.012*i/n, 'palm' if i % 2 else 'palmD', round_=True, seg=6)
+    top = pts[-1]
+    for k in range(7):
+        a = k*math.tau/7+R.uniform(-0.2, 0.2)
+        col = 'frond' if k % 2 else 'frond2'
+        p = Vector(top)
+        for L, d in [(0.12, 0.25), (0.11, 0.85)]:         # two segments: out, then drooping
+            dirv = Vector((math.cos(a)*math.cos(d), -math.sin(d), -math.sin(a)*math.cos(d)))
+            c = p+dirv*(L/2)
+            m.sph(1.0, col, tuple(c), (0, a, -d), seg=6, rings=3, scale=(L/2, 0.008, 0.042))
+            p = p+dirv*L*0.92
+    for k in range(3):
+        a = k*math.tau/3+0.4
+        m.sph(0.018, 'coco', (top[0]+math.cos(a)*0.03, top[1]-0.03, top[2]+math.sin(a)*0.03), seg=6, rings=4)
+    return m
+
+
+def cactus(key):
+    m = Model(key)
+    m.cyl(0.03, 0.034, 0.2, 'cactus', (0, 0.1, 0), seg=7)
+    m.sph(0.03, 'cactus', (0, 0.2, 0), seg=7, rings=4)
+    for sx, y0, h in [(1, 0.08, 0.08), (-1, 0.11, 0.06)]:
+        m.limb((0, y0, 0), (0.07*sx, y0, 0), 0.026, 'cactusD', round_=True, seg=6)
+        m.cyl(0.02, 0.022, h, 'cactusD', (0.07*sx, y0+h/2, 0), seg=6)
+        m.sph(0.02, 'cactusD', (0.07*sx, y0+h, 0), seg=6, rings=3)
+    m.ico(0.014, 'flower', (0.005, 0.232, 0), sub=0)
+    return m
+
+
+def snowpine(key, tiers=3, h=0.46, r=0.16):
+    """a pine weighed down with snow: dark tiers with white caps"""
+    m = Model(key)
+    m.cyl(0.026, 0.034, h*0.3, 'trunk', (0, h*0.15, 0), seg=6)
+    for i in range(tiers):
+        t = i/tiers
+        rr = r*(1-t*0.55); hh = h*0.42*(1-t*0.25); y = h*0.22+i*h*0.24
+        m.cyl(0.0, rr, hh, 'pine3' if i % 2 else 'pine', (0, y+hh/2, 0), (0, i*0.6, 0), seg=7)
+        m.cyl(rr*0.42, rr*0.78, hh*0.22, 'snow', (0, y+hh*0.42, 0), (0, i*0.6, 0), seg=7)   # snow on the bough
+    m.cyl(0.0, r*0.3, h*0.14, 'snow', (0, h*0.22+(tiers-1)*h*0.24+h*0.33, 0), seg=7)        # snowy tip
+    return m
+
+
+def deadtree(key, seed=2):
+    """a charred, leafless tree with a glowing ember or two"""
+    import random
+    R = random.Random(seed)
+    m = Model(key)
+    m.limb((0, 0, 0), (0.02, 0.3, 0.01), 0.04, 'charred', round_=True, seg=6)
+    for k in range(4):
+        a = k*math.tau/4+R.uniform(-0.4, 0.4)
+        y = R.uniform(0.14, 0.26); L = R.uniform(0.09, 0.14)
+        p0 = (0.012, y, 0.006); p1 = (math.cos(a)*L, y+R.uniform(0.05, 0.1), math.sin(a)*L)
+        m.limb(p0, p1, 0.018, 'charred', round_=True, seg=5)
+        m.limb(p1, (p1[0]*1.3, p1[1]+0.05, p1[2]*1.3), 0.01, 'charred', round_=True, seg=4)
+    m.ico(0.016, 'ember', (0.02, 0.06, 0.03), sub=0)
+    m.ico(0.012, 'ember', (-0.03, 0.03, -0.02), sub=0)
+    return m
+
+
+def drift(key):
+    m = Model(key)
+    m.sph(0.08, 'drift', (0, 0.0, 0), seg=8, rings=4, scale=(1.4, 0.35, 1))
+    m.sph(0.05, 'drift', (0.08, 0.0, 0.03), seg=8, rings=4, scale=(1.2, 0.4, 1))
+    return m
+
+
+def flagpole(key):
+    """city flagpole: stone base, slim pole and a gold finial (the cloth is drawn in game)"""
+    m = Model(key)
+    m.cyl(0.04, 0.05, 0.03, 'stone', (0, 0.015, 0), seg=8)
+    m.cyl(0.008, 0.011, 0.5, 'pole', (0, 0.28, 0), seg=8)
+    m.cyl(0.016, 0.016, 0.012, 'goldD', (0, 0.53, 0), seg=8)
+    m.sph(0.02, 'gold', (0, 0.555, 0), seg=8, rings=6)
+    return m
+
+
 MODELS = [pine('PINE'), pine('PINE2', tiers=2, h=0.4, r=0.15, cols=('pine2', 'pine')), pine('FIR', tiers=4, h=0.54, r=0.14, cols=('pine3', 'pine', 'pine2')),
           broadleaf('OAK'), bush('BUSH'), mountain('MTN1', 1), mountain('MTN2', 7), boulders('ROCKS'),
           crop('CROP'), ore('ORE'), pumpjack('PUMP'), oilrig('RIG'), supplydrop('DROP'),
           plaza('PLAZA'), townhall('HALL'), hq('HQ'), house('HOUSE'), house('HOUSE2', two=True), flats('FLATS'), tower('TOWER'),
-          citywalls('WALLS'), reeds('REEDS'), lilies('LILY')]
+          citywalls('WALLS'), reeds('REEDS'), lilies('LILY'),
+          palm('PALM'), palm('PALM2', lean=-0.12, h=0.42, seed=5), cactus('CACTUS'), snowpine('SNOWPINE'), snowpine('SNOWFIR', tiers=4, h=0.54, r=0.14),
+          deadtree('DEAD'), deadtree('DEAD2', seed=9), drift('DRIFT'), flagpole('POLE')]
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else 'out'
 os.makedirs(OUT, exist_ok=True)
