@@ -91,7 +91,7 @@ def boulders(key):
 
 
 def crop(key):
-    """Wheat field: furrowed soil, rows of wheat clumps, a haystack and a fence post."""
+    """Wheat field with furrowed soil, rows of wheat clumps, a haystack and a fence post."""
     m = Model(key)
     m.box(0.8, 0.02, 0.8, 'soil', (0, 0.01, 0), bevel=0.006)
     for row in range(4):
@@ -111,7 +111,7 @@ def crop(key):
 
 
 def ore(key):
-    """Ore deposit: faceted rocks with glinting copper and teal veins, a pickaxe and a small mine cart."""
+    """Ore deposit with copper and teal veins in faceted rocks, a pickaxe and a small mine cart."""
     m = Model(key)
     m.ico(0.17, 'rock2', (-0.08, 0.1, 0.04), sub=0, scale=(1.1, 0.8, 1))
     m.ico(0.12, 'rock', (0.14, 0.07, -0.1), sub=0)
@@ -158,7 +158,7 @@ def pumpjack(key):
 
 
 def oilrig(key):
-    """Offshore oil rig: legs into the sea, a deck with a lattice derrick, crane, helipad and a flare."""
+    """Offshore oil rig on legs in the sea, with a lattice derrick, crane, helipad and flare on the deck."""
     m = Model(key)
     for sx in (-1, 1):
         for sz in (-1, 1):
@@ -185,7 +185,7 @@ def oilrig(key):
 
 
 def supplydrop(key):
-    """Supply drop: a banded crate with a parachute canopy draped beside it."""
+    """Banded supply drop crate with a parachute canopy draped beside it."""
     m = Model(key)
     m.box(0.28, 0.2, 0.28, 'wood', (0, 0.1, 0), bevel=0.02)
     for y in (0.04, 0.16):

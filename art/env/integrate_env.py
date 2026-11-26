@@ -24,7 +24,7 @@ function envGeo(name,piece,mat){
     const i16=new Int16Array(u8.buffer), pos=new Float32Array(i16.length);
     for(let i=0;i<i16.length;i++) pos[i]=i16[i]/8192;
     const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(pos,3)); geo.computeVertexNormals();
-    geo.userData.keep=true;   // shared by every tile: never disposed with a tile
+    geo.userData.keep=true;   // shared by every tile, so never disposed with one
     envGeoCache[ck]=geo;
   }
   return envGeoCache[ck];
