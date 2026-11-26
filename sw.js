@@ -1,6 +1,6 @@
-/* Gridline Command service worker: makes the game installable and playable offline.
-   Pages: network first (so updates arrive the next time you open it online), cache when offline.
-   Icons and other files: cache first. Google Fonts: served from cache, refreshed in the background.
+/* Service worker that makes Gridline Command installable and playable offline.
+   Pages go network first so updates arrive on the next online visit, and fall back to the cache offline.
+   Icons and other files are cache first. Google Fonts are served from cache and refreshed in the background.
    Online multiplayer traffic is never touched. */
 const VERSION = 'gc-v1';
 const SHELL = [

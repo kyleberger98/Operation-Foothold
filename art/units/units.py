@@ -1,5 +1,5 @@
 """
-Operation Foothold — low-poly unit models (Polytopia-inspired), built procedurally in Blender.
+Operation Foothold - low-poly unit models (Polytopia-inspired), built procedurally in Blender.
 
 Run:  python units.py <out_dir> [render]
 Geometry is authored in GAME space (x right, y up, +z = facing direction, ground at y=0),
@@ -19,7 +19,7 @@ HEROES_ONLY = 'heroes' in sys.argv
 QUICK = 'quick' in sys.argv
 os.makedirs(OUT, exist_ok=True)
 
-# ------------------------------------------------------------------ palette
+# Palette
 PALETTE = {
     'body':    0x5aa7e8, 'trim':    0x2a5d96,           # faction placeholders (Aegis)
     'dark':    0x2c3136, 'rubber':  0x1f2326, 'metal':   0x4f585f, 'steel':  0x8a959c,
@@ -40,7 +40,7 @@ def lin(c):
 def rgba(h):
     return (lin((h >> 16 & 255)/255), lin((h >> 8 & 255)/255), lin((h & 255)/255), 1.0)
 
-# ------------------------------------------------------------------ math helpers
+# Math helpers
 def euler3(rx, ry, rz):
     """three.js Euler 'XYZ' (R = Rx·Ry·Rz)"""
     return Matrix.Rotation(rx, 4, 'X') @ Matrix.Rotation(ry, 4, 'Y') @ Matrix.Rotation(rz, 4, 'Z')
@@ -49,9 +49,9 @@ def T(v):
 def S(v):
     return Matrix.Diagonal((v[0], v[1], v[2], 1.0))
 Z2Y = Matrix.Rotation(-PI/2, 4, 'X')          # bmesh primitives are Z-aligned; make them Y-up
-G2B = Matrix(((1, 0, 0, 0), (0, 0, -1, 0), (0, 1, 0, 0), (0, 0, 0, 1)))  # game -> blender
+G2B = Matrix(((1, 0, 0, 0), (0, 0, -1, 0), (0, 1, 0, 0), (0, 0, 0, 1)))  # game space to Blender space
 
-# ------------------------------------------------------------------ model builder
+# Model builder
 class Model:
     def __init__(self, key):
         self.key = key
@@ -75,7 +75,7 @@ class Model:
         yield
         self.cur, self.stack = prev, prevstack
 
-    # -- core: finish a primitive bmesh (already scaled), bevel, colour, place
+    # Bevel, colour and place a primitive bmesh (already scaled)
     def _finish(self, bm, mat, loc, rot, bevel, bseg, ang):
         if bevel > 0:
             edges = [e for e in bm.edges if e.is_manifold and e.calc_face_angle(0) > math.radians(ang)]
@@ -121,7 +121,7 @@ class Model:
         self._finish(bm, mat, loc, rot, 0, 1, 90)
 
     def limb(self, p0, p1, w, mat, h=None, bevel=0.008, round_=False, seg=6):
-        """a block (or rod) spanning p0 -> p1"""
+        """a block (or rod) from p0 to p1"""
         p0, p1 = Vector(p0), Vector(p1)
         d = p1 - p0
         q = Vector((0, 0, 1)).rotation_difference(d.normalized())
@@ -145,7 +145,7 @@ class Model:
         bmesh.ops.transform(bm, matrix=M, verts=bm.verts)
         self.buckets[self.cur]['parts'].append(bm)
 
-    # -- build blender objects
+    # Build Blender objects
     def build(self, collection, offset=(0, 0, 0)):
         root = bpy.data.objects.new(self.key, None)
         collection.objects.link(root)
@@ -441,7 +441,7 @@ def nuke():
 
 
 def titan():
-    """Super-heavy war walker: twice a tank's bulk, fielded only by fully grown cities."""
+    """Super-heavy war walker with twice a tank's bulk, fielded only by fully grown cities."""
     m = Model('TTN')
     for s in (-1, 1):
         m.box(0.17, 0.055, 0.27, 'dark', (0.165*s, 0.0275, 0.025), bevel=0.016)             # feet
@@ -755,7 +755,7 @@ UNITS = [infantry, sniper, tank, artillery, flak, helicopter, nuke, titan,
          ambulance, shock, mortar, drone, guardian, stalker, hovercraft,
          patrolboat, landingcraft, destroyer, battleship]
 
-# ================================================================== scene / render
+# Scene and render
 bpy.ops.wm.read_factory_settings(use_empty=True)
 MATS = {}
 for name, hexc in PALETTE.items():

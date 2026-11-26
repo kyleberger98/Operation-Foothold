@@ -9,8 +9,8 @@ game_path, json_path = sys.argv[1], sys.argv[2]
 src = open(game_path, encoding='utf-8').read()
 models = json.load(open(json_path))
 
-START = '/* ---- unit model builders ---- */\n'
-END = '/* ---- HP/label sprite ---- */'
+START = '/* Unit model builders */\n'
+END = '/* HP and label sprite */'
 i, j = src.index(START), src.index(END)
 
 def top(pieces):

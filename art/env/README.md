@@ -23,7 +23,7 @@ Made in Blender by `env.py` (low-poly, flat colours, same pipeline as `art/units
 | FARM, CAMP, QUARRY, PORT, FACTORY, MARKET | Buildings you put on your territory |
 
 The `team` colour on roofs, trim and wall towers is swapped in game for the owner's colour (warm grey while neutral).
-Inland water is not a Blender model: it's a rippling surface built in game (shader waves, teal shallows, shore foam).
+Inland water is not a Blender model. The game builds it as a rippling surface with shader waves, teal shallows and shore foam.
 
 Rebuild:
 ```

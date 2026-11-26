@@ -2,7 +2,7 @@
   "id": "gridline-command",
   "name": "Gridline Command",
   "short_name": "Gridline",
-  "description": "Turn-based tactics: capture every enemy HQ. Low-poly 3D, four factions, a research tree, solo against the AI or online with friends.",
+  "description": "Turn-based tactics where you capture every enemy HQ. Low-poly 3D, seven factions, a research tree, solo against the AI or online with friends.",
   "start_url": "gridline-command.html",
   "scope": "./",
   "display": "fullscreen",
