@@ -7,8 +7,8 @@ import sys, json
 game_path, json_path = sys.argv[1], sys.argv[2]
 src = open(game_path, encoding='utf-8').read()
 data = json.load(open(json_path))
-START = '/* ---- environment models (Blender, art/env/env.py) ---- */\n'
-END = '/* ---- end environment models ---- */\n'
+START = '/* Environment models (Blender, art/env/env.py) */\n'
+END = '/* End environment models */\n'
 code = START + """/* Low-poly scenery and resources authored in Blender, packed like the unit models:
    ENV_MODELS[name][piece] = {p:pivot, m:{material:base64 int16 triangles}}; materials come from ENV_PAL. */
 const ENV_MODELS=""" + json.dumps(data['models'], separators=(',', ':')) + """;
@@ -51,7 +51,7 @@ if START in src:
     i, j = src.index(START), src.index(END)+len(END)
     src = src[:i]+code+src[j:]
 else:
-    anchor = '/* ---- resource models ---- */'
+    anchor = '// Resource models'
     assert anchor in src
     src = src.replace(anchor, code+anchor, 1)
 open(game_path, 'w', encoding='utf-8').write(src)
