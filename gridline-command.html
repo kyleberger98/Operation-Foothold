@@ -7072,7 +7072,7 @@ const NET={
       alive:{...alive}, stars:{...stars},
       tech:Object.fromEntries(turnOrder.map(s=>[s,[...tech[s]]])),
       turn, uid, side, over:gameOver, winner:this.winner, stats:{...stats},
-      tm:this.timer, tl:this.turnEnds?Math.max(0,this.turnEnds-Date.now()):0, tc:{...turnCities}, rv:mapReveals, ln:{...lastNuke}, tl:tally, pw, dip,
+      tm:this.timer, te:this.turnEnds?Math.max(0,this.turnEnds-Date.now()):0, tc:{...turnCities}, rv:mapReveals, ln:{...lastNuke}, tl:tally, pw, dip,
       units:units.map(u=>({...u})),
       explored:null,
       map:map.map(row=>row.map(t=>({t:t.terrain, c:packCity(t.city), r:t.resource||0, ru:t.ruin?1:0, b:t.b||0})))
@@ -7310,7 +7310,7 @@ const NET={
 
 /* Guests restore fully on start, then apply each broadcast incrementally */
 function netRestore(d){
-  NET.timer=d.tm||0; NET.turnEnds=d.tl?Date.now()+d.tl:0;
+  NET.timer=d.tm||0; NET.turnEnds=Number.isFinite(d.te)&&d.te>0?Date.now()+d.te:0;
   if(restoreGame(d, true)){
     if(!alive[MYSIDE]&&!gameOver) showDefeat();
     if(gameOver) endGame(d.winner);
@@ -7335,7 +7335,7 @@ function applyNetState(d, evts){
   const wasMine=side===MYSIDE;
   side=d.side;
   NET.humansList=d.humans||[];
-  NET.timer=d.tm||0; NET.turnEnds=d.tl?Date.now()+d.tl:0;
+  NET.timer=d.tm||0; NET.turnEnds=Number.isFinite(d.te)&&d.te>0?Date.now()+d.te:0;
   turnCities=d.tc||{}; tally=d.tl||{}; pw=Object.assign(pw0(), d.pw||{}); dip=Object.assign(dip0(), d.dip||{});
   for(const r of d.rv||[]) if(r.s===MYSIDE) revealAround(r.x,r.y,r.r);
   if(terr) buildBoard();
