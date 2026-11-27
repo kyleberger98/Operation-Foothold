@@ -644,6 +644,14 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
 #mpStartBtn:hover{background:#31597a}
 #mpWait{margin-top:14px; text-align:center; color:var(--dim); font-size:12px; letter-spacing:.06em}
 #mpLeaveBtn{margin-top:12px; width:100%}
+#emoteBtn{position:fixed; z-index:11; right:calc(env(safe-area-inset-right,0px) + 12px); top:calc(env(safe-area-inset-top,0px) + 312px)}
+#emoteBar{position:fixed; z-index:12; right:calc(env(safe-area-inset-right,0px) + 64px); top:calc(env(safe-area-inset-top,0px) + 306px); display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px; max-width:260px}
+#emoteBar button{background:var(--panel2); border:1px solid var(--line); color:#eef3ee; border-radius:99px; padding:7px 12px; font:inherit; font-size:12.5px; cursor:pointer}
+#emoteBar button:disabled{opacity:.4}
+@media (max-height:520px){ #emoteBtn{top:calc(env(safe-area-inset-top,0px) + 262px); right:calc(env(safe-area-inset-right,0px) + 64px)} #emoteBar{top:calc(env(safe-area-inset-top,0px) + 212px); right:calc(env(safe-area-inset-right,0px) + 116px)} }
+.mpslot img.flg,.dpName img.flg{width:22px; height:13px; flex:none; border-radius:2px; box-shadow:0 0 4px rgba(0,0,0,.4)}
+.dpName img.flg{vertical-align:-1px; margin-right:6px}
+.mpslot .rkBadge{margin-left:6px; vertical-align:middle}
 #netBar{position:fixed; left:50%; transform:translateX(-50%); bottom:16px; z-index:80;
   background:#241a18; border:1px solid var(--red); color:#ffd9d4; padding:9px 14px; border-radius:10px;
   font-size:12px; display:flex; gap:12px; align-items:center; max-width:92vw}
@@ -668,6 +676,8 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
 <button id="powerBtn" class="rb" title="Commander power (P)" aria-label="Commander power" hidden><svg viewBox="0 0 24 24"><path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/></svg></button>
 <button id="armyBtn" class="rb" title="Army overview (O)" aria-label="Army overview"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg></button>
 <button id="dipBtn" class="rb" title="Diplomacy (Y)" aria-label="Diplomacy"><svg viewBox="0 0 24 24"><path d="M3 11.5 7 8l3.2 1.6L13 8l4 1.5 4 2"/><path d="m7 8 5 5.2c.7.7 1.8.7 2.4 0 .6-.6.6-1.6 0-2.2L12.6 9"/><path d="M3 11.5 9.5 18c.6.6 1.5.6 2.1 0M21 11.5l-4.5 4.6"/></svg><span class="badge" id="dipBadge" hidden>1</span></button>
+<button id="emoteBtn" class="rb" title="Quick message" aria-label="Quick message" hidden><svg viewBox="0 0 24 24"><path d="M5 5h14v10H10l-4 4v-4H5z"/></svg></button>
+<div id="emoteBar" hidden></div>
 <div id="dipPanel" hidden><div class="apInner"><div class="apHead"><b>Diplomacy</b><button id="dipClose" aria-label="Close">&#10005;</button></div><div id="dipList"></div></div></div>
 <div id="armyPanel" hidden><div class="apInner"><div class="apHead"><b>Army overview</b><button id="armyClose" aria-label="Close">&#10005;</button></div><div id="armyList"></div></div></div>
 <button id="dangerBtn" class="rb" title="Show danger zones, where enemies in sight can strike next turn (D)" aria-label="Danger zones"><svg viewBox="0 0 24 24"><path d="M12 4 21 19.5H3z"/><path d="M12 10v4.5M12 17v.3"/></svg></button>
@@ -1461,7 +1471,7 @@ function resultHtml(winner, firstTime){
   if(solo&&firstTime&&!helped.length) rec=recordResult(won, stars, total);
   const fac=meta(me).faction, dn=(DIFFS[(gcfg||cfg).diff]||DIFFS.normal).name;
   const board=turnOrder.map(s=>({s, v:s===me?total:scoreOf(s)})).sort((a,b)=>b.v-a.v)
-    .map(o=>`<span class="${alive[o.s]?'':'out'}" style="color:${meta(o.s).css}">${esc(meta(o.s).name)}${hot?(HOT.includes(o.s)?' · '+pname(o.s):''):(o.s===me?' (you)':'')}</span><b>${o.v}</b>`).join('');
+    .map(o=>`<span class="${alive[o.s]?'':'out'}" style="color:${meta(o.s).css}">${NET.on&&NET.ranks[o.s]?rankBadge(NET.ranks[o.s].rk||1,true)+' ':''}${esc(meta(o.s).name)}${hot?(HOT.includes(o.s)?' · '+pname(o.s):''):(o.s===me?' (you)':'')}</span><b>${o.v}</b>`).join('');
   return (solo?`<div class="ovStars">${'★'.repeat(stars)}<i>${'★'.repeat(3-stars)}</i></div>`:'')+
     `<div class="ovBig">${total} points</div>`+
     (note&&solo?`<div class="ovNote">${note}</div>`:'')+
@@ -5908,6 +5918,7 @@ const RES_ICON={CROP:'crop', ORE:'ore', OIL:'oil'};
 Object.assign(ICON,{
   house:'<path d="M4 11.5 12 5l8 6.5"/><path d="M6.5 10v9.5h11V10"/><path d="M10.5 19.5v-5h3v5"/>',
   flag:'<path d="M5 21V4"/><path d="M5 4h12l-2.5 4L17 12H5"/>',
+  chat:'<path d="M5 5h14v10H10l-4 4v-4H5z"/>',
   star:'<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>',
   gear:'<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
   eye:'<path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
@@ -6372,8 +6383,9 @@ function renderDip(){
     const f=meta(s).faction, r=relOf(s,MYSIDE), rr=relRec(s,MYSIDE), out=!alive[s];
     const c=document.createElement('div'); c.className='dpCard'+(out?' out':'');
     const chip=out?['out','Eliminated']:r==='ally'?['ally','Alliance']:r==='peace'?['peace','Peace \u00b7 '+Math.max(0,rr.until-turn)+' turns']:['war','War'];
-    const who=(NET.on&&!isAI(s))||(hotOn()&&HOT.includes(s))?'Player'+(hotOn()?' \u00b7 '+esc(pname(s)):''):'Computer';
-    c.innerHTML=`<div class="dpHead"><i class="dpDot" style="background:${meta(s).css}"></i><div class="dpName">${esc(meta(s).name)}<span>${who} \u00b7 ${esc((FACTION_STYLE[f.key]||{}).style||f.perk||'')}</span></div><span class="dpChip ${chip[0]}">${chip[1]}</span></div>`;
+    const rk=NET.on&&!isAI(s)&&NET.ranks[s];
+    const who=(NET.on&&!isAI(s))||(hotOn()&&HOT.includes(s))?'Player'+(hotOn()?' \u00b7 '+esc(pname(s)):'')+(rk?' \u00b7 '+RANKS[(rk.rk||1)-1]:''):'Computer';
+    c.innerHTML=`<div class="dpHead"><i class="dpDot" style="background:${meta(s).css}"></i><div class="dpName">${rk?`<img class="flg" alt="" src="${flagImg(meta(s).flag, rk.em)}">`:''}${esc(meta(s).name)}<span>${who} \u00b7 ${esc((FACTION_STYLE[f.key]||{}).style||f.perk||'')}</span></div><span class="dpChip ${chip[0]}">${chip[1]}</span></div>`;
     if(!out){
       const nUnits=units.filter(u=>u.owner===s&&u.type!=='NUKE').length;
       const rel=k=>turnOrder.filter(o=>o!==s&&alive[o]&&relOf(s,o)===k).map(o=>o===MYSIDE?'you':esc(meta(o).name));
@@ -6874,7 +6886,7 @@ const NET={
   code:'', myName:'', setup:null,
   evts:[], winner:null, humansList:[],
   _syncTimer:null, _lastSide:null, _yourTurnT:null, _retry:0, _takeT:null, _idTry:0,
-  tok:null, fs:null, GRACE:75,
+  tok:null, fs:null, GRACE:75, ranks:{}, _emoT:{},   // ranks: side -> {rk, em}, each player's commander rank and flag emblem
 
   isRemoteHuman(s){ return this.host && s!==P && this.isHuman(s); },
   isHuman(s){ return this.client?this.humansList.includes(s):!!(this.humans[s]&&!this.humans[s].bot); },   // guests only get the list of human seats
@@ -6888,7 +6900,8 @@ const NET={
     this.on=false; this.host=false; this.client=false; this.inGame=false;
     this.timer=0; this.turnEnds=0;
     this.evts.length=0; this.winner=null; this.humansList=[]; this._retry=0; this._lastSide=null; this.rejoining=false;
-    this.tok=null; this.fs=null; this._fsDue=null; this._ask=null;
+    this.tok=null; this.fs=null; this._fsDue=null; this._ask=null; this.ranks={}; this._emoT={};
+    $('emoteBtn').hidden=true; $('emoteBar').hidden=true;
     clearTimeout(this._syncTimer); this._syncTimer=null;
     clearTimeout(this._takeT); this._takeT=null;
     clearTimeout(this._yourTurnT); this._yourTurnT=null;
@@ -6905,7 +6918,7 @@ const NET={
     this.host=true; this.on=true; this._idTry=0;
     hostResume(null);
     this.slots=[
-      {s:P,   kind:'host', name:this.myName, fac:cfg.faction},
+      {s:P,   kind:'host', name:this.myName, fac:cfg.faction, rk:rankOf(loadProg().xp).n, em:cosmetics().emblem},
       {s:'A1',kind:'open', name:null, fac:null},
       {s:'A2',kind:'off',  name:null, fac:null},
       {s:'A3',kind:'off',  name:null, fac:null},
@@ -6982,6 +6995,7 @@ const NET={
       this.lobbySync();
       return;
     }
+    if(m.t==='emote'&&this.inGame){ this.emote(s, m.k); return; }
     if(m.t==='act'&&this.inGame){
       if(gameOver) return;
       if(side!==s||!this.isHuman(s)){ try{ conn.send({t:'st', d:this.stateFor(s,this.state()), e:[]}); }catch(e){} return; }
@@ -7043,11 +7057,12 @@ const NET={
   /* back to the lobby with the same players, factions and settings */
   rematch(){
     if(!this.host||!this.on||!gameOver) return;
-    const slots=[{s:P, kind:'host', name:this.myName, fac:meta(P).faction.key}];
+    const rk=s=>this.ranks[s]||{};
+    const slots=[{s:P, kind:'host', name:this.myName, fac:meta(P).faction.key, rk:rankOf(loadProg().xp).n, em:cosmetics().emblem}];
     for(const s of ['A1','A2','A3']){
       if(!enemySides.includes(s)){ slots.push({s, kind:'off', name:null, fac:null}); continue; }
       const h=this.humans[s], fac=meta(s).faction.key;
-      if(h&&h.conn&&h.conn.open) slots.push({s, kind:'human', name:h.name, fac});
+      if(h&&h.conn&&h.conn.open) slots.push({s, kind:'human', name:h.name, fac, rk:rk(s).rk, em:rk(s).em});
       else { if(h) delete this.humans[s]; slots.push({s, kind:'ai', name:null, fac}); }   // dropped players' seats go to the AI; the host can reopen them
     }
     this.slots=slots; this.inGame=false; this.winner=null; this.evts.length=0;
@@ -7090,8 +7105,8 @@ const NET={
     for(const sl of [this.slots[0],...opp]) if(!sl.fac) sl.fac=pool.shift();
     cfg.size=this.size; cfg.enemies=opp.length; cfg.faction=this.slots[0].fac; cfg.map=this.opts.map; cfg.mods=[...this.opts.mods];
     this.setup={
-      host:{fac:this.slots[0].fac, name:this.slots[0].name},
-      opp:opp.map(x=>({fac:x.fac, name:x.name, human:x.kind==='human'})),
+      host:{fac:this.slots[0].fac, name:this.slots[0].name, rk:this.slots[0].rk, em:this.slots[0].em},
+      opp:opp.map(x=>({fac:x.fac, name:x.name, human:x.kind==='human', rk:x.rk, em:x.em})),
       conns:opp.map(x=>x.kind==='human'?this.humans[x.s].conn:null),
     };
     this.humans={};
@@ -7105,12 +7120,14 @@ const NET={
     const st=this.setup; if(!st) return;
     playerMeta[P]=mkMeta(FACTIONS[st.host.fac]);
     playerMeta[P].name=st.host.name||'HOST';
+    this.ranks={[P]:{rk:st.host.rk||1, em:st.host.em||'none'}};
     st.opp.forEach((o,i)=>{
       const s='A'+(i+1);
       playerMeta[s]=mkMeta(FACTIONS[o.fac]);
       if(o.human){
         playerMeta[s].name=o.name;
         this.humans[s]={name:o.name, conn:st.conns[i], tok:netTok()};
+        this.ranks[s]={rk:o.rk||1, em:o.em||'none'};
         if(st.conns[i]) st.conns[i]._side=s;
       }
     });
@@ -7135,7 +7152,7 @@ const NET={
       alive:{...alive}, stars:{...stars},
       tech:Object.fromEntries(turnOrder.map(s=>[s,[...tech[s]]])),
       turn, uid, side, over:gameOver, winner:this.winner, stats:{...stats},
-      tm:this.timer, te:this.turnEnds?Math.max(0,this.turnEnds-Date.now()):0, tc:{...turnCities}, rv:mapReveals, ln:{...lastNuke}, tl:tally, pw, dip,
+      rk:this.ranks, tm:this.timer, te:this.turnEnds?Math.max(0,this.turnEnds-Date.now()):0, tc:{...turnCities}, rv:mapReveals, ln:{...lastNuke}, tl:tally, pw, dip,
       units:units.map(u=>({...u})),
       explored:null,
       map:map.map(row=>row.map(t=>({t:t.terrain, c:packCity(t.city), r:t.resource||0, ru:t.ruin?1:0, b:t.b||0})))
@@ -7169,7 +7186,7 @@ const NET={
   hostSave(){
     if(!this.host||!this.inGame||gameOver||!map) return;
     const hu={}; for(const k in this.humans){ const h=this.humans[k]; hu[k]={name:h.name, tok:h.tok, bot:h.bot?1:0}; }
-    hostResume({code:this.code, name:this.myName, size:this.size, timer:this.timer, opts:this.opts, humans:hu, seen:seenBy, save:serializeGame()});
+    hostResume({code:this.code, name:this.myName, size:this.size, timer:this.timer, opts:this.opts, humans:hu, ranks:this.ranks, seen:seenBy, save:serializeGame()});
   },
   resumeHost(){
     const r=hostResume();
@@ -7182,6 +7199,7 @@ const NET={
     this.myName=r.name||'HOST'; this.size=r.size||11; this.timer=r.timer||0; this.opts=r.opts||{map:'classic', mods:[]};
     this.humans={};
     for(const k in r.humans||{}){ const h=r.humans[k]; this.humans[k]={name:h.name, tok:h.tok, conn:null}; if(h.bot) this.humans[k].bot=true; }
+    this.ranks=r.ranks||{};
     this.inGame=true; MYSIDE=P;
     d.side=d.hs; d.over=false;
     if(!restoreGame(d,true)){ this.leave(); return; }
@@ -7315,8 +7333,18 @@ const NET={
     }
   },
 
+  /* quick messages: a fixed set of phrases, relayed by the host to everyone, at most one per player every 3 s */
+  emote(s,k){
+    if(!this.host||!this.inGame||!EMOTES[k]||!turnOrder.includes(s)) return;
+    if(Date.now()-(this._emoT[s]||0)<3000) return;
+    this._emoT[s]=Date.now();
+    this.showEmote(s,k); this.evt({t:'emote', s, k}); this.flushSoon(false);
+  },
+  showEmote(s,k){ if(EMOTES[k]&&meta(s)) note({icon:'chat', title:meta(s).name, text:EMOTES[k], color:meta(s).css}); },
   // Shared UI
   uiTick(){
+    const eb=$('emoteBtn'), on=this.on&&this.inGame&&!!map;
+    if(eb.hidden===on){ eb.hidden=!on; if(!on) $('emoteBar').hidden=true; }
     if(!this.on) return;
     if(this.host&&this.inGame) this.flushSoon(false);
     this.turnBanner();
@@ -7361,8 +7389,9 @@ const NET={
              :sl.kind==='human'?sl.name
              :sl.kind==='ai'?'AI COMMANDER'
              :sl.kind==='open'?'OPEN: waiting for ally\u2026':'closed';
-      d.innerHTML='<span class="dot" style="background:'+(fac?fac.css:'var(--line)')+'"></span>'+
-                  '<span class="nm">'+nm+'</span>'+
+      const who=sl.kind==='host'||sl.kind==='human';
+      d.innerHTML=(who?'<img class="flg" alt="" src="'+flagImg(fac?fac.color:NEUTRAL_FLAG, sl.em)+'">':'<span class="dot" style="background:'+(fac?fac.css:'var(--line)')+'"></span>')+
+                  '<span class="nm">'+esc(nm)+(who&&sl.rk?rankBadge(sl.rk,true):'')+'</span>'+
                   '<span class="fk">'+(fac?fac.name:'')+'</span>'+
                   (this.host&&i>0&&sl.kind!=='human'?'<span class="tog">\u21bb</span>':'');
       if(this.host&&i>0&&sl.kind!=='human'){
@@ -7417,7 +7446,7 @@ const NET={
 
 /* Guests restore fully on start, then apply each broadcast incrementally */
 function netRestore(d){
-  NET.humansList=d.humans||[];
+  NET.humansList=d.humans||[]; NET.ranks=d.rk||{};
   NET.timer=d.tm||0; NET.turnEnds=Number.isFinite(d.te)&&d.te>0?Date.now()+d.te:0;
   if(restoreGame(d, true)){
     if(!alive[MYSIDE]&&!gameOver) showDefeat();
@@ -7444,7 +7473,7 @@ function applyNetState(d, evts){
   side=d.side;
   // a touch attack armed with the first tap survives an update that left both units alone
   pendingAtk=pa&&side===MYSIDE&&byId(pa.uid)&&JSON.stringify([byId(pa.uid),pa.tid!=null?byId(pa.tid):0])===pk?pa:null;
-  NET.humansList=d.humans||[];
+  NET.humansList=d.humans||[]; NET.ranks=d.rk||{};
   NET.timer=d.tm||0; NET.turnEnds=Number.isFinite(d.te)&&d.te>0?Date.now()+d.te:0;
   turnCities=d.tc||{}; tally=d.tl||{}; pw=Object.assign(pw0(), d.pw||{}); dip=Object.assign(dip0(), d.dip||{});
   for(const r of d.rv||[]) if(r.s===MYSIDE) revealAround(r.x,r.y,r.r);
@@ -7464,6 +7493,7 @@ function replayEvts(list){
   for(const e of list){
     try{
       if(e.t==='log'){ log(e.w, e.m); }
+      else if(e.t==='emote') NET.showEmote(e.s, e.k);
       else if(e.t==='note'){ if(Array.isArray(e.who)&&e.who.includes(MYSIDE)) toast(String(e.msg), 'var(--amber)'); }
       else if(e.t==='kill'){ if(e.b===MYSIDE) stats.kills++; if(e.o===MYSIDE) stats.losses++; }
       else if(e.t==='fx'){
@@ -7496,6 +7526,27 @@ function showDefeat(){
   sfx.boom();
 }
 
+const EMOTES=['Good luck','Nice move','Thanks','Oops','Watch out','Good game'];
+$('emoteBtn').onclick=()=>{
+  const bar=$('emoteBar');
+  if(!bar.hidden){ bar.hidden=true; return; }
+  bar.innerHTML='';
+  EMOTES.forEach((t,k)=>{ const b=document.createElement('button'); b.textContent=t;
+    b.onclick=()=>{ bar.hidden=true; sfx.select();
+      if(NET.host) NET.emote(P,k); else if(NET.hconn&&NET.hconn.open){ try{ NET.hconn.send({t:'emote', k}); }catch(e){} }
+      $('emoteBtn').disabled=true; setTimeout(()=>{ $('emoteBtn').disabled=false; },3000); };
+    bar.appendChild(b); });
+  bar.hidden=false;
+};
+document.addEventListener('pointerdown',e=>{ const bar=$('emoteBar'); if(!bar.hidden&&!bar.contains(e.target)&&!$('emoteBtn').contains(e.target)) bar.hidden=true; },true);
+/* a small flag in the faction colour with the player's emblem */
+const flagCache={};
+function flagImg(col, em){
+  const k=col+'|'+em; if(flagCache[k]) return flagCache[k];
+  const c=document.createElement('canvas'); c.width=66; c.height=39;
+  drawFlag(c.getContext('2d'), col, EMBLEMS[em]?em:'none', 66, 39);
+  return flagCache[k]=c.toDataURL();
+}
 /* Status line, lobby toggles, connection bar */
 function mpMsg(m){ const el=$('mpStatus'); if(el) el.textContent=m||''; }
 /* An invite link (<game url>#join=CODE) opens the Online screen with the code filled in */
