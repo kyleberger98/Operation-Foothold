@@ -358,7 +358,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 #setupInner{background:var(--panel); border:1px solid var(--line); max-width:860px; width:100%; margin:auto 0;
   padding:22px 24px 26px; border-radius:18px; box-shadow:0 24px 70px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04)}
 #setupInner.home{max-width:440px; background:rgba(22,29,24,.9)}
-.fmed{display:flex; gap:5px; margin-top:8px}
+.fmed{display:flex; flex-wrap:wrap; gap:5px; margin-top:8px}
 .md{min-width:30px; padding:1px 6px; border-radius:999px; font-size:10px; font-weight:700; text-align:center; border:1px solid var(--line); color:var(--dim)}
 .md.s1{border-color:#c08457; color:#e0a070}
 .md.s2{border-color:#c9d1d6; color:#e6ecef}
@@ -973,8 +973,8 @@ const FACTIONS={
            perk:'Green revolution: crop harvests give +1 extra population.',
            cropBonus:1},
   TIDE:   {key:'TIDE',   name:'Tidewatch Rangers', color:0x22d3b0, trim:0x16806c, css:'#22d3b0',
-           perk:'Rapid deployment: starts with a second Infantry squad and Field Radio (+1 vision, villages revealed, richer supply drops).',
-           startTech:['RADIO'], extraInf:1},
+           perk:'Wide intel: starts with Field Radio (+1 vision, villages revealed, richer supply drops).',
+           startTech:['RADIO']},
 };
 /* Per-faction style blurb, 1-5 ratings and learning difficulty */
 const FACTION_STYLE={
@@ -984,7 +984,7 @@ const FACTION_STYLE={
   GHOST:  {style:'See everything first with wide vision, drones and snipers.',   r:{Attack:4,Defense:2,Economy:2,Mobility:3,Intel:5}, learn:'Hard'},
   BASTION:{style:'Turtle up and grind behind walled cities and armoured Guardians.',                 r:{Attack:2,Defense:5,Economy:3,Mobility:2,Intel:2}, learn:'Easy'},
   VERDANT:{style:'Grow tall. Crops count double and forests hide ambushes.',    r:{Attack:3,Defense:3,Economy:4,Mobility:3,Intel:2}, learn:'Medium'},
-  TIDE:   {style:'Move first and everywhere, with an extra squad, wide intel and hovercraft on water.', r:{Attack:3,Defense:2,Economy:2,Mobility:5,Intel:4}, learn:'Medium'},
+  TIDE:   {style:'Move first and everywhere, with wide intel and hovercraft on water.', r:{Attack:3,Defense:2,Economy:2,Mobility:5,Intel:4}, learn:'Medium'},
 };
 function factionInfoHtml(k){
   const f=FACTIONS[k], st=FACTION_STYLE[k], fu=UNIT_TYPES[FACTION_UNIT[k]];
@@ -1003,7 +1003,7 @@ const POWERS={
   GHOST:  {key:'ambush',   name:'Ambush',            desc:'For the rest of this turn your units deal +25% damage and enemies cannot return fire.'},
   BASTION:{key:'bulwark',  name:'Hold the Line',     desc:'For two rounds, your units take half damage.'},
   VERDANT:{key:'festival', name:'Harvest Festival',  desc:'Every city you hold gains +2 population. Fully grown cities pay 4\u2605 each instead.'},
-  TIDE:   {key:'airdrop',  name:'Reinforcements',    desc:'A free unit lands at every city you hold: a Tank once you have Mechanized Warfare, Infantry before that.'},
+  TIDE:   {key:'airdrop',  name:'Reinforcements',    desc:'A free unit lands at every city you hold: Infantry, or once you have Mechanized Warfare, Tanks at up to four cities.'},
 };
 for(const k in POWERS) FACTIONS[k].power=POWERS[k];
 const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1032,12 +1032,13 @@ function usePower(s){
       fx.popup(q.x,q.y,gained.length?'LEVEL '+c.level+'!':'+2 POP','#8fd89a');
     }
   } else if(p.key==='airdrop'){
-    const k=hasTech(s,'MECH')?'TNK':'INF';
-    for(const q of cities){
+    let n=0;
+    for(const q of cities.sort((a,b)=>!!b.c.capital-!!a.c.capital)){
+      const k=n<4&&hasTech(s,'MECH')?'TNK':'INF';   // Tanks at four cities at most, Infantry at the rest
       const spot=[[0,0],[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]].map(([dx,dy])=>({x:q.x+dx,y:q.y+dy}))
         .find(t=>inb(t.x,t.y)&&!unitAt(t.x,t.y)&&!tileAt(t.x,t.y).ruin&&tileAt(t.x,t.y).terrain!=='water'&&tileAt(t.x,t.y).terrain!=='mountain'&&(!tileAt(t.x,t.y).city||(t.x===q.x&&t.y===q.y)));
       if(!spot) continue;
-      spawn(s,k,spot.x,spot.y); const nu=units[units.length-1]; nu.moved=true; nu.attacked=true;
+      spawn(s,k,spot.x,spot.y); n++; const nu=units[units.length-1]; nu.moved=true; nu.attacked=true;
       fx.popup(spot.x,spot.y,'REINFORCED','#8fd89a');
     }
   }
@@ -1050,7 +1051,7 @@ function usePower(s){
 function aiUsePower(me){
   if(!powerReady(me)||!diff().sharp||turn<4) return;
   const k=meta(me).faction.power.key, mine=units.filter(u=>u.owner===me&&u.type!=='NUKE');
-  const foes=units.filter(e=>hostile(e.owner,me));
+  const foes=aiFoes(me,aiLook(me));   // only what it can see or saw lately
   const inRange=mine.filter(u=>attackTargets(u).length).length;   // units that can strike right now
   let hq=null; for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.capital&&c.owner===me) hq={x,y}; }
   const cornered=!!hq&&foes.some(e=>cheb(e,hq)<=2);
@@ -1241,7 +1242,7 @@ function addPop(c,n){
 const TECHS={
   MARKS:{key:'MARKS', name:'Marksmanship',      branch:'Combat',   tier:1, req:null,    unlocks:'Unlocks the Sniper. Infantry are trained with +2 HP.'},
   DRILLS:{key:'DRILLS',name:'Combat Drills',    branch:'Combat',   tier:2, req:'MARKS', unlocks:'Infantry and Snipers deal +30% damage, and Infantry gain +1 DEF.'},
-  MECH: {key:'MECH',  name:'Mechanized Warfare',branch:'Combat',   tier:2, req:'MARKS', unlocks:'Unlocks the Tank. Tanks gain +1 DEF.'},
+  MECH: {key:'MECH',  name:'Mechanized Warfare',branch:'Combat',   tier:2, req:'MARKS', unlocks:'Unlocks the Tank. Tanks gain +1 DEF when attacked; their return fire is unchanged.'},
   ARMOR:{key:'ARMOR', name:'Composite Armor',   branch:'Combat',   tier:3, req:'MECH',  unlocks:'Tanks, Artillery and Flak gain +2 DEF.'},
   SIEGE:{key:'SIEGE', name:'Siege Doctrine',    branch:'Combat',   tier:3, req:'MECH',  unlocks:'Unlocks Artillery. Its blast hits enemies next to the target for 50% damage instead of 25%.'},
   SPG:  {key:'SPG',   name:'Self-Propelled Guns',branch:'Combat',  tier:3, req:'SIEGE', unlocks:'Artillery can move and fire in the same turn, and gains +1 move.'},
@@ -2112,8 +2113,10 @@ function guardAura(d){
   return 1;
 }
 function defMult(a,d){ return (DEF_BONUS[d.type]&&DEF_BONUS[d.type][a.type])||1; }
-/* return fire from d after u's attack; u's armour against d blunts it too */
-function retDmg(u,d,AF,DF){ return Math.max(1,Math.round(DF/(AF+DF)*uDef(d)*4.5*drillMul(d,u)*shieldMul(u.owner)/defMult(d,u))); }
+/* return fire from d after u's attack; u's armour against d blunts it too.
+   The Mechanized Warfare point only protects the Tank: it doesn't add to its return fire */
+function retDmg(u,d,AF,DF){ const df=uDef(d)-(d.type==='TNK'&&hasTech(d.owner,'MECH')?1:0);
+  return Math.max(1,Math.round(DF/(AF+DF)*df*4.5*drillMul(d,u)*shieldMul(u.owner)/defMult(d,u))); }
 
 /* Combat forecast */
 function fcText(f,tu){
@@ -2678,10 +2681,10 @@ setInterval(()=>{ if(!NET._lastTick||Date.now()-NET._lastTick>900) NET.timerTick
    filling the army cap with cheap units. Only switch when the enemies near a city call for a specific answer.
    Returns null to fall back to the default. */
 const aiSupportT={}, aiShipT={};   // turn each AI last built its support unit (Ambulance / Drone)
-function counterPick(me,c,pool){
+function counterPick(me,c,pool,foes){
   if(pool.includes('TTN')) return 'TTN';
   const fu=FACTION_UNIT[meta(me).faction.key];
-  const near=units.filter(q=>hostile(q.owner,me)&&cheb(q,c)<=7), n=t=>near.filter(q=>q.type===t).length;
+  const near=foes.filter(f=>cheb(f,c)<=7).map(f=>f.u), n=t=>near.filter(q=>q.type===t).length;
   const mine=units.filter(q=>q.owner===me), m=t=>mine.filter(q=>q.type===t).length;
   if(n('HEL')>m('AA')&&pool.includes('AA')) return 'AA';                       // flak against helicopters
   if(n('TNK')+n('TTN')>=2&&m('HEL')<2&&pool.includes('HEL')) return 'HEL';      // gunships against armour
@@ -2709,6 +2712,8 @@ async function aiTurn(me){
   const AI_TECH_ORDER=['MINING','MARKS','MECH','DRILL','LOGI','MEDIC','URBAN','DRILLS','SIEGE','FORT','AVIA',
                        'ARMOR','HOSP','AIRDEF','SPG','TURBO','FWDOBS','NUKE','RADIO','CAMO','CIVDEF','SAT'];
   const D=diff();
+  // what it can see now or saw lately; it never reads units hidden in the fog
+  const seen=aiLook(me), kn=aiKnow[me].e, foes=aiFoes(me,seen);
   // stars beyond three of its dearest unit are surplus, which go into buildings, techs and barracks
   const fu0=FACTION_UNIT[meta(me).faction.key];
   const dear=Math.max(...['TTN',fu0,'HEL','ART','TNK','SNP','INF'].filter(k=>k&&unitUnlocked(me,k)&&(k!=='TTN'||titanCap(me)>0)&&!UNIT_TYPES[k].medic&&!UNIT_TYPES[k].sight).map(k=>unitCost(me,k)));
@@ -2741,7 +2746,7 @@ async function aiTurn(me){
     if(waterShare()>=0.15){ const nv=['NAVAL','FLEET']; order=[...order.slice(0,4).filter(k=>!nv.includes(k)),'NAVAL',...order.slice(4,8).filter(k=>!nv.includes(k)),'FLEET',...order.slice(8).filter(k=>!nv.includes(k))]; }   // a watery map calls for a navy
     const fuReq=UNIT_REQ[FACTION_UNIT[meta(me).faction.key]];
     if(fuReq){ const chain=[TECHS[fuReq].req,fuReq].filter(Boolean); order=[...order.slice(0,2).filter(k=>!chain.includes(k)),...chain,...order.slice(2).filter(k=>!chain.includes(k))]; }
-    if(D.sharp&&!hasTech(me,'AIRDEF')&&units.some(q=>hostile(q.owner,me)&&q.type==='HEL')) order=['RADIO','AIRDEF',...order.filter(k=>k!=='RADIO'&&k!=='AIRDEF')];
+    if(D.sharp&&!hasTech(me,'AIRDEF')&&foes.some(f=>f.u.type==='HEL')) order=['RADIO','AIRDEF',...order.filter(k=>k!=='RADIO'&&k!=='AIRDEF')];
     for(const k of order){
       if(hasTech(me,k)||(TECHS[k].req&&!hasTech(me,TECHS[k].req))) continue;
       if(stars[me]>=techCost(k,me)+(TECHS[k].tier>=4?2:4)){ research(me,k); if(++learned>=D.techs&&!rich()) break; }
@@ -2754,13 +2759,7 @@ async function aiTurn(me){
   await sleep(240); if(stale()) return;
   if(stale()) return;
   // training: the cap per turn grows with the empire
-  const cities=[];
-  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-    const c=tileAt(x,y).city;
-    if(c&&c.owner===me&&!unitAt(x,y)) cities.push({x,y,cap:c.capital});
-  }
-  cities.sort((a,b)=>b.cap-a.cap);
-  const trainCap=D.sharp?Math.max(D.train,Math.floor(cityCount(me)/2)):D.train;
+  const trainCap=D.sharp?Math.max(D.train,Math.floor(cityCount(me)/2)):D.train, flush=()=>D.sharp&&stars[me]>5*dear;   // a side this rich trains in every free city
   let trained=0;
   // sharper AIs save up for a Titan once a high-level city can field one, as long as nothing threatens home
   let saving=false;
@@ -2768,48 +2767,68 @@ async function aiTurn(me){
     const home=[];
     let tc=unitCost(me,'TTN');
     for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.owner===me){ home.push({x,y}); if(canFieldTitan(me,c)) tc=Math.min(tc,titanCost(me,c)); } }
-    saving=stars[me]<tc&&stars[me]>=tc/2&&armySize(me)>=3&&!units.some(q=>hostile(q.owner,me)&&home.some(h=>cheb(q,h)<=3));
+    saving=stars[me]<tc&&stars[me]>=tc/2&&armySize(me)>=3&&!foes.some(f=>home.some(h=>cheb(f,h)<=3));
   }
-  for(const c of cities){
-    if(saving||trained>=trainCap||armySize(me)>=armyCap(me)) break;
-    // strategic: build a nuke if affordable and none in flight yet
-    if(D.nukes && hasTech(me,'NUKE') && stars[me]>=UNIT_TYPES.NUKE.cost+6 && turn-(lastNuke[me]??-99)>=5 &&
-       !units.some(q=>q.owner===me&&q.type==='NUKE')){
-      stars[me]-=UNIT_TYPES.NUKE.cost; spawn(me,'NUKE',c.x,c.y);
-      const nu=units[units.length-1]; nu.moved=true; nu.attacked=true;
-      log(me,`${meta(me).name} assembles a Nuclear Missile.`);
-      if(!nukeWarned[me]&&alive[MYSIDE]){
-        nukeWarned[me]=true;
-        toast('Nuclear warning: '+meta(me).name+' built a Nuclear Missile with range 6 and a 2-tile blast. Spread your units out. Civil Defense halves blast damage.','var(--red)');
+  const trainAt=async()=>{
+    const cities=[];
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+      const c=tileAt(x,y).city;
+      if(c&&c.owner===me&&!unitAt(x,y)) cities.push({x,y,cap:c.capital});
+    }
+    cities.sort((a,b)=>b.cap-a.cap);
+    for(const c of cities){
+      if(saving||(trained>=trainCap&&!flush())||armySize(me)>=armyCap(me)) break;
+      // strategic: build a nuke if affordable and none in flight yet
+      if(D.nukes && hasTech(me,'NUKE') && stars[me]>=UNIT_TYPES.NUKE.cost+6 && turn-(lastNuke[me]??-99)>=5 && (!c.cap||cities.length<2) &&
+         !units.some(q=>q.owner===me&&q.type==='NUKE')){
+        stars[me]-=UNIT_TYPES.NUKE.cost; spawn(me,'NUKE',c.x,c.y);
+        const nu=units[units.length-1]; nu.moved=true; nu.attacked=true;
+        log(me,`${meta(me).name} assembles a Nuclear Missile.`);
+        if(!nukeWarned[me]&&alive[MYSIDE]){
+          nukeWarned[me]=true;
+          toast('Nuclear warning: '+meta(me).name+' built a Nuclear Missile with range 6 and a 2-tile blast. Spread your units out. Civil Defense halves blast damage.','var(--red)');
+        }
+        refresh();
+        continue;
       }
-      refresh();
-      continue;
+      const enemyAir=foes.filter(f=>f.u.type==='HEL'&&cheb(f,c)<=6).length>units.filter(q=>q.owner===me&&q.type==='AA').length;
+      const mine=units.filter(q=>q.owner===me);
+      const artFull=mine.filter(q=>q.type==='ART').length*3>=Math.max(3,mine.length);
+      const cost=k=>k==='TTN'?titanCost(me,tileAt(c.x,c.y).city):unitCost(me,k);
+      const ok=k=>unitUnlocked(me,k) && cost(k)<=stars[me] && !(k==='ART'&&artFull) && (k!=='AA'||enemyAir) && (k!=='TTN'||canFieldTitan(me,tileAt(c.x,c.y).city));
+      // easier AIs pick any affordable unit; sharper ones go for the strongest they can afford
+      const fu=FACTION_UNIT[meta(me).faction.key];
+      const pool=['TTN',fu,'AA','HEL','ART','TNK','SNP','INF'].filter(ok);   // ships are handled below
+      const support=fu&&(UNIT_TYPES[fu].medic||UNIT_TYPES[fu].sight);   // a unit worth having one of, not a fighter
+      const wantSupport=!!(support&&ok(fu)&&D.sharp&&mine.length>=5&&!mine.some(q=>q.type===fu)&&turn-(aiSupportT[me]??-99)>=6);
+      const pick=D.sharp ? (wantSupport?fu:null) || (counterPick(me,c,pool,foes) || pool.find(k=>k!==fu && (k!=='HEL'||Math.random()<.5) && (k!=='AA'||(enemyAir&&Math.random()<.6))))
+                         : pool[rnd(pool.length)];
+      if(pick){ if(UNIT_TYPES[pick].medic||UNIT_TYPES[pick].sight) aiSupportT[me]=turn;
+        stars[me]-=cost(pick); spawn(me,pick,c.x,c.y); trained++;
+        const nu=units[units.length-1]; nu.moved=true; nu.attacked=true;
+        log(me,`${meta(me).name} deploys ${UNIT_TYPES[pick].name}.`);
+        if(pick==='TTN'&&me!==MYSIDE&&alive[MYSIDE]&&visXY(c.x,c.y)) toast(meta(me).name+' fielded a Titan. Helicopters and Artillery wear it down; Snipers barely scratch it.','var(--red)');
+        refresh();
+        if(visXY(c.x,c.y)){ aiPan(c.x,c.y); await sleep(280); if(stale()) return; }
+      }
     }
-    const enemyAir=units.filter(q=>hostile(q.owner,me)&&q.type==='HEL'&&cheb(q,c)<=6).length>units.filter(q=>q.owner===me&&q.type==='AA').length;
-    const mine=units.filter(q=>q.owner===me);
-    const artFull=mine.filter(q=>q.type==='ART').length*3>=Math.max(3,mine.length);
-    const cost=k=>k==='TTN'?titanCost(me,tileAt(c.x,c.y).city):unitCost(me,k);
-    const ok=k=>unitUnlocked(me,k) && cost(k)<=stars[me] && !(k==='ART'&&artFull) && (k!=='AA'||enemyAir) && (k!=='TTN'||canFieldTitan(me,tileAt(c.x,c.y).city));
-    // easier AIs pick any affordable unit; sharper ones go for the strongest they can afford
-    const fu=FACTION_UNIT[meta(me).faction.key];
-    const pool=['TTN',fu,'AA','HEL','ART','TNK','SNP','INF'].filter(ok);   // ships are handled below
-    const support=fu&&(UNIT_TYPES[fu].medic||UNIT_TYPES[fu].sight);   // a unit worth having one of, not a fighter
-    const wantSupport=!!(support&&ok(fu)&&D.sharp&&mine.length>=5&&!mine.some(q=>q.type===fu)&&turn-(aiSupportT[me]??-99)>=6);
-    const pick=D.sharp ? (wantSupport?fu:null) || (counterPick(me,c,pool) || pool.find(k=>k!==fu && (k!=='HEL'||Math.random()<.5) && (k!=='AA'||(enemyAir&&Math.random()<.6))))
-                       : pool[rnd(pool.length)];
-    if(pick){ if(UNIT_TYPES[pick].medic||UNIT_TYPES[pick].sight) aiSupportT[me]=turn;
-      stars[me]-=cost(pick); spawn(me,pick,c.x,c.y); trained++;
-      const nu=units[units.length-1]; nu.moved=true; nu.attacked=true;
-      log(me,`${meta(me).name} deploys ${UNIT_TYPES[pick].name}.`);
-      if(pick==='TTN'&&me!==MYSIDE&&alive[MYSIDE]&&visXY(c.x,c.y)) toast(meta(me).name+' fielded a Titan. Helicopters and Artillery wear it down; Snipers barely scratch it.','var(--red)');
-      refresh();
-      if(visXY(c.x,c.y)){ aiPan(c.x,c.y); await sleep(280); if(stale()) return; }
+  };
+  // a rich side first steps units off its other cities so those cities can train: fit units toward the nearest
+  // known enemy, wounded ones away from it
+  if(flush()&&!saving) for(const u of units.filter(q=>q.owner===me&&!q.moved&&q.type!=='NUKE'&&tileAt(q.x,q.y).city&&!tileAt(q.x,q.y).city.capital)){
+    let best=null, bs=1e9; const away=u.hp<=u.maxHp*0.6?-1:1;
+    for(const p of reachable(u).values()){
+      if(tileAt(p.x,p.y).city||(uRange(u)>1&&foes.some(f=>cheb(f,p)<=1))) continue;
+      const sc=away*foes.reduce((m,f)=>Math.min(m,cheb(f,p)),99)-(tileAt(p.x,p.y).terrain==='forest'?0.5:0);
+      if(sc<bs){ bs=sc; best=p; }
     }
+    if(best){ const vis=visXY(u.x,u.y)||visXY(best.x,best.y); moveUnit(u,best.x,best.y); if(gameOver) return; refresh(); if(vis) await sleep(200); if(stale()) return; }
   }
+  await trainAt(); if(stale()) return;
   // the navy: on a watery map, keep a few warships off the coast, more when the enemy brings its own
   if(D.sharp&&hasTech(me,'NAVAL')&&armySize(me)<armyCap(me)){
     const myShips=units.filter(q=>q.owner===me&&naval(q)&&q.type!=='LND').length;
-    const foeShips=units.filter(q=>hostile(q.owner,me)&&naval(q)).length;
+    const foeShips=foes.filter(f=>naval(f.u)).length;
     const landArmy=units.filter(q=>q.owner===me&&!naval(q)&&q.type!=='NUKE').length;
     const want=Math.min(3, Math.ceil(foeShips*0.75)+(waterShare()>=0.15?1:0));   // ships can't take cities: keep the navy a supporting arm
     if(myShips<want&&landArmy>=4&&turn-(aiShipT[me]??-99)>=2){ aiShipT[me]=turn;
@@ -2835,7 +2854,6 @@ async function aiTurn(me){
   }
   // objectives: the rival cities and units it knows of, and ground it has not explored yet.
   // A partner it plans to attack counts as a rival, so its troops gather on that border.
-  const seen=aiLook(me), kn=aiKnow[me].e, foes=aiFoes(me,seen);
   const objs=[], tgo=peaceWith(me).length?terrGrid():null, closed=(x,y)=>tgo&&tgo[y][x]&&relOf(me,tgo[y][x])==='peace'&&dip.warn[me+'>'+tgo[y][x]]==null;
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const t=tileAt(x,y), c=t.city;
@@ -2850,7 +2868,7 @@ async function aiTurn(me){
   // threats to the HQ: enemy units close enough to reach it soon
   let hq=null;
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.capital&&c.owner===me) hq={x,y}; }
-  const hqThreat=!!hq&&units.some(q=>hostile(q.owner,me)&&cheb(q,hq)<=3);
+  const hqThreat=!!hq&&foes.some(f=>cheb(f,hq)<=3);
   const val=q=>UNIT_TYPES[q.type].cost+(q.vet?3:0);
   // sharper AIs weigh each attack with the battle forecast and skip ones that only feed the enemy
   const bestTarget=u=>{
@@ -2884,7 +2902,7 @@ async function aiTurn(me){
                      .reduce((m,e)=>m+(hasTech(e.owner,'CIVDEF')?0.35:1),0);
         if(n>bestN){ bestN=n; bestT={x,y}; }
       }
-      if(bestT && bestN>=2){
+      if(bestT && (bestN>=2||(bestN>=1&&flush()))){   // a rich side doesn't leave a missile parked on a city
         if(visXY(bestT.x,bestT.y)){ aiPan(bestT.x,bestT.y); await sleep(400); if(stale()) return; }
         nukeStrike(u,bestT.x,bestT.y); lastNuke[me]=turn;
         refresh(); await sleep(400); if(stale()) return;
@@ -2908,7 +2926,7 @@ async function aiTurn(me){
       if(goal&&(cheb(goal,u)>1||onCity)){
         let best=null, bs=1e9;
         for(const p of reachable(u).values()){
-          const danger=units.filter(e=>hostile(e.owner,me)&&cheb(e,p)<=uRange(e)+1).length;
+          const danger=foes.filter(f=>cheb(f,p)<=uRange(f.u)+1).length;
           const sc=Math.max(0,cheb(p,goal)-1)*3+danger*2+(tileAt(p.x,p.y).city?20:0);
           if(sc<bs){ bs=sc; best=p; }
         }
@@ -2919,11 +2937,10 @@ async function aiTurn(me){
     if(UNIT_TYPES[u.type].sight){
       const kill=attackTargets(u).find(t=>{ const f=forecast(u,t); return f.kills||!f.rdmg; });
       if(kill){ attack(u,kill); refresh(); continue; }
-      const foes=units.filter(e=>hostile(e.owner,me));
       let best=null, bs=1e9;
       for(const p of reachable(u).values()){
         const near=foes.reduce((m,e)=>Math.min(m,cheb(e,p)),99);
-        const danger=foes.filter(e=>cheb(e,p)<=uRange(e)+uMove(e)).length;
+        const danger=foes.filter(e=>cheb(e,p)<=uRange(e.u)+uMove(e.u)).length;
         const sc=Math.abs(near-4)+danger*3+(tileAt(p.x,p.y).city?5:0);
         if(sc<bs){ bs=sc; best=p; }
       }
@@ -2961,7 +2978,7 @@ async function aiTurn(me){
               const d=cheb(p,o);
               s=Math.min(s, (o.w===2&&ranged?Math.max(0,d-uRange(u)+1):d)*3+o.w);
             }
-            if(ranged&&units.some(e=>hostile(e.owner,me)&&cheb(e,p)<=1)) s+=4;   // don't walk up to melee range
+            if(ranged&&foes.some(f=>cheb(f,p)<=1)) s+=4;   // don't walk up to melee range
             if(tileAt(p.x,p.y).terrain==='forest') s-=0.5;
             if(s<bestScore){bestScore=s;best=p;}
           }
@@ -2984,6 +3001,8 @@ async function aiTurn(me){
     refresh();
     if(acted) await sleep(280); if(stale()) return;
   }
+  // a rich side trains again in the cities its units have just left
+  if(!stale()&&!saving&&flush()) await trainAt();
   if(stale()){ banner.classList.remove('show'); $('speedBtn').hidden=true; return; }
   aiPromote();
   refresh();
