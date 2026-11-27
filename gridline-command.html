@@ -953,8 +953,8 @@ let exploredBy={}, camBy={}, turnSnaps={}, curtainUp=false, noticesDue=false, ho
 /* Factions */
 const FACTIONS={
   AEGIS:  {key:'AEGIS',  name:'Aegis Command',    color:0x5aa7e8, trim:0x2a5d96, css:'#5aa7e8',
-           perk:'Veteran corps: starts with Field Medicine; Aegis units have +1 HP, heal 4 HP when they rest and 2 HP on turns they move without attacking.',
-           startTech:'MEDIC', healBonus:1, hpBonus:1, healOnMove:true},
+           perk:'Veteran corps: starts with Field Medicine; Aegis units have +2 HP, heal 4 HP when they rest and 2 HP on turns they move without attacking.',
+           startTech:'MEDIC', healBonus:1, hpBonus:2, healOnMove:true},
   CRIMSON:{key:'CRIMSON',name:'Crimson Pact',     color:0xe8625a, trim:0x8e3a35, css:'#e8625a',
            perk:'War economy: every unit and building costs 1\u2605 less, so Infantry costs 1\u2605 and Snipers cost 3\u2605. Stacks with Logistics.',
            unitDiscount:1, snpDiscount:1},
@@ -981,7 +981,7 @@ const FACTION_STYLE={
   SOLARIS:{style:'Out-grow everyone with cheaper harvests, a cash windfall and long guns.',        r:{Attack:3,Defense:3,Economy:5,Mobility:2,Intel:2}, learn:'Easy'},
   GHOST:  {style:'See everything first with wide vision, drones and snipers.',   r:{Attack:4,Defense:2,Economy:2,Mobility:3,Intel:5}, learn:'Hard'},
   BASTION:{style:'Turtle up and grind behind walled cities and armoured Guardians.',                 r:{Attack:2,Defense:5,Economy:3,Mobility:2,Intel:2}, learn:'Easy'},
-  VERDANT:{style:'Grow tall. Crops count double, Farms are cheap and forests hide ambushes.',    r:{Attack:3,Defense:3,Economy:4,Mobility:3,Intel:2}, learn:'Medium'},
+  VERDANT:{style:'Grow tall. Crops count double and forests hide ambushes.',    r:{Attack:3,Defense:3,Economy:4,Mobility:3,Intel:2}, learn:'Medium'},
   TIDE:   {style:'Move first and everywhere, with an extra squad, wide intel and hovercraft on water.', r:{Attack:3,Defense:2,Economy:2,Mobility:5,Intel:4}, learn:'Medium'},
 };
 function factionInfoHtml(k){
@@ -1054,7 +1054,7 @@ function aiUsePower(me){
   const cornered=!!hq&&foes.some(e=>cheb(e,hq)<=2);
   let go=false;
   const hurt=mine.reduce((n,u)=>n+(u.maxHp-u.hp),0);
-  if(k==='triage') go=hurt>=14;
+  if(k==='triage') go=hurt>=10;
   else if(k==='assault'||k==='ambush') go=inRange>=3||(inRange>=2&&mine.length<=4);
   else if(k==='windfall') go=income(me)>=8;
   else if(k==='bulwark') go=mine.filter(u=>foes.some(e=>cheb(e,u)<=3)).length>=3;
