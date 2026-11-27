@@ -1,0 +1,8 @@
+# GitHub Pages builds this repository with Jekyll. Keep the test tooling out of the published site.
+exclude:
+  - node_modules
+  - package.json
+  - package-lock.json
+  - tests
+  - test-results
+  - playwright-report
