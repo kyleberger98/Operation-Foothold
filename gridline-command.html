@@ -1160,8 +1160,8 @@ function siegeLocked(u){ return !!UNIT_TYPES[u.type].siege && u.moved && !(u.typ
 function cityIncome(c){ const o=c.owner;
   return ((c.capital?2:1)+c.level+(c.bonus||0)+(o&&hasTech(o,'URBAN')?(c.level>=3?2:1):0))*(mod('rich')?2:1); }
 /* cities travel through saves and the network in this compact form */
-const packCity=c=>c?{o:c.owner,cap:!!c.capital,l:c.level,p:c.pop,rw:c.rw&&c.rw.length?c.rw:0,wa:c.walls?1:0,bd:c.border||0,bn:c.bonus||0,sc:c.scout?1:0,dv:c.dev||0,bk:c.bk||0}:0;
-const unpackCity=o=>o?{owner:o.o,capital:!!o.cap,level:o.l,pop:o.p,rw:o.rw||[],walls:!!o.wa,border:o.bd||1,bonus:o.bn||0,scout:!!o.sc,dev:o.dv||0,bk:o.bk||0}:null;
+const packCity=c=>c?{o:c.owner,cap:!!c.capital,l:c.level,p:c.pop,rw:c.rw&&c.rw.length?c.rw:0,wa:c.walls?1:0,bd:c.border||0,bn:c.bonus||0,sc:c.scout?1:0,dv:c.dev||0,bk:c.bk||0,cm:c.cmd?1:0,fd:c.fdy?1:0}:0;
+const unpackCity=o=>o?{owner:o.o,capital:!!o.cap,level:o.l,pop:o.p,rw:o.rw||[],walls:!!o.wa,border:o.bd||1,bonus:o.bn||0,scout:!!o.sc,dev:o.dv||0,bk:o.bk||0,cmd:!!o.cm,fdy:!!o.fd}:null;
 const fmtStat=v=>Math.round(v*10)/10;
 function nextAlive(cur){
   const i=turnOrder.indexOf(cur);
@@ -1180,7 +1180,7 @@ const UNIT_TYPES={
   ART:{key:'ART', name:'Artillery',  cost:9, hp:10,  atk:5, def:1, move:1, range:3, fly:false, siege:true, splash:0.25, desc:'Fires at range 3. Its blast also hits enemies next to the target for 25% damage. Cannot move and fire on the same turn.'},
   AA: {key:'AA',  name:'Flak Battery', cost:4, hp:12, atk:2, def:2, move:1, range:2, fly:false, desc:'Anti-air guns that strike from 2 tiles. +75% damage vs Helicopters, and shrugs off their return fire.'},
   HEL:{key:'HEL', name:'Helicopter', cost:8, hp:14, atk:3, def:2, move:3, range:1, fly:true, desc:'Flies over water and mountains. +50% damage vs Tanks, and their guns can barely track it.'},
-  TTN:{key:'TTN', name:'Titan', cost:18, hp:36, atk:5, def:4, move:1, range:1, fly:false, super:true, desc:'A colossal war walker. Slow, but it shrugs off Sniper fire and flattens anything next to it. Only a city of level 4 or higher can field one, and each such city supports a single Titan.'},
+  TTN:{key:'TTN', name:'Titan', cost:18, hp:36, atk:5, def:4, move:1, range:1, fly:false, super:true, splash:0.25, desc:'A colossal war walker. Slow, but it shrugs off Sniper fire, and each blow also hits enemies next to its target for 25% damage. Only a city of level 4 or higher can field one, and each such city supports a single Titan.'},
   NUKE:{key:'NUKE', name:'Nuclear Missile', cost:15, hp:1, atk:10, def:0, move:0, range:6, fly:false, siege:true, splash:1.0, nuke:2, oneShot:true, desc:'Fires once at range 6 and hits every enemy unit within 2 tiles of the target. Consumed on use.'},
 };
 /* one unit only its own faction can train */
@@ -1222,7 +1222,7 @@ const RES_TYPES={
   OIL: {key:'OIL',  name:'Oil Field',   cost:6, pop:3, desc:'Crude oil. The biggest growth boost for the adjacent city.'},
 };
 const MAX_LEVEL=5;
-const popNeed=c=>c.level+1;   // population that fills the bar to the next level
+const popNeed=c=>2*c.level;   // population that fills the bar to the next level
 /* add population to a city; returns the levels it gained, each queued as a reward */
 function addPop(c,n){
   const gained=[];
@@ -1765,6 +1765,8 @@ const titanLevel=()=>mod('titans')?1:TITAN_LEVEL;
 function titanCap(s){ let n=0; map.flat().forEach(t=>{ if(t.city&&t.city.owner===s&&t.city.level>=titanLevel()) n++; }); return n; }
 function titanCount(s){ return units.filter(u=>u.owner===s&&u.type==='TTN').length; }
 function canFieldTitan(s,c){ return !!c&&c.owner===s&&c.level>=titanLevel()&&titanCount(s)<titanCap(s); }
+const FOUNDRY_OFF=8;
+const titanCost=(s,c)=>Math.max(2, unitCost(s,'TTN')-(c&&c.fdy?FOUNDRY_OFF:0));   // a Titan foundry makes them cheaper in its city
 function armySize(s){ return units.filter(u=>u.owner===s&&u.type!=='NUKE').length+units.filter(u=>u.owner===s&&u.cargo).length; }
 /* an open water tile next to a coastal city, where its ships are launched */
 function waterShare(){ let w=0; for(let y=0;y<H;y++)for(let x=0;x<W;x++) if(tileAt(x,y).terrain==='water') w++; return w/(W*H); }
@@ -1792,7 +1794,7 @@ function unloadSpots(c){
   }
   return out;
 }
-function armyCap(s){ let n=hasTech(s,'LOGI')?2:0; map.flat().forEach(t=>{ if(t.city&&t.city.owner===s) n+=t.city.level+1+(t.city.bk||0); }); return n; }
+function armyCap(s){ let n=hasTech(s,'LOGI')?2:0; map.flat().forEach(t=>{ if(t.city&&t.city.owner===s) n+=t.city.level+1+(t.city.bk||0)+(t.city.cmd?2:0); }); return n; }
 function harvest(x,y,owner){
   const t=tileAt(x,y);
   if(!t.resource) return false;
@@ -1999,8 +2001,8 @@ const CITY_REWARDS={
      {k:'chest',    name:'War chest',       icon:'chest',  desc:'Gain 5\u2605 right now'}],
   4:[{k:'growth',   name:'Population boom', icon:'pop',    desc:'+3 population toward the next level'},
      {k:'borders',  name:'Wider borders',   icon:'border', desc:'Territory grows to 5\u00d75, bringing more resources in reach'}],
-  5:[{k:'command',  name:'Command post',    icon:'gear',   desc:'+2\u2605 income every turn'},
-     {k:'titan',    name:'Titan',           unit:'TTN',    desc:'A free Titan war walker strides out of the city'}],
+  5:[{k:'command',  name:'Command post',    icon:'gear',   desc:'+3\u2605 income every turn and +2 army size'},
+     {k:'foundry',  name:'Titan foundry',   unit:'TTN',    desc:'Titans trained in this city cost '+FOUNDRY_OFF+'\u2605 less'}],
 };
 function applyReward(s,x,y,pick){
   const c=inb(x,y)?tileAt(x,y).city:null;
@@ -2009,26 +2011,17 @@ function applyReward(s,x,y,pick){
   if(!opt||(opt.k==='walls'&&c.walls)) return false;   // walls can't be built twice
   c.rw.shift();
   if(opt.k==='workshop') c.bonus=(c.bonus||0)+1;
-  else if(opt.k==='command') c.bonus=(c.bonus||0)+2;
+  else if(opt.k==='command'){ c.bonus=(c.bonus||0)+3; c.cmd=true; }
   else if(opt.k==='scouts'){ c.scout=true; stars[s]+=2; }
   else if(opt.k==='walls') c.walls=true;
   else if(opt.k==='chest') stars[s]+=5;
   else if(opt.k==='borders') c.border=2;
   else if(opt.k==='growth'){ if(addPop(c,3).length) fx.popup(x,y,'LEVEL '+c.level+'!','#f0b35c'); }
-  else if(opt.k==='titan'){
-    const spot=[[0,0],[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]].map(([dx,dy])=>({x:x+dx,y:y+dy}))
-      .find(q=>inb(q.x,q.y)&&!unitAt(q.x,q.y)&&tileAt(q.x,q.y).terrain!=='water'&&tileAt(q.x,q.y).terrain!=='mountain'&&!tileAt(q.x,q.y).ruin);
-    if(spot){
-      spawn(s,'TTN',spot.x,spot.y);
-      const nu=units[units.length-1];
-      nu.moved=true; nu.attacked=true;
-      if(s!==MYSIDE&&alive[MYSIDE]&&visXY(spot.x,spot.y)) toast(meta(s).name+' fielded a Titan. Helicopters and Artillery wear it down; Snipers barely scratch it.','var(--red)');
-    } else stars[s]+=10;   // no free tile for it, so pay out instead
-  }
+  else if(opt.k==='foundry') c.fdy=true;
   fx.popup(x,y,opt.name.toUpperCase(),'#8fd89a');
   return true;
 }
-/* the AI's picks: income early, walls on its HQ, wider borders when they reach more resources, Titans */
+/* the AI's picks: income early, walls on its HQ, wider borders when they reach more resources, a foundry while it has room for a Titan */
 function aiRewards(s){
   map.forEach((row,y)=>row.forEach((t,x)=>{
     const c=t.city;
@@ -2041,7 +2034,7 @@ function aiRewards(s){
         for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)
           if(Math.max(Math.abs(dx),Math.abs(dy))===2&&inb(x+dx,y+dy)&&tileAt(x+dx,y+dy).resource) n++;
         pick=n>=2?1:0;
-      } else if(lvl===5) pick=1;
+      } else if(lvl===5) pick=titanCount(s)<titanCap(s)?1:0;
       if(!applyReward(s,x,y,pick)) break;
     }
   }));
@@ -2714,8 +2707,9 @@ async function aiTurn(me){
   // sharper AIs save up for a Titan once a high-level city can field one, as long as nothing threatens home
   let saving=false;
   if(D.sharp&&titanCount(me)<titanCap(me)&&armySize(me)<armyCap(me)){
-    const tc=unitCost(me,'TTN'), home=[];
-    for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.owner===me) home.push({x,y}); }
+    const home=[];
+    let tc=unitCost(me,'TTN');
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.owner===me){ home.push({x,y}); if(canFieldTitan(me,c)) tc=Math.min(tc,titanCost(me,c)); } }
     saving=stars[me]<tc&&stars[me]>=tc/2&&armySize(me)>=3&&!units.some(q=>hostile(q.owner,me)&&home.some(h=>cheb(q,h)<=3));
   }
   for(const c of cities){
@@ -2736,7 +2730,8 @@ async function aiTurn(me){
     const enemyAir=units.filter(q=>hostile(q.owner,me)&&q.type==='HEL'&&cheb(q,c)<=6).length>units.filter(q=>q.owner===me&&q.type==='AA').length;
     const mine=units.filter(q=>q.owner===me);
     const artFull=mine.filter(q=>q.type==='ART').length*3>=Math.max(3,mine.length);
-    const ok=k=>unitUnlocked(me,k) && unitCost(me,k)<=stars[me] && !(k==='ART'&&artFull) && (k!=='AA'||enemyAir) && (k!=='TTN'||canFieldTitan(me,tileAt(c.x,c.y).city));
+    const cost=k=>k==='TTN'?titanCost(me,tileAt(c.x,c.y).city):unitCost(me,k);
+    const ok=k=>unitUnlocked(me,k) && cost(k)<=stars[me] && !(k==='ART'&&artFull) && (k!=='AA'||enemyAir) && (k!=='TTN'||canFieldTitan(me,tileAt(c.x,c.y).city));
     // easier AIs pick any affordable unit; sharper ones go for the strongest they can afford
     const fu=FACTION_UNIT[meta(me).faction.key];
     const pool=['TTN',fu,'AA','HEL','ART','TNK','SNP','INF'].filter(ok);   // ships are handled below
@@ -2745,9 +2740,10 @@ async function aiTurn(me){
     const pick=D.sharp ? (wantSupport?fu:null) || (counterPick(me,c,pool) || pool.find(k=>k!==fu && (k!=='HEL'||Math.random()<.5) && (k!=='AA'||(enemyAir&&Math.random()<.6))))
                        : pool[rnd(pool.length)];
     if(pick){ if(UNIT_TYPES[pick].medic||UNIT_TYPES[pick].sight) aiSupportT[me]=turn;
-      stars[me]-=unitCost(me,pick); spawn(me,pick,c.x,c.y); trained++;
+      stars[me]-=cost(pick); spawn(me,pick,c.x,c.y); trained++;
       const nu=units[units.length-1]; nu.moved=true; nu.attacked=true;
       log(me,`${meta(me).name} deploys ${UNIT_TYPES[pick].name}.`);
+      if(pick==='TTN'&&me!==MYSIDE&&alive[MYSIDE]&&visXY(c.x,c.y)) toast(meta(me).name+' fielded a Titan. Helicopters and Artillery wear it down; Snipers barely scratch it.','var(--red)');
       refresh();
       if(visXY(c.x,c.y)){ aiPan(c.x,c.y); await sleep(280); if(stale()) return; }
     }
@@ -6185,7 +6181,7 @@ function renderInfoBody(){
     if(c.owner) por.style.setProperty('--fc', meta(c.owner).css);
     title.textContent=(c.capital?'Headquarters':'City')+' · Level '+c.level;
     chips.innerHTML=chip('Income','+'+inc+'★')+(c.level<MAX_LEVEL?chip('Pop',c.pop+'/'+popNeed(c)):chip('Pop','max'))+
-      (c.walls?chip('Walls','+50% DEF','good'):'')+(c.bk?chip('Barracks','+'+c.bk,'good'):'')+((c.border||1)>1?chip('Borders','5×5','good'):'')+(c.scout?chip('Sight','4','good'):'');
+      (c.walls?chip('Walls','+50% DEF','good'):'')+(c.bk?chip('Barracks','+'+c.bk,'good'):'')+((c.border||1)>1?chip('Borders','5×5','good'):'')+(c.scout?chip('Sight','4','good'):'')+(c.cmd?chip('Command post','+2 army','good'):'')+(c.fdy?chip('Foundry','Titans -'+FOUNDRY_OFF+'\u2605','good'):'');
     if(gameOver||!alive[MYSIDE]){ sub.textContent=ownerName(c.owner); body.textContent=''; return; }
     if(c.owner!==MYSIDE){
       const nm=c.owner&&playerMeta[c.owner]?meta(c.owner).name:null;
@@ -6218,7 +6214,7 @@ function renderInfoBody(){
     if(c.level>=titanLevel()&&!occupied) tipOnce('titanCity','This city can now field a Titan, the super unit. Each city of level 4 or more supports one.');
     if(coast&&hasTech(MYSIDE,'NAVAL')) tipOnce('harbour','Cities next to water launch ships onto a free water tile beside them, even with a unit standing on the city.');
     if(c.level>=titanLevel()&&!occupied){
-      const tc=unitCost(MYSIDE,'TTN'), have=titanCount(MYSIDE), cap=titanCap(MYSIDE);
+      const tc=titanCost(MYSIDE,c), have=titanCount(MYSIDE), cap=titanCap(MYSIDE);
       train.appendChild(actBtn({k:'TTN', img:unitIcon('TTN',MYSIDE), name:'Titan', cost:tc, cls:'super', disabled:stars[MYSIDE]<tc||full||have>=cap,
         title:have>=cap?'You already field '+have+' Titan'+(have===1?'':'s')+'. Each city of level 4+ supports one':'Titan: '+UNIT_TYPES.TTN.desc,
         onclick:()=>{ act({t:'train',k:'TTN',x:sel.x,y:sel.y}); sel=null; refresh(); }}));
@@ -6783,7 +6779,7 @@ function doAction(s, a){
     const sea=UNIT_TYPES[k].naval?coastSpot(a.x,a.y):null;
     if(!c||c.owner!==s||(UNIT_TYPES[k].naval?!sea:unitAt(a.x,a.y))) return;
     if(k==='TTN'&&!canFieldTitan(s,c)) return;
-    const cost=k==='NUKE'?UNIT_TYPES.NUKE.cost:unitCost(s,k);
+    const cost=k==='NUKE'?UNIT_TYPES.NUKE.cost:k==='TTN'?titanCost(s,c):unitCost(s,k);
     if(stars[s]<cost) return;
     stars[s]-=cost;
     spawn(s,k,sea?sea.x:a.x,sea?sea.y:a.y);
