@@ -1025,10 +1025,7 @@ function usePower(s){
   else if(p.key==='festival'){
     for(const q of cities){
       const c=q.c; if(c.level>=MAX_LEVEL) continue;
-      c.pop+=1; const gained=[];
-      while(c.level<MAX_LEVEL&&c.pop>=c.level+1){ c.pop-=c.level+1; c.level++; gained.push(c.level); }
-      if(c.level>=MAX_LEVEL) c.pop=0;
-      if(gained.length) c.rw=(c.rw||[]).concat(gained);
+      const gained=addPop(c,1);
       fx.popup(q.x,q.y,gained.length?'LEVEL '+c.level+'!':'+1 POP','#8fd89a');
     }
   } else if(p.key==='airdrop'){
@@ -1225,6 +1222,17 @@ const RES_TYPES={
   OIL: {key:'OIL',  name:'Oil Field',   cost:6, pop:3, desc:'Crude oil. The biggest growth boost for the adjacent city.'},
 };
 const MAX_LEVEL=5;
+const popNeed=c=>c.level+1;   // population that fills the bar to the next level
+/* add population to a city; returns the levels it gained, each queued as a reward */
+function addPop(c,n){
+  const gained=[];
+  if(c.level>=MAX_LEVEL) return gained;
+  c.pop+=n;
+  while(c.level<MAX_LEVEL&&c.pop>=popNeed(c)){ c.pop-=popNeed(c); c.level++; gained.push(c.level); }
+  if(c.level>=MAX_LEVEL) c.pop=0;
+  if(gained.length) c.rw=(c.rw||[]).concat(gained);
+  return gained;
+}
 
 /* Tech tree */
 const TECHS={
@@ -1687,12 +1695,7 @@ function build(s,x,y,k){
   const rc=ownCityNear(x,y,s,false), c=rc&&rc.city;
   let grew=0;
   const popGain=b.pop;
-  if(c&&b.pop&&c.level<MAX_LEVEL){
-    c.pop+=popGain; const gained=[];
-    while(c.level<MAX_LEVEL&&c.pop>=c.level+1){ c.pop-=c.level+1; c.level++; gained.push(c.level); }
-    if(c.level>=MAX_LEVEL) c.pop=0;
-    if(gained.length){ c.rw=(c.rw||[]).concat(gained); grew=gained.length; }
-  }
+  if(c&&b.pop&&c.level<MAX_LEVEL) grew=addPop(c,popGain).length;
   addBuildingDecor(x,y);
   if(visXY(x,y)){ fx.popup(x,y,b.name.toUpperCase(),'#8fd89a'); fx.shock(x,y,0x8fd89a); }
   if(s===MYSIDE) sfx.harvest();
@@ -1746,13 +1749,10 @@ function develop(s,x,y){
     if(s===MYSIDE) sfx.deploy();
     return true;
   }
-  c.dev=turn; c.pop++;
-  const gained=[];
-  while(c.level<MAX_LEVEL && c.pop>=c.level+1){ c.pop-=c.level+1; c.level++; gained.push(c.level); }
-  if(c.level>=MAX_LEVEL) c.pop=0;
+  c.dev=turn;
+  const gained=addPop(c,1);
   fx.popup(x,y,'+1 POP','#8fd89a');
   if(gained.length){
-    c.rw=(c.rw||[]).concat(gained);
     fx.popup(x,y,'LEVEL '+c.level+'!','#f0b35c');
     if(s===MYSIDE) sfx.level();
     log(s, `${c.capital?'HQ':'City'} grew to level ${c.level}: income is up.${s===MYSIDE?' Pick a reward.':''}`);
@@ -1806,12 +1806,7 @@ function harvest(x,y,owner){
   t.resource=null;
   removeResourceDecor(x,y);
   const c=rc.city;
-  c.pop+=r.pop+(r===RES_TYPES.CROP?(meta(owner).faction.cropBonus||0):0);
-  const gained=[];
-  while(c.level<MAX_LEVEL && c.pop>=c.level+1){ c.pop-=c.level+1; c.level++; gained.push(c.level); }
-  if(c.level>=MAX_LEVEL) c.pop=0;
-  const grew=gained.length;
-  if(grew) c.rw=(c.rw||[]).concat(gained);
+  const grew=addPop(c, r.pop+(r===RES_TYPES.CROP?(meta(owner).faction.cropBonus||0):0)).length;
   const who=NET.on?meta(owner).name+' harvests':(owner===MYSIDE?'You harvest':'Enemy harvests');
   fx.popup(x,y,'+'+r.pop+' POP','#8fd89a');
   if(owner===MYSIDE) sfx.harvest();
@@ -2019,13 +2014,8 @@ function applyReward(s,x,y,pick){
   else if(opt.k==='walls') c.walls=true;
   else if(opt.k==='chest') stars[s]+=5;
   else if(opt.k==='borders') c.border=2;
-  else if(opt.k==='growth'){
-    c.pop+=3;
-    const gained=[];
-    while(c.level<MAX_LEVEL&&c.pop>=c.level+1){ c.pop-=c.level+1; c.level++; gained.push(c.level); }
-    if(c.level>=MAX_LEVEL) c.pop=0;
-    if(gained.length){ c.rw=c.rw.concat(gained); fx.popup(x,y,'LEVEL '+c.level+'!','#f0b35c'); }
-  } else if(opt.k==='titan'){
+  else if(opt.k==='growth'){ if(addPop(c,3).length) fx.popup(x,y,'LEVEL '+c.level+'!','#f0b35c'); }
+  else if(opt.k==='titan'){
     const spot=[[0,0],[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]].map(([dx,dy])=>({x:x+dx,y:y+dy}))
       .find(q=>inb(q.x,q.y)&&!unitAt(q.x,q.y)&&tileAt(q.x,q.y).terrain!=='water'&&tileAt(q.x,q.y).terrain!=='mountain'&&!tileAt(q.x,q.y).ruin);
     if(spot){
@@ -2342,10 +2332,7 @@ function openDrop(u,x,y){
   else if(r<0.75&&near.length){ const q=near[rnd(near.length)]; spawn(s,'INF',q.x,q.y); const nu=units[units.length-1]; nu.moved=true; nu.attacked=true; msg='a free Infantry recruit'; }
   else if(r<0.88||!home){ stars[s]+=4; mapReveals.push({s,x,y,r:4}); if(s===MYSIDE) revealAround(x,y,4); msg='a map of the area and 4\u2605'; }
   else {
-    const c=home.c; c.pop+=2; const gained=[];
-    while(c.level<MAX_LEVEL&&c.pop>=c.level+1){ c.pop-=c.level+1; c.level++; gained.push(c.level); }
-    if(c.level>=MAX_LEVEL) c.pop=0;
-    if(gained.length) c.rw=(c.rw||[]).concat(gained);
+    addPop(home.c,2);
     msg='settlers bringing +2 population to the nearest city';
   }
   if(hasTech(s,'RADIO')){ stars[s]+=3; msg+=' (+3\u2605 radio intel)'; }
@@ -3707,7 +3694,7 @@ function makeCityLabel(){
   return sp;
 }
 function drawCityLabel(sp,city){
-  const need=city.level+1;
+  const need=popNeed(city);
   const state=city.level+'|'+city.pop+'|'+(city.owner||'N')+'|'+(city.capital?1:0);
   if(sp.userData.last===state) return;
   sp.userData.last=state;
@@ -6197,7 +6184,7 @@ function renderInfoBody(){
     por.innerHTML=svgIcon('city');
     if(c.owner) por.style.setProperty('--fc', meta(c.owner).css);
     title.textContent=(c.capital?'Headquarters':'City')+' · Level '+c.level;
-    chips.innerHTML=chip('Income','+'+inc+'★')+(c.level<MAX_LEVEL?chip('Pop',c.pop+'/'+(c.level+1)):chip('Pop','max'))+
+    chips.innerHTML=chip('Income','+'+inc+'★')+(c.level<MAX_LEVEL?chip('Pop',c.pop+'/'+popNeed(c)):chip('Pop','max'))+
       (c.walls?chip('Walls','+50% DEF','good'):'')+(c.bk?chip('Barracks','+'+c.bk,'good'):'')+((c.border||1)>1?chip('Borders','5×5','good'):'')+(c.scout?chip('Sight','4','good'):'');
     if(gameOver||!alive[MYSIDE]){ sub.textContent=ownerName(c.owner); body.textContent=''; return; }
     if(c.owner!==MYSIDE){
@@ -6315,7 +6302,7 @@ function openArmy(){
   for(const {x,y,c} of cities){
     const busy=unitAt(x,y);
     row('<span class="ic">'+svgIcon('city')+'</span>', (c.capital?'Headquarters':'City')+' \u00b7 level '+c.level,
-      '+'+cityIncome(c)+'\u2605 \u00b7 '+(c.level<MAX_LEVEL?'pop '+c.pop+'/'+(c.level+1):'fully grown')+(coastal(x,y)?' \u00b7 harbour':'')+(c.rw&&c.rw.length?' \u00b7 reward waiting':''),
+      '+'+cityIncome(c)+'\u2605 \u00b7 '+(c.level<MAX_LEVEL?'pop '+c.pop+'/'+popNeed(c):'fully grown')+(coastal(x,y)?' \u00b7 harbour':'')+(c.rw&&c.rw.length?' \u00b7 reward waiting':''),
       busy?'Occupied':'Can train', busy?'':'ready', ()=>{ sel={kind:'city',x,y}; panTo(x,y); });
   }
   $('armyPanel').hidden=false;
