@@ -997,11 +997,11 @@ const FACTION_CLASH={AEGIS:['TIDE'], TIDE:['AEGIS']};
 const POWERS={
   AEGIS:  {key:'triage',   name:'Field Triage',      desc:'Every unit you have is healed to full health.'},
   CRIMSON:{key:'assault',  name:'All-Out Assault',   desc:'For the rest of this turn your units deal double damage.'},
-  SOLARIS:{key:'windfall', name:'Windfall',          desc:'Collect one and a half turns of income right now (at least 9\u2605).'},
+  SOLARIS:{key:'windfall', name:'Windfall',          desc:'Collect one and a half turns of income right now (at least 9\u2605, at most 30\u2605).'},
   GHOST:  {key:'ambush',   name:'Ambush',            desc:'For the rest of this turn your units deal +25% damage and enemies cannot return fire.'},
   BASTION:{key:'bulwark',  name:'Hold the Line',     desc:'For two rounds, your units take half damage.'},
-  VERDANT:{key:'festival', name:'Harvest Festival',  desc:'Every city you hold gains +1 population.'},
-  TIDE:   {key:'airdrop',  name:'Reinforcements',    desc:'A free Infantry lands at every city you hold.'},
+  VERDANT:{key:'festival', name:'Harvest Festival',  desc:'Every city you hold gains +2 population. Fully grown cities pay 4\u2605 each instead.'},
+  TIDE:   {key:'airdrop',  name:'Reinforcements',    desc:'A free unit lands at every city you hold: a Tank once you have Mechanized Warfare, Infantry before that.'},
 };
 for(const k in POWERS) FACTIONS[k].power=POWERS[k];
 const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1021,19 +1021,21 @@ function usePower(s){
   } else if(p.key==='assault') pw.rage[s]=turn;
   else if(p.key==='ambush') pw.ghost[s]=turn;
   else if(p.key==='bulwark') pw.shield[s]=2;   // lasts until the second time your turn comes round
-  else if(p.key==='windfall'){ const g=Math.max(9, Math.round(income(s)*1.5)); stars[s]+=g; const h=cities.find(q=>q.c.capital)||cities[0]; if(h) fx.popup(h.x,h.y,'+'+g+'\u2605','#f0b35c'); }
+  else if(p.key==='windfall'){ const g=Math.min(30, Math.max(9, Math.round(income(s)*1.5))); stars[s]+=g; const h=cities.find(q=>q.c.capital)||cities[0]; if(h) fx.popup(h.x,h.y,'+'+g+'\u2605','#f0b35c'); }
   else if(p.key==='festival'){
     for(const q of cities){
-      const c=q.c; if(c.level>=MAX_LEVEL) continue;
-      const gained=addPop(c,1);
-      fx.popup(q.x,q.y,gained.length?'LEVEL '+c.level+'!':'+1 POP','#8fd89a');
+      const c=q.c;
+      if(c.level>=MAX_LEVEL){ stars[s]+=4; fx.popup(q.x,q.y,'+4\u2605','#f0b35c'); continue; }
+      const gained=addPop(c,2);
+      fx.popup(q.x,q.y,gained.length?'LEVEL '+c.level+'!':'+2 POP','#8fd89a');
     }
   } else if(p.key==='airdrop'){
+    const k=hasTech(s,'MECH')?'TNK':'INF';
     for(const q of cities){
       const spot=[[0,0],[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]].map(([dx,dy])=>({x:q.x+dx,y:q.y+dy}))
         .find(t=>inb(t.x,t.y)&&!unitAt(t.x,t.y)&&!tileAt(t.x,t.y).ruin&&tileAt(t.x,t.y).terrain!=='water'&&tileAt(t.x,t.y).terrain!=='mountain'&&(!tileAt(t.x,t.y).city||(t.x===q.x&&t.y===q.y)));
       if(!spot) continue;
-      spawn(s,'INF',spot.x,spot.y); const nu=units[units.length-1]; nu.moved=true; nu.attacked=true;
+      spawn(s,k,spot.x,spot.y); const nu=units[units.length-1]; nu.moved=true; nu.attacked=true;
       fx.popup(spot.x,spot.y,'REINFORCED','#8fd89a');
     }
   }
