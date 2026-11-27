@@ -1489,7 +1489,7 @@ const tileAt=(x,y)=>map[y][x];
 /* keep the fairest of a few candidate maps, so villages and resources split evenly between the HQs */
 function genMap(){
   let best=null, bs=1e9;
-  for(let i=0;i<(mapType().mirror?1:12)&&bs>1;i++){
+  for(let i=0;i<(mapType().mirror&&enemySides.length<2?1:12)&&bs>1;i++){   // a 1v1 mirror is fair already
     const caps=genMap1(), sc=mapGap(caps);
     if(sc<bs){ bs=sc; best={caps,map}; }
   }
@@ -1947,7 +1947,7 @@ function myTurnNotices(){
   }
   if(turn>=3&&stars[s]>=5) setTimeout(()=>tipOnce('build','Tap an empty tile inside your borders to build. Farms and Lumber Camps grow your city, and Factories, Markets and Ports earn stars every turn.'),1800);
   { const n=dip.offers.filter(o=>o.to===s&&alive[o.from]).length; if(n) turnNotes.push({i:'hand', c:'#b9a4ff', t:n+' diplomatic offer'+(n>1?'s':'')+' waiting'}); }
-  if(mx.ad){ turnNotes.push({i:'star', t:'Supply drop lands next turn'+(recapAt?'':' (tap to look)')}); if(!recapAt) recapAt={x:mx.ad.x,y:mx.ad.y}; }
+  if(mx.ad){ const w=mx.ad.s; turnNotes.push({i:'star', t:'Supply drop lands '+(mx.ad.at>turn?'next turn':w&&alive[w]&&w!==s?'at the start of '+meta(w).name+'\u2019s turn':'when your turn ends')+(recapAt?'':' (tap to look)')}); if(!recapAt) recapAt={x:mx.ad.x,y:mx.ad.y}; }
   if(mx.sd&&gameMode()==='conquest') turnNotes.push({i:'warn', t:'Stalemate: the top score wins after turn '+mx.sd+' unless an HQ falls'});
   { const at=recapAt, rows=turnNotes.map(r=>typeof r==='string'?{i:'info',t:r}:r);
     let sub='Turn '+turn;
@@ -5079,6 +5079,7 @@ function swapSaveSides(d, me){
   d.units.forEach(u=>u.owner=sw(u.owner));
   d.map.forEach(row=>row.forEach(t=>{ if(t.c&&t.c.o) t.c.o=sw(t.c.o); }));
   if(d.rv) d.rv.forEach(r=>r.s=sw(r.s));
+  if(d.mx&&d.mx.ad&&d.mx.ad.s) d.mx.ad.s=sw(d.mx.ad.s);
   if(d.dip){   // treaties, offers and memories follow the swapped seats
     const swPair=(k,sep)=>k.split(sep).map(x=>x.endsWith('$')?sw(x.slice(0,-1))+'$':sw(x)).join(sep);
     const rel={}; for(const k in d.dip.rel||{}){ const [a,b]=k.split('|').map(sw); rel[relKey(a,b)]=d.dip.rel[k]; } d.dip.rel=rel;
@@ -5103,7 +5104,7 @@ function restoreGame(data, net){
     tally=data.tl?JSON.parse(JSON.stringify(data.tl)):{};
     pw=Object.assign(pw0(), data.pw?JSON.parse(JSON.stringify(data.pw)):{});
     dip=Object.assign(dip0(), data.dip?JSON.parse(JSON.stringify(data.dip)):{});
-    mx=Object.assign(mx0(), data.mx?JSON.parse(JSON.stringify(data.mx)):{});
+    mx=Object.assign(mx0(), data.mx?JSON.parse(JSON.stringify(data.mx)):{hq:data.turn||0});   // old saves: count quiet turns from here
     $('endBar').hidden=true;
     if(!net) NET.leave();
     pendingAtk=null;
@@ -7712,7 +7713,7 @@ function newGame(){
   stats={kills:0,losses:0}; tally={};
   stars={}; tech={};
   for(const s of turnOrder){
-    stars[s]=(isAI(s)?diff().start:6)+(turnOrder.indexOf(s)>0?6:0);   // moving first is worth about 6 stars
+    stars[s]=(isAI(s)?diff().start:6)+(turnOrder.indexOf(s)>0?4:0);   // moving first is worth about 4 stars
     tech[s]=new Set([].concat(playerMeta[s].faction.startTech||[]));
   }
   for(const [,g] of unitMeshes){ unitGroup.remove(g); freeUnitMesh(g); }
