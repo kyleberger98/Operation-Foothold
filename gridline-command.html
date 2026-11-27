@@ -272,6 +272,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
   .isub{font-size:12px}
   #info .stat{font-size:12px}
   #infoBody{font-size:12px; line-height:1.45; margin-top:5px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+  #infoBody.open{-webkit-line-clamp:unset}
   #train{flex-wrap:wrap; overflow-x:visible; padding-top:8px; gap:4px 4px}
   .abtn{width:56px}
   .abtn .disc{width:44px; height:44px}
@@ -313,9 +314,10 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 #command.mini .abtn .nm{font-size:12px}
 #command.mini .abtn.atk{background:rgba(232,98,90,.2); box-shadow:inset 0 0 0 1px rgba(255,150,140,.55)}
 #command.mini .abtn.more{box-shadow:inset 0 0 0 1px rgba(240,179,92,.45)}
-#command.mini .abtn:hover:not(:disabled){background:rgba(255,255,255,.12)}
-#command.mini .abtn:hover:not(:disabled) .disc{transform:none; box-shadow:none}
-#command.mini .abtn:disabled{opacity:.6}
+#command.mini .abtn:hover:not(.off){background:rgba(255,255,255,.12)}
+#command.mini .abtn:hover:not(.off) .disc{transform:none; box-shadow:none}
+#command.mini .abtn.off{opacity:.6}
+#command.mini .abtn.armed{box-shadow:inset 0 0 0 1.5px var(--amber)}
 @media (orientation:landscape) and (max-height:560px){ #command.mini{width:min(340px, 42vw)} }
 .abtn{flex:none; width:60px; display:flex; flex-direction:column; align-items:center; gap:3px;
   padding:0; background:none; border:none; color:var(--text); cursor:pointer}
@@ -327,12 +329,13 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 .abtn.atk .disc{background:radial-gradient(circle at 50% 35%, #a8443c, #5a1d19); box-shadow:inset 0 0 0 2px rgba(255,150,140,.5), 0 4px 12px rgba(0,0,0,.45)}
 .abtn .nm{font-family:'Saira Condensed',sans-serif; font-size:12.5px; letter-spacing:.05em; text-transform:uppercase; text-align:center; line-height:1.05}
 .abtn .cost{font-size:11px; font-weight:600; color:var(--amber); font-variant-numeric:tabular-nums}
-.abtn:hover:not(:disabled) .disc{box-shadow:inset 0 0 0 2px var(--amber), 0 6px 14px rgba(0,0,0,.45); transform:translateY(-2px)}
-.abtn:active:not(:disabled) .disc{transform:scale(.94)}
-.abtn:disabled{cursor:default}
-.abtn:disabled .disc{filter:grayscale(.8) brightness(.55)}
-.abtn:disabled .nm{color:var(--dim)}
-.abtn:disabled .cost{color:#8a7a5c}
+.abtn:hover:not(.off) .disc{box-shadow:inset 0 0 0 2px var(--amber), 0 6px 14px rgba(0,0,0,.45); transform:translateY(-2px)}
+.abtn:active:not(.off) .disc{transform:scale(.94)}
+.abtn.off{cursor:default}
+.abtn.off .disc{filter:grayscale(.8) brightness(.55)}
+.abtn.off .nm{color:var(--dim)}
+.abtn.off .cost{color:#8a7a5c}
+.abtn.armed .disc{box-shadow:inset 0 0 0 2px var(--amber), 0 0 0 3px rgba(240,179,92,.3)}
 .abtn.more .disc{background:rgba(255,255,255,.04); box-shadow:inset 0 0 0 2px rgba(240,179,92,.35); color:var(--amber)}
 .abtn.more .nm{color:var(--amber)}
 .abtn.danger .disc{box-shadow:inset 0 0 0 2px rgba(232,98,90,.7), 0 4px 10px rgba(0,0,0,.4)}
@@ -340,15 +343,20 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 .abtn.super .nm{color:var(--amber)}
 
 /* First-game coach bubble */
-#coach{position:fixed; z-index:40; width:min(300px, calc(100vw - 28px)); background:#f4f0e3; color:#18201a;
+#coach{position:fixed; z-index:40; width:min(300px, calc(100vw - 84px)); background:#f4f0e3; color:#18201a; pointer-events:none;
   border-radius:14px; padding:12px 14px 9px; box-shadow:0 14px 34px rgba(0,0,0,.55); font-size:12.5px; line-height:1.5}
 #coach b{color:#000}
 #coach .crow{display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:11px; color:#5d6b60}
-#coach .skip{background:none; border:none; padding:2px 0; color:#5d6b60; text-decoration:underline; cursor:pointer; font-size:11px}
+#coach .skip{background:none; border:none; padding:6px 0 6px 10px; margin:-6px 0; color:#5d6b60; text-decoration:underline; cursor:pointer; font-size:11px; pointer-events:auto}
 #coach::after{content:''; position:absolute; left:var(--ax,50%); width:14px; height:14px; background:#f4f0e3; transform:translateX(-50%) rotate(45deg)}
 #coach.below::after{top:-6px}
 #coach.above::after{bottom:-6px}
 #coach.free::after{display:none}
+#coach.left::after{left:auto; right:-6px; top:var(--ay,50%); transform:translateY(-50%) rotate(45deg)}
+.rb .rlab{display:none}
+body.railTips .rb.lab .rlab{display:block; position:absolute; right:calc(100% + 6px); top:50%; transform:translateY(-50%); padding:3px 8px; border-radius:99px;
+  background:rgba(12,18,14,.85); box-shadow:inset 0 0 0 1px rgba(255,255,255,.12); color:#eef3ee; font-size:11px; font-weight:700; line-height:1.3; white-space:nowrap; pointer-events:none}
+@media (max-height:520px){ body.railTips #armyBtn.lab .rlab{right:auto; left:50%; top:calc(100% + 4px); transform:translateX(-50%)} }
 .coach-ping .disc,.abtn.coach-ping .disc{animation:coachPing 1.3s ease-in-out infinite}
 @keyframes coachPing{0%,100%{box-shadow:0 0 0 0 rgba(244,240,227,0), inset 0 0 0 2px rgba(244,240,227,.9)}
   50%{box-shadow:0 0 0 10px rgba(244,240,227,.25), inset 0 0 0 2px rgba(244,240,227,.9)}}
@@ -588,6 +596,14 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
   align-items:center; justify-content:flex-start; flex-direction:column; gap:14px; z-index:50; text-align:center; padding:20px; overflow-y:auto}
 #overlay.show{display:flex}
 #overlay>:first-child{margin-top:auto} #overlay>:last-child{margin-bottom:auto}
+#overlay.manual #ovBody,#overlay:not(.manual) #ovManual{display:none}
+#ovManual{width:100%; max-width:560px; text-align:left}
+#ovManual .mTabs{position:sticky; top:-20px; z-index:1; display:flex; flex-wrap:wrap; justify-content:center; gap:6px; padding:10px 0 12px; margin-bottom:6px; background:rgba(8,12,10,.96)}
+#overlay .mTabs button{font-family:inherit; font-size:13px; font-weight:700; letter-spacing:0; text-transform:none; padding:7px 13px; border-radius:99px;
+  background:rgba(255,255,255,.06); border:1px solid var(--line); color:var(--dim)}
+#overlay .mTabs button[aria-selected="true"]{background:rgba(240,179,92,.16); border-color:var(--amber); color:var(--amber)}
+#ovManual .mEnt{color:var(--dim); line-height:1.6; margin:0 0 14px}
+#ovManual .mEnt b{display:block; color:var(--amber)}
 #overlay.manual .ovBtns{position:sticky; bottom:-20px; padding:12px 0 18px; width:100%; background:linear-gradient(rgba(8,12,10,0),rgba(8,12,10,.96) 45%)}
 #overlay h2{font-family:'Saira Condensed',sans-serif; font-size:42px; letter-spacing:.18em; text-transform:uppercase; text-shadow:0 0 36px currentColor}
 #overlay h2.win{color:var(--blue)} #overlay h2.lose{color:var(--red)}
@@ -792,7 +808,7 @@ body.tsz #techTree .tn-cost{font-size:12px}
         <button id="tutBtn" class="bigbtn">How to play<span>a guided first game</span></button>
       </div>
       <div class="saveNote loadMsg" role="alert" hidden></div>
-      <div class="saveNote">Your campaign auto-saves every move on this device.</div>
+      <div class="saveNote">Games auto-save on this device.</div>
       <div class="saveNote" id="progLine" hidden></div>
       <div class="setRow"><button id="speedMenuBtn" class="speedMenu"></button><button id="soundMenuBtn" class="speedMenu"></button><button id="musicMenuBtn" class="speedMenu"></button><button id="sfxMenuBtn" class="speedMenu"></button><button id="gfxMenuBtn" class="speedMenu"></button><button id="followMenuBtn" class="speedMenu"></button><button id="textMenuBtn" class="speedMenu"></button><button id="installBtn" class="speedMenu install" hidden></button></div>
       <div id="installTip" hidden>On iPhone or iPad, tap the <b>Share</b> button, then <b>Add to Home Screen</b>. Gridline Command opens full-screen from its icon and plays offline.</div>
@@ -2012,7 +2028,7 @@ function myTurnNotices(){
       turnNotes.push({i:'city', t:'Your cities are occupied, so move a unit off one to recruit'});
     }
   }
-  if(turn>=3&&stars[s]>=5) setTimeout(()=>tipOnce('build','Tap an empty tile inside your borders to build. Farms and Lumber Camps grow your city, and Factories, Markets and Ports earn stars every turn.'),1800);
+  if(turn>=3&&stars[s]>=5) setTimeout(()=>{ if(!(hintGate()&&!hintMem.farm&&farmSpot())) tipOnce('build','Tap an empty tile inside your borders to build. Farms and Lumber Camps grow your city, and Factories, Markets and Ports earn stars every turn.'); },1800);
   { const n=dip.offers.filter(o=>o.to===s&&alive[o.from]).length; if(n) turnNotes.push({i:'hand', c:'#b9a4ff', t:n+' diplomatic offer'+(n>1?'s':'')+' waiting'}); }
   if(mx.ad){ const w=mx.ad.s; turnNotes.push({i:'star', t:'Supply drop lands '+(mx.ad.at>turn?'next turn':w&&alive[w]&&w!==s?'at the start of '+meta(w).name+'\u2019s turn':'when your turn ends')+(recapAt?'':' (tap to look)')}); if(!recapAt) recapAt={x:mx.ad.x,y:mx.ad.y}; }
   if(mx.sd&&gameMode()==='conquest') turnNotes.push({i:'warn', t:'Stalemate: the top score wins after turn '+mx.sd+' unless an HQ falls'});
@@ -6082,6 +6098,7 @@ function syncCampBtn(){
     'turn '+c.turn+' \u00b7 '+campOwned(c,c.fac).length+' of '+c.regions.length+' regions'+(c.battle?' \u00b7 battle in progress':c.defend?' \u00b7 under attack':'');
 }
 function showSetup(){
+  tipQ.length=0;
   const grid=$('factionGrid');
   grid.innerHTML='';
   for(const k of Object.keys(FACTIONS)){
@@ -6109,6 +6126,7 @@ function showSetup(){
   renderProgress(); renderRankBtn();
   renderHot();
   if(cfg.hot>1) $('quickInfo').textContent+=' · pass & play ('+cfg.hot+' players)';
+  if(!tutDone()) $('quickInfo').textContent='First game \u00b7 guided \u00b7 small map, easy rival';
   const running=!!map&&!gameOver;
   $('resumeBtn').style.display=running?'':'none';
   // continue button if a save exists and no game is running
@@ -6156,14 +6174,14 @@ $('continueBtn').onclick=()=>{
   }catch(e){ log('sys','Save could not be loaded.'); }
 };
 $('resumeBtn').onclick=()=>{ disarm(); $('setup').classList.remove('show'); sfx.select(); };
-$('quickBtn').onclick=()=>{ if(confirmAbandon($('quickBtn'))) launchSolo(false); };
-$('tutBtn').onclick=()=>{
-  if(!confirmAbandon($('tutBtn'))) return;
+function launchTutorial(){
   const keep={...cfg};
-  cfg.size=9; cfg.enemies=1; cfg.diff='easy'; cfg.hot=1; cfg.mode='conquest';   // guided game on a small map with one easy rival
+  cfg.size=9; cfg.enemies=1; cfg.diff='easy'; cfg.hot=1; cfg.mode='conquest'; cfg.map='classic'; cfg.mods=[];   // guided game on a small map with one easy rival
   launchSolo(true,true);
   cfg=keep;
-};
+}
+$('quickBtn').onclick=()=>{ if(!confirmAbandon($('quickBtn'))) return; if(tutDone()) launchSolo(false); else launchTutorial(); };
+$('tutBtn').onclick=()=>{ if(confirmAbandon($('tutBtn'))) launchTutorial(); };
 $('customBtn').onclick=()=>{ disarm(); setupView('solo'); sfx.select(); };
 $('campBtn').onclick=()=>{ disarm(); setupView('camp'); sfx.select(); };
 $('profileBtn').onclick=()=>{ disarm(); setupView('profile'); sfx.select(); };
@@ -6312,21 +6330,38 @@ function note(o){
   // keep the turn card on top; when the stack is full, drop the oldest ordinary notice
   if(o.turn) box.insertBefore(t, box.firstChild); else box.appendChild(t);
   const cap=innerWidth<700?3:4;
-  while(box.children.length>cap){ const old=[...box.children].find(el=>!el.classList.contains('turn'))||box.firstChild; old.remove(); }
+  while(box.children.length>cap){   // tips go last
+    const kids=[...box.children], old=kids.find(el=>!el.classList.contains('turn')&&!el.classList.contains('tone-tip'))||kids.find(el=>!el.classList.contains('tone-tip'));
+    if(!old) break; old.remove(); }
   t.onclick=()=>{ if(o.onTap) o.onTap(); dismissNote(t); };
   t._t=setTimeout(()=>dismissNote(t), life);
   return t;
 }
-function dismissNote(t){ if(!t||t.classList.contains('out')) return; t.classList.add('out'); setTimeout(()=>t.remove(),300); }
+function dismissNote(t){ if(!t||t.classList.contains('out')) return; t.classList.add('out'); setTimeout(()=>t.remove(),300); if(t._done) t._done(); }
 function toast(msg,color,onTap){ const n=noteFrom(msg,color); n.onTap=onTap; return note(n); }
 /* one-time tips shown the first time you meet a mechanic, remembered per device */
 const TIPS_KEY='foothold-tips-seen';
+// one tip on screen at a time, the rest wait their turn; a tip counts as seen once it has been read or timed out
+const tipQ=[];
+let tipEl=null, tipAt=0;
+const tipBlocked=()=>$('setup').classList.contains('show')||$('overlay').classList.contains('show');
+function tipsSeen(){ try{ return JSON.parse(localStorage.getItem(TIPS_KEY)||'{}'); }catch(e){ return {}; } }
+function markTip(k){ const seen=tipsSeen(); seen[k]=1; try{ localStorage.setItem(TIPS_KEY, JSON.stringify(seen)); }catch(e){} }
 function tipOnce(k,msg){
   if(NET.on&&!NET.inGame) return;
-  let seen={}; try{ seen=JSON.parse(localStorage.getItem(TIPS_KEY)||'{}'); }catch(e){}
-  if(seen[k]) return;
-  seen[k]=1; try{ localStorage.setItem(TIPS_KEY, JSON.stringify(seen)); }catch(e){}
-  note({icon:'tip', tone:'tip', title:'Tip', text:msg, close:true, life:9000});
+  if(tipsSeen()[k]||tipQ.some(q=>q.k===k)||(tipEl&&tipEl.isConnected&&tipEl._k===k)) return;
+  tipQ.push({k,msg}); tipNext();
+}
+function tipNext(){
+  if(tipEl&&tipEl.isConnected&&!tipEl.classList.contains('out')) return;
+  tipEl=null;
+  if(tipBlocked()||performance.now()<tipAt) return;   // coachTick tries again later
+  let q; while((q=tipQ.shift())&&tipsSeen()[q.k]);
+  if(!q) return;
+  const t=note({icon:'tip', tone:'tip', title:'Tip', text:q.msg, close:true, life:9000});
+  if(!t) return;
+  tipEl=t; t._k=q.k;
+  t._done=()=>{ if(!tipBlocked()) markTip(q.k); if(tipEl===t) tipEl=null; tipAt=performance.now()+600; setTimeout(tipNext,600); };
 }
 function toastFromLog(who,msg){
   const big=/ELIMINATED|SURRENDERS|NUCLEAR|COMMANDER POWER|ran out of time/i.test(msg);
@@ -6375,13 +6410,11 @@ const TUT=[
   {text:()=>'Open <b>Tech</b> to unlock new units, harvesting and upgrades.',
    at:()=>({el:$('techBtn')}), done:()=>$('techPanel').classList.contains('show')},
   {text:()=>TAP()+' a glowing tech you can afford, then <b>Research</b>. Close the tree when you are done.',
-   at:()=>({el:$('techDetail'), place:'above'}), done:()=>!$('techPanel').classList.contains('show')},
+   at:()=>({el:$('techDetail'), place:'above'}), done:()=>!$('techPanel').classList.contains('show'), tech:true},
   {text:()=>'Out of moves? '+TAP()+' <b>End turn</b>.',
    at:()=>({el:$('endTurn')}), done:()=>coach.flags.ended},
   {text:()=>TAP()+' a <b>resource</b> inside your borders and <b>Harvest</b> it. Population levels up the city, which brings more income and a reward.',
    at:()=>({tile:tutRes()}), done:()=>coach.flags.harvested, skip:()=>!tutRes()},
-  {text:()=>'Enemies in range get <b>red rings</b>. '+TAP()+' one to see the battle forecast before you strike.',
-   at:()=>({el:$('endTurn')}), done:()=>coach.flags.ended2||coach.flags.attacked},
   {text:()=>'Your unit held the village through the night. Select it and '+TAP().toLowerCase()+' <b>Capture</b>. More cities mean more stars. Take every enemy HQ to win.',
    at:()=>{ const u=units.find(q=>q.owner===MYSIDE&&canCapture(q)); return {tile:u||myHQ()}; },
    done:()=>coach.flags.captured, skip:()=>turn>15,
@@ -6419,8 +6452,96 @@ function tutEnd(skipped){
   try{ localStorage.setItem(TUT_KEY,'1'); }catch(e){}
   if(!skipped) toast('Tutorial complete: capture every enemy HQ to win.','var(--amber)');
 }
-$('coachSkip').onclick=()=>{ sfx.select(); tutEnd(true); };
+$('coachSkip').onclick=()=>{
+  sfx.select();
+  if(coach.hShown){ hintSeen(coach.hShown.k); coach.hint=coach.hShown=null; $('coach').hidden=true; coachPing(null); }
+  else { tutEnd(true); coach.noHints=true; }
+};
+/* Coach hints: one-time pointers to what the tutorial leaves out, in the first few solo games */
+const HINT_KEY='foothold-hints-seen', RAIL_KEY='foothold-rail-seen';
+const lsGet=k=>{ try{ return JSON.parse(localStorage.getItem(k)||'{}')||{}; }catch(e){ return {}; } };
+const hintMem=lsGet(HINT_KEY), railMem=lsGet(RAIL_KEY);
+function hintSeen(k){ hintMem[k]=1; try{ localStorage.setItem(HINT_KEY, JSON.stringify(hintMem)); }catch(e){} }
+function hintGate(){   // worked out once per game
+  if(coach.gc!==gcfg){ coach.gc=gcfg; coach.noHints=false; coach.hint=null; coach.hf={};
+    coach.hintsOk=!!gcfg&&!NET.on&&!hotOn()&&(!tutDone()||(loadProg().played||0)<5); }
+  return coach.hintsOk&&!coach.noHints;
+}
+function farmSpot(){
+  if(stars[MYSIDE]<bldCost(MYSIDE,'FARM')) return null;
+  const h=myHQ()||myUnit(), g=terrGrid(); let best=null, bd=1e9;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    if(g[y][x]!==MYSIDE||tileAt(x,y).terrain!=='plains'||unitAt(x,y)||buildBlock(MYSIDE,x,y,'FARM')) continue;
+    const d=h?cheb(h,{x,y}):0; if(d<bd){ bd=d; best={x,y}; }
+  }
+  return best;
+}
+function ringTarget(){
+  for(const u of units) if(u.owner===MYSIDE&&!u.attacked&&u.type!=='NUKE'){ const t=attackTargets(u)[0]; if(t) return t; }
+  return null;
+}
+function metRival(){
+  if($('dipBtn').hidden) return null;
+  const u=units.find(q=>q.owner&&q.owner!==MYSIDE&&visXY(q.x,q.y));
+  if(u) return u.owner;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.owner&&c.owner!==MYSIDE&&explored[y][x]) return c.owner; }
+  return null;
+}
+const HINTS=[
+  {k:'farm', tip:'build', when:()=>turn>=2&&farmSpot(), at:h=>({tile:h.v}),
+   text:()=>'You can afford a <b>Farm</b>. '+TAP()+' this tile inside your borders, then Farm, to grow the city next to it.', done:()=>coach.hf.built},
+  {k:'rings', when:ringTarget, at:h=>({tile:h.v}),
+   text:()=>'An enemy is in range. Select your unit, and enemies it can hit get <b>red rings</b>. '+TAP()+' one to see the battle forecast first.', done:()=>coach.hf.attacked},
+  {k:'dip', when:metRival, at:()=>({el:$('dipBtn'), place:'left'}),
+   text:h=>'You have met <b>'+esc(meta(h.v).name)+'</b>. '+TAP()+' the handshake to offer peace, form an alliance or demand tribute.', done:()=>!$('dipPanel').hidden},
+  {k:'power', tip:'power', when:()=>turn>=3&&!$('powerBtn').hidden&&pw.used[MYSIDE]==null, at:()=>({el:$('powerBtn'), place:'left'}),
+   text:()=>'Your commander power, <b>'+esc(meta(MYSIDE).faction.power.name)+'</b>, is ready. '+TAP()+' the lightning button to see it. It works once per game.',
+   done:()=>(sel&&sel.kind==='power')||pw.used[MYSIDE]!=null},
+];
+function hintPick(){
+  const h=coach.hint;
+  if(h){
+    if(h.d.done()||turn!==h.turn){ hintSeen(h.k); coach.hint=null; }   // shown once: gone when done or when its turn ends
+    else return h;
+  }
+  const now=performance.now();
+  if(now<(coach.hNext||0)) return null;
+  coach.hNext=now+500;
+  for(const d of HINTS){
+    if(hintMem[d.k]) continue;
+    const v=d.when(); if(!v) continue;
+    coach.hint={k:d.k, d, v, turn, text:d.text({v})};
+    if(d.tip) markTip(d.tip);   // the toast version is not needed
+    const a=d.at(coach.hint); if(a.tile) panTo(a.tile.x,a.tile.y);
+    return coach.hint;
+  }
+  return null;
+}
+function railSync(on){
+  document.body.classList.toggle('railTips', on);
+  if(!on) return;
+  const tb=$('toasts'), tr=tb.children.length?tb.getBoundingClientRect():null;
+  for(const id in RAIL_LAB){
+    const e=$(id), l=e.querySelector('.rlab'); e.classList.toggle('lab', !railMem[id]);
+    if(!l) continue;
+    l.style.visibility='';
+    if(tr&&l.getClientRects().length&&overlaps(tr,l.getBoundingClientRect())) l.style.visibility='hidden';   // a notice is on top, wait for it
+  }
+}
+// left edge of the visible rail labels
+function railLeft(){
+  let x=innerWidth;
+  for(const id in RAIL_LAB){ const e=$(id), l=e.querySelector('.rlab'); if(!e.hidden&&l&&l.getClientRects().length) x=Math.min(x, l.getBoundingClientRect().left); }
+  return x;
+}
+const RAIL_LAB={fitBtn:'Map', dangerBtn:'Danger', powerBtn:'Power', armyBtn:'Army', dipBtn:'Diplomacy'};
+for(const id in RAIL_LAB){
+  const l=document.createElement('span'); l.className='rlab'; l.setAttribute('aria-hidden','true'); l.textContent=RAIL_LAB[id];
+  $(id).appendChild(l);
+  $(id).addEventListener('click',()=>{ if(railMem[id]) return; railMem[id]=1; $(id).classList.remove('lab'); try{ localStorage.setItem(RAIL_KEY, JSON.stringify(railMem)); }catch(e){} });
+}
 function coachNote(a){
+  if(coach.hf){ if(a.t==='build') coach.hf.built=true; if(a.t==='atk') coach.hf.attacked=true; }
   if(!coach.on) return;
   if(a.t==='move') coach.flags.moved=true;
   if(a.t==='train') coach.flags.trained=true;
@@ -6448,26 +6569,42 @@ function coachCheck(){
     const s=TUT[coach.i];
     $('coachText').innerHTML=s.text();
     $('coachStep').textContent='Tip '+(coach.i+1)+' of '+TUT.length;
+    $('coachSkip').textContent='Skip tutorial';
     const a=s.at();
     if(a.tile) panTo(a.tile.x,a.tile.y);
   }
 }
 const coachV=new THREE.Vector3();
+const RAIL_IDS=['fitBtn','dangerBtn','powerBtn','armyBtn','dipBtn'];
+const overlaps=(a,b)=>a.left<b.right&&b.left<a.right&&a.top<b.bottom&&b.top<a.bottom;
+function coachHide(b){ if(!b.hidden){ b.hidden=true; coachPing(null); } }
 function coachTick(){
   const b=$('coach');
-  if(!coach.on||!map||gameOver||side!==MYSIDE||$('setup').classList.contains('show')||$('overlay').classList.contains('show')){
-    if(!b.hidden){ b.hidden=true; coachPing(null); }
-    return;
+  const live=map&&!gameOver&&side===MYSIDE&&!$('setup').classList.contains('show')&&!$('overlay').classList.contains('show');
+  const gate=live&&hintGate();
+  railSync(!!gate);
+  if(tipQ.length&&!tipEl) tipNext();
+  if(!live){ coachHide(b); return; }
+  let step=null, wait=false;
+  if(coach.on){ wait=coachCheck()==='wait'; if(coach.on&&!wait) step=TUT[coach.i]; }
+  let h=null;
+  if(!step&&gate){
+    h=hintPick();
+    if(h&&coach.hShown!==h){ coach.hShown=h; $('coachText').innerHTML=h.text; $('coachStep').textContent='Tip'; $('coachSkip').textContent='Got it'; }
   }
-  if(coachCheck()==='wait'){ if(!b.hidden){ b.hidden=true; coachPing(null); } return; }
-  if(!coach.on) return;
-  const a=TUT[coach.i].at()||{};
-  let px=innerWidth/2, py=innerHeight*0.3, place='free';
+  if(!step&&!h){ coachHide(b); return; }
+  if(step&&coach.hShown){ coach.hShown=null; coach.shown=-1; coachCheck(); }   // put the tutorial text back
+  // stay out of the way of panels and dialogs, except on the tech step
+  const techOpen=$('techPanel').classList.contains('show');
+  if((techOpen&&!(step&&step.tech))||!$('dipPanel').hidden||!$('armyPanel').hidden||!$('rewardBox').hidden||!$('handoff').hidden){ coachHide(b); return; }
+  const a=(step?step.at():h.d.at(h))||{};
+  let px=innerWidth/2, py=innerHeight*0.3, place='free', ar=null;
   if(a.el&&a.el.getClientRects().length){
     const r=a.el.getBoundingClientRect();
     px=r.left+r.width/2;
     place=a.place||(r.top>innerHeight/2?'above':'below');
-    py=place==='above'?r.top:r.bottom;
+    py=place==='above'?r.top:place==='left'?r.top+r.height/2:r.bottom;
+    if(place==='left') ar=Math.min(r.left, railLeft());
     coachPing(a.el.matches('.abtn,.dock')?a.el:null);
   } else if(a.tile){
     coachV.set(wx(a.tile.x), TOP+0.6, wz(a.tile.y)).project(camera);
@@ -6477,15 +6614,43 @@ function coachTick(){
     coachPing(null);
   } else coachPing(null);
   b.hidden=false;
-  b.style.zIndex=$('techPanel').classList.contains('show')?46:'';
-  const bw=b.offsetWidth, bh=b.offsetHeight;
-  let top=place==='below'?py+14:place==='above'?py-bh-14:place==='top'?84:py;
+  b.style.zIndex=techOpen?46:'';
+  b.style.width=place==='left'&&ar-24<Math.min(300,innerWidth-84)?Math.max(160,ar-24)+'px':'';   // narrower beside the rail on phones
+  let bw=b.offsetWidth, bh=b.offsetHeight;
+  let top=place==='below'?py+14:place==='above'?py-bh-14:place==='top'?84:place==='left'?py-bh/2:py;
   if(place==='above'&&top<80){ top=py+14; place='below'; }
-  const left=Math.min(innerWidth-bw-10, Math.max(10, px-bw/2));
+  let left=place==='left'?Math.max(10, ar-bw-14):Math.min(innerWidth-bw-10, Math.max(10, px-bw/2));
+  top=Math.min(innerHeight-bh-10, Math.max(10, top));
+  // keep clear of the right-hand buttons and their labels
+  const clearRail=()=>{
+    if(place==='left') return;
+    let rl=innerWidth, rt=1e9, rb=-1e9;
+    for(const id of RAIL_IDS){ const e=$(id); if(!e.hidden&&e.getClientRects().length){ const r=e.getBoundingClientRect(); rl=Math.min(rl,r.left); rt=Math.min(rt,r.top); rb=Math.max(rb,r.bottom); } }
+    rl=Math.min(rl, railLeft());
+    if(top<rb+6&&top+bh>rt-6&&left+bw>rl-8){
+      if(rl-bw-18<0&&rl-18>=200){   // narrower beside the rail labels on phones
+        b.style.width=(rl-18)+'px'; bw=b.offsetWidth; bh=b.offsetHeight;
+        if(place==='above') top=py-bh-14;
+        top=Math.min(innerHeight-bh-10, Math.max(10, top));
+      }
+      left=Math.max(10, Math.min(left, rl-bw-8));
+    }
+  };
+  clearRail();
+  // and below any notices on screen
+  const tb=$('toasts');
+  if(tb.children.length){
+    const tr=tb.getBoundingClientRect();
+    if(overlaps(tr,{left, right:left+bw, top, bottom:top+bh})){
+      if(tr.bottom+8+bh<=innerHeight-10){ top=tr.bottom+8; place='free'; clearRail(); }
+      else { coachHide(b); return; }
+    }
+  }
   b.style.left=left+'px';
-  b.style.top=Math.min(innerHeight-bh-10, Math.max(10, top))+'px';
+  b.style.top=top+'px';
   b.className=place;
-  b.style.setProperty('--ax', Math.max(18, Math.min(bw-18, px-left))+'px');
+  if(place==='left') b.style.setProperty('--ay', Math.max(14, Math.min(bh-14, py-top))+'px');
+  else b.style.setProperty('--ax', Math.max(18, Math.min(bw-18, px-left))+'px');
 }
 
 // Line icons for the round buttons
@@ -6655,15 +6820,32 @@ function unitIcon(type, s){
 }
 
 // Selection card
+// o.why: why it is blocked, o.desc: what it does, o.confirm: on touch screens the first tap explains and the second does it
+let abtnArm=null;
+const selKey=()=>sel?sel.kind+':'+(sel.id!=null?sel.id:sel.x+','+sel.y):'';
+const noStars=()=>'Not enough stars (you have '+stars[MYSIDE]+'\u2605)';
+const capFirst=t=>t?t.charAt(0).toUpperCase()+t.slice(1):t;
 function actBtn(o){
   const b=document.createElement('button');
   b.type='button';
-  b.className='abtn'+(o.cls?' '+o.cls:'');
+  const off=!!o.disabled, key=selKey()+':'+o.name;
+  b.className='abtn'+(o.cls?' '+o.cls:'')+(off?' off':'');
   b.innerHTML=`<span class="disc">${o.img?`<img src="${o.img}" alt="">`:svgIcon(o.icon)}</span>`+
     `<span class="nm">${o.name}</span>`+(o.cost!=null?`<span class="cost">${o.cost}★</span>`:'');
-  b.disabled=!!o.disabled;
-  if(o.title) b.title=o.title;
-  b.onclick=e=>{ if(performance.now()<cardGuard) return; if(o.onclick) o.onclick(e); };   // ignore the tap that opened the card
+  if(off) b.setAttribute('aria-disabled','true');
+  const why=capFirst(o.why), title=o.title||[why,o.desc].filter(Boolean).join('. ');
+  if(title) b.title=title;
+  const info=()=>'<b>'+o.name+(o.cost!=null?' '+o.cost+'\u2605':'')+'</b>: '+esc(off?(why?why+'.'+(o.desc?' '+o.desc:''):title||'Not available right now'):(o.desc||title));
+  const arm=()=>{ $('train').querySelectorAll('.armed').forEach(q=>q.classList.remove('armed')); b.classList.add('armed');
+    $('forecast').innerHTML=info()+'<br><b>Tap again to '+o.confirm+'</b>'; };
+  if(o.confirm&&COARSE&&!off&&abtnArm===key) arm();
+  b.onclick=e=>{
+    if(performance.now()<cardGuard) return;   // ignore the tap that opened the card
+    if(off){ abtnArm=null; $('train').querySelectorAll('.armed').forEach(q=>q.classList.remove('armed')); $('forecast').innerHTML=info(); sfx.denied(); return; }
+    if(o.confirm&&COARSE&&abtnArm!==key){ abtnArm=key; arm(); sfx.select(); return; }
+    abtnArm=null;
+    if(o.onclick) o.onclick(e);
+  };
   if(o.k) b.dataset.k=o.k;
   return b;
 }
@@ -6679,9 +6861,12 @@ function renderInfo(){
   cmd.classList.toggle('mini', !(sel&&sel.kind==='city'&&n>1));   // only a city's training list needs the full card
   cmd.classList.toggle('many', n>2||(n>1&&innerWidth<=520));
 }
+$('infoBody').onclick=()=>$('infoBody').classList.toggle('open');   // a tap shows the whole line on small screens
 function renderInfoBody(){
   const title=$('infoTitle'), sub=$('infoSub'), por=$('infoPor'), chips=$('infoChips'), body=$('infoBody'), train=$('train');
   train.innerHTML=''; $('forecast').innerHTML=''; chips.innerHTML=''; body.innerHTML=''; sub.textContent=''; por.innerHTML='';
+  if(abtnArm&&!abtnArm.startsWith(selKey()+':')) abtnArm=null;
+  body.classList.remove('open');
   por.style.removeProperty('--fc'); por.removeAttribute('title');
   if(sel&&sel.kind==='power'){
     const f=meta(MYSIDE).faction, p=f.power, used=pw.used[MYSIDE];
@@ -6690,7 +6875,7 @@ function renderInfoBody(){
     sub.textContent='Commander power \u00b7 once per game';
     body.textContent=p.desc+(used!=null?' Used on turn '+used+'.':side!==MYSIDE?' Wait for your turn.':'');
     if(used==null) train.appendChild(actBtn({icon:'bolt', name:'Activate', cls:'more', disabled:side!==MYSIDE||gameOver||!alive[MYSIDE],
-      title:'Use '+p.name+' now. This cannot be undone.', onclick:()=>{ act({t:'power'}); sel=null; refresh(); }}));
+      why:side!==MYSIDE?'Wait for your turn':'', title:'Use '+p.name+' now. This cannot be undone.', onclick:()=>{ act({t:'power'}); sel=null; refresh(); }}));
     return;
   }
   if(sel&&sel.kind==='unit'){
@@ -6715,7 +6900,7 @@ function renderInfoBody(){
       chips.innerHTML=hpChip(u)+chip('ATK',fmtStat(uAtk(u)))+chip('DEF',uDef(u))+chip('MOVE',uMove(u))+chip('RANGE',uRange(u))+
         (forest?chip('Forest','+'+(hasTech(u.owner,'CAMO')?100:50)+'% DEF','good'):'')+
         (u.vet?chip('\u2605','Veteran','good'):u.kills&&u.type!=='NUKE'&&!t.super?chip('Kills',Math.min(3,u.kills)+'/3'):'');
-      if(mine) por.title=t.desc; else body.textContent=t.desc;   // your own units skip the flavour line
+      body.textContent=mine?t.desc.replace(/^[^.]*only\. /,''):t.desc;
       if(t.carry) body.textContent=u.cargo?'Carrying '+UNIT_TYPES[u.cargo.type].name+' ('+u.cargo.hp+'/'+u.cargo.maxHp+' HP)'+(mine&&unloadSpots(u).length?'. Tap a highlighted shore tile to land it.':mine&&u.unloaded===turn?'.':'. Sail next to land to put it ashore.')
         :mine?'Empty. Select a land unit and tap this craft to board it.':'Empty.';
       if(mine&&pendingAtk&&pendingAtk.uid===u.id){
@@ -6752,7 +6937,8 @@ function renderInfoBody(){
         const unlocked=resUnlocked(MYSIDE,rt.resource), near=ownCityNear(u.x,u.y,MYSIDE);
         train.appendChild(actBtn({icon:RES_ICON[rt.resource], name:'Harvest', cost:hc,
           disabled:!unlocked||!near||near.city.level>=MAX_LEVEL||stars[MYSIDE]<hc,
-          title:!unlocked?'Requires '+TECHS[RES_REQ[rt.resource]].name:!near?'Outside your territory':near.city.level>=MAX_LEVEL?'That city is fully grown':stars[MYSIDE]<hc?'Not enough stars':'+'+r.pop+' population',
+          why:!unlocked?'Requires '+TECHS[RES_REQ[rt.resource]].name:!near?'Outside your territory':near.city.level>=MAX_LEVEL?'That city is fully grown':stars[MYSIDE]<hc?noStars():'',
+          desc:'+'+r.pop+' population',
           onclick:()=>act({t:'harvest',x:u.x,y:u.y})}));
       }
       return;
@@ -6775,6 +6961,8 @@ function renderInfoBody(){
       body.textContent=r.desc;
       if(near&&near.city.level>=MAX_LEVEL) sub.textContent='Its city is fully grown, so there is nothing to gain';
       train.appendChild(actBtn({icon:RES_ICON[t.resource], name:'Harvest', cost:hc, disabled:!unlocked||!near||near.city.level>=MAX_LEVEL||stars[MYSIDE]<hc,
+        why:!unlocked?'Requires '+TECHS[RES_REQ[t.resource]].name:!near?'Outside your territory':near.city.level>=MAX_LEVEL?'That city is fully grown':stars[MYSIDE]<hc?noStars():'',
+        desc:'+'+r.pop+' population',
         onclick:()=>{ act({t:'harvest',x:sel.x,y:sel.y}); sel=null; refresh(); }}));
       if(!unlocked) train.appendChild(actBtn({icon:'lock', name:'Tech', cls:'more', onclick:()=>$('techBtn').click()}));
       return;
@@ -6797,8 +6985,8 @@ function renderInfoBody(){
     if(own===MYSIDE) for(const k of opts){
       const b=BUILDINGS[k], why=buildBlock(MYSIDE,sel.x,sel.y,k), locked=b.req&&!hasTech(MYSIDE,b.req);
       let gain=b.per?Math.min(4,bldNeighbours(sel.x,sel.y).filter(q=>b.per==='any'||b.per.includes(q)).length)+(b.inc||0):0;
-      train.appendChild(actBtn({icon:locked?'lock':b.icon, name:b.name, cost:bldCost(MYSIDE,k), disabled:!!why||side!==MYSIDE,
-        title:(why?why.charAt(0).toUpperCase()+why.slice(1)+'. ':'')+b.desc+(b.per?' Here: +'+gain+'\u2605 a turn.':''),
+      train.appendChild(actBtn({icon:locked?'lock':b.icon, name:b.name, cost:bldCost(MYSIDE,k), disabled:!!why||side!==MYSIDE, confirm:'build',
+        why:why==='not enough stars'?noStars():why||(side!==MYSIDE?'Wait for your turn':''), desc:b.desc+(b.per?' Here: +'+gain+'\u2605 a turn.':''),
         onclick:()=>{ act({t:'build',x:sel.x,y:sel.y,k}); sel={kind:'tile',x:sel.x,y:sel.y}; refresh(); }}));
     }
     return;
@@ -6854,7 +7042,8 @@ function renderInfoBody(){
     if(canDevelop(c)){
       const dc=developCost(c), done=c.dev===turn, max=c.level>=MAX_LEVEL;
       train.appendChild(actBtn({icon:'house', name:max?'Barracks':'Develop', cost:dc, cls:'more', disabled:done||stars[MYSIDE]<dc||side!==MYSIDE,
-        title:done?'Already developed this turn':max?'+1 army size (up to +'+BARRACKS_MAX+' per city, '+(c.bk||0)+' built)':'+1 population for this city (once per turn)',
+        why:done?'Already developed this turn':stars[MYSIDE]<dc?noStars():side!==MYSIDE?'Wait for your turn':'',
+        desc:max?'+1 army size (up to +'+BARRACKS_MAX+' per city, '+(c.bk||0)+' built)':'+1 population for this city (once per turn)',
         onclick:()=>act({t:'develop',x:sel.x,y:sel.y})}));
     }
     const occupied=!!unitAt(sel.x,sel.y), coast=coastal(sel.x,sel.y), dock=coast&&coastSpot(sel.x,sel.y);
@@ -6866,8 +7055,9 @@ function renderInfoBody(){
     if(coast&&hasTech(MYSIDE,'NAVAL')) tipOnce('harbour','Cities next to water launch ships onto a free water tile beside them, even with a unit standing on the city.');
     if(c.level>=titanLevel()&&!occupied){
       const tc=titanCost(MYSIDE,c), have=titanCount(MYSIDE), cap=titanCap(MYSIDE);
-      train.appendChild(actBtn({k:'TTN', img:unitIcon('TTN',MYSIDE), name:'Titan', cost:tc, cls:'super', disabled:stars[MYSIDE]<tc||full||have>=cap,
-        title:have>=cap?'You already field '+have+' Titan'+(have===1?'':'s')+'. Each city of level 4+ supports one':'Titan: '+UNIT_TYPES.TTN.desc,
+      train.appendChild(actBtn({k:'TTN', img:unitIcon('TTN',MYSIDE), name:'Titan', cost:tc, cls:'super', disabled:stars[MYSIDE]<tc||full||have>=cap, confirm:'train',
+        why:have>=cap?'You already field '+have+' Titan'+(have===1?'':'s')+'. Each city of level 4+ supports one':full?'Your army is full':stars[MYSIDE]<tc?noStars():'',
+        desc:UNIT_TYPES.TTN.desc,
         onclick:()=>{ act({t:'train',k:'TTN',x:sel.x,y:sel.y}); sel=null; refresh(); }}));
     }
     for(const k of TRAIN_ORDER){
@@ -6877,13 +7067,13 @@ function renderInfoBody(){
       if(!t.naval&&occupied) continue;
       if(!unitUnlocked(MYSIDE,k)){ locked++; continue; }
       const cost=unitCost(MYSIDE,k);
-      train.appendChild(actBtn({k, img:unitIcon(k,MYSIDE), name:t.name, cost, disabled:stars[MYSIDE]<cost||full||(t.naval&&!dock),
-        title:t.naval&&!dock?'Every water tile next to this city is taken':t.name+': '+t.desc, onclick:()=>{ act({t:'train',k,x:sel.x,y:sel.y}); sel=null; refresh(); }}));
+      train.appendChild(actBtn({k, img:unitIcon(k,MYSIDE), name:t.name, cost, disabled:stars[MYSIDE]<cost||full||(t.naval&&!dock), confirm:'train',
+        why:t.naval&&!dock?'Every water tile next to this city is taken':full?'Your army is full':stars[MYSIDE]<cost?noStars():'', desc:t.desc, onclick:()=>{ act({t:'train',k,x:sel.x,y:sel.y}); sel=null; refresh(); }}));
     }
     if(hasTech(MYSIDE,'NUKE')&&!occupied){
       const nt=UNIT_TYPES.NUKE;
-      train.appendChild(actBtn({img:unitIcon('NUKE',MYSIDE), name:'Nuke', cost:nt.cost, cls:'danger', disabled:stars[MYSIDE]<nt.cost,
-        title:'One-use strategic missile with range '+nt.range+' and a '+(nt.nuke*2+1)+'×'+(nt.nuke*2+1)+' blast',
+      train.appendChild(actBtn({img:unitIcon('NUKE',MYSIDE), name:'Nuke', cost:nt.cost, cls:'danger', disabled:stars[MYSIDE]<nt.cost, confirm:'build',
+        why:stars[MYSIDE]<nt.cost?noStars():'', desc:'One-use strategic missile with range '+nt.range+' and a '+(nt.nuke*2+1)+'×'+(nt.nuke*2+1)+' blast',
         onclick:()=>{ act({t:'nukebuild',x:sel.x,y:sel.y}); sel=null; refresh(); }}));
     }
     if(locked) train.appendChild(actBtn({icon:'lock', name:'+'+locked+' in tech', cls:'more',
@@ -7054,7 +7244,7 @@ function syncPower(){
   if(b.hidden) return;
   const ready=pw.used[MYSIDE]==null;
   b.classList.toggle('ready', ready&&side===MYSIDE);
-  if(ready&&side===MYSIDE&&turn>=3&&tutDone()) tipOnce('power','Your commander power is ready. Tap the lightning button to use it. It works once per game, so save it for the turn that matters.');
+  if(ready&&side===MYSIDE&&turn>=3&&tutDone()&&!(hintGate()&&!hintMem.power)) tipOnce('power','Your commander power is ready. Tap the lightning button to use it. It works once per game, so save it for the turn that matters.');
   b.classList.toggle('spent', !ready);
   b.style.setProperty('--fc', f.css);
 }
@@ -7304,55 +7494,85 @@ function revealAll(){
 }
 $('endNew').onclick=()=>{ $('endBar').hidden=true; NET.leave(); showSetup(); if((gcfg||{}).campaign) setupView('camp'); };
 $('restart').onclick=()=>{ $('overlay').classList.remove('show'); NET.leave(); showSetup(); };
-$('helpBtn').onclick=()=>{
-  const lines=[
-    ['Goal','Capture every enemy HQ. Lose if your own HQ falls.'],
-    ['Game modes','In Conquest the last faction standing wins. In Score attack, set up under Custom in the menu, you play 30 turns and the highest score wins.'],
-    ['Score & medals','Cities and their levels, research, your army, enemy units destroyed and factions eliminated all score points. A solo win earns one to three stars, more for a faster win, and each faction keeps its best medal for every difficulty.'],
+/* Field Manual, one tab per section. An entry is [title, text], text can be a function, and 'pc' marks mouse and keyboard only.
+   New rules go in the matching section: difficulty, modifiers and drops under Modes, emotes under Online, settings under Controls. */
+const MANUAL=[
+  {id:'basics', name:'Basics', items:[
+    ['Goal','Capture every enemy HQ. You lose if your own HQ falls.'],
+    ['Your turn','Each unit can move once and attack once per turn. Next jumps to a unit that can still act. When you are done, tap End turn.'],
+    ['Move & attack',()=>COARSE?'Tap a unit to see where it can move (blue tiles) and what it can attack (red rings). Tap a red ring to see the battle forecast, then tap again to strike. Melee units (range 1) move into the tile when they destroy its defender.':'Click a unit to see where it can move (blue tiles) and what it can attack (red rings). Point at a red ring to see the battle forecast, then click to strike. Right-click a tile to move or fire straight away. Melee units (range 1) move into the tile when they destroy its defender.'],
     ['Capturing','Move a unit onto a village or enemy city, then at the start of your next turn select it and tap Capture (it uses the unit\u2019s action). The defender gets a turn to strike back.'],
-    ['Army size','Each city supports its level + 1 units. Grow and capture cities to field a bigger army.'],
-    ['Develop','Select one of your cities and tap Develop to spend stars on +1 population (4\u2605 + 2\u2605 per level, once per city each turn). A level-5 city builds Barracks instead, at 20\u2605 for +1 army size, up to three per city.'],
-    ['Move & Attack','Click a unit to see where it can move (blue tiles) and what it can attack (red rings). Each unit gets one move and one attack per turn. On a computer, right-click a tile to move or fire with the selected unit straight away. Melee units (range 1) advance into a tile when they destroy its defender, so a unit that advances onto a city can capture it next turn.'],
     ['Fog','Cloud cover hides undiscovered land. Units and cities see 2 tiles around them. Explored ground stays on the map, but enemy units only show where you can see right now. Shaded tiles are out of sight.'],
-    ['Economy','Crops (2\u2605), ore (4\u2605) and oil (6\u2605) sit near cities. Harvest one inside your territory to add population. Fill the bar to level the city up for a permanent +1\u2605 income. Capture gray neutral cities to claim their resources.'],
-    ['Counters','Snipers get +25% vs Infantry. Tanks resist Sniper fire. Helicopters get +50% vs Tanks and Titans and resist tank guns. Flak Batteries get +75% vs Helicopters and resist their fire. Artillery blasts also hit enemies next to the target for 25%.'],
-    ['Factions','Aegis units have +1 HP and heal while resting or on the march (free Field Medicine). Crimson pays 1\u2605 less for every unit and building. Solaris can mine from the start and pays less to harvest. Ghost sees 3 tiles, and its Snipers shoot 3 tiles when they hold still. Iron Bastion has City Walls on every city it holds and free Fortification. For Verdant, crops give +1 population and Farms cost 1\u2605 less. Tidewatch starts with a second Infantry and free Field Radio.'],
-    ['Tech','Combat: Sniper, then Tank, then Artillery, plus drills, armor and self-propelled guns. Industry: Ore, then Oil, then Helicopter, plus cheaper training, +1\u2605 per city and faster gunships. Support: healing, 2\u00d7 city defense, forest camouflage, field hospitals and blast protection. Intel: +1 vision, the Flak Battery and longer artillery range. Strategic: Satellite Network (reveals the map) and Manhattan Project (the Nuclear Missile, a one-use 5\u00d75 strike). A tech costs 4/6/12/18\u2605 by tier, plus its tier for every city beyond your first (counted at the start of your turn).'],
-    ['City rewards','Every time a city levels up you pick one of two rewards: Workshop or Scouts, City walls or a War chest, Population boom or Wider borders, Command post or a free Titan.'],
-    ['Faction units','Every faction has one unit nobody else can train: Aegis Field Ambulance (heals the units next to it by 3 HP each turn), Crimson Shock Troops (capture a city the turn they move in), Solaris Mortar Truck (range 2, moves and fires), Ghost Recon Drone (flies 4, sees 2 tiles further), Bastion Guardian (18 HP; units next to it get +30% defense), Verdant Forest Stalker (+50% attack from a forest) and Tidewatch Hovercraft (crosses water). Each needs one tech, shown on the faction card.'],
-    ['Navy','Research Naval Doctrine (Industry) and any city next to water can launch Patrol Boats (cheap, fast) and Landing Craft onto a free water tile beside it; Blue-Water Fleet adds Destroyers (range 2, +50% against ships) and Battleships (range 3). Ships sail water only. Infantry, Tanks and other short-range land units can\u2019t shoot at ships, but Snipers, Artillery, Flak and Helicopters can. To cross water, select a land unit and tap a Landing Craft next to it to board, sail it beside the shore, then tap a highlighted land tile to put the unit ashore (it can act again next turn). If the craft sinks, its passenger is lost. The Inland Sea map type puts a sea in the middle of the board.'],
-    ['Titans','Titans are the super unit, with 36 HP, 5 attack and 4 defense but only 1 move. Only a city of level 4 or higher can build one (18\u2605), and each such city you hold supports a single Titan. A city that reaches level 5 can also give you one for free. Helicopters hit it for +50% and Artillery outranges it; Snipers barely scratch it. Titans cannot be promoted.'],
-    ['Supply drops','Parachuted crates hide in the fog. The first unit to step on one opens it and finds stars, a free tech, a free Infantry, a map of the area, or settlers for your nearest city.'],
-    ['Veterans','A unit with three kills can be promoted for +5 max HP and a full heal. It is free, so you can save it as an emergency heal.'],
-    ['Commander powers','Every faction has one power you can use once per game on your own turn, with the lightning button. Aegis heals everything. Crimson deals double damage this turn. Solaris collects a turn and a half of income. Ghost deals +25% damage with no return fire this turn. Iron Bastion takes half damage for two rounds. Verdant adds +1 population in every city. Tidewatch gets a free Infantry at every city. Rivals above Easy use theirs too.'],
-    ['Map types','Custom setup offers Classic, Highlands (mountain passes), Woodland (forest everywhere, so +50% defense is easy to find), Lakes (water splits the land) or Mirrored (both corners get the same land).'],
+    ['Recon','Tap any rival unit or city to inspect it. You see its stats or income, and for a unit the red zone shows where it can reach next turn. Your own units dim once they\u2019ve acted.'],
+    ['Buttons','On the right: Map shows the whole board, Danger shades where enemies can strike, the lightning button is your commander power, Army lists your units and cities, and the handshake opens Diplomacy.'],
+    ['Undo','In single player you can step back through this turn\u2019s moves, training, harvests and holds. Attacks, captures, supply drops, research and ending the turn are final.'],
+    ['Tutorial','Replay the guided first game any time from How to play in the menu.'],
+  ]},
+  {id:'cities', name:'Cities', items:[
+    ['Stars','Every city pays stars \u2605 at the start of your turn, and bigger cities pay more. Spend them on units, buildings, harvests and tech.'],
+    ['Harvesting','Crops (2\u2605), ore (4\u2605) and oil (6\u2605) sit near cities. Harvest one inside your territory to add population. Capture gray neutral cities to claim their resources.'],
+    ['City levels','Fill the population bar to level a city up for +1\u2605 income. Each level-up gives you a choice of two rewards: Workshop or Scouts, City walls or a War chest, Population boom or Wider borders, Command post or a free Titan.'],
     ['Buildings','Tap a tile inside your territory to build. Farm (plains, +2 pop), Lumber Camp (forest, +1 pop) and Quarry (mountain, Mining, +2 pop) grow the nearby city. Port (water, Naval Doctrine) adds +1 pop and +1\u2605 a turn. Factory (Logistics, one per city) pays +1\u2605 a turn for each Farm, Camp or Quarry next to it; Market (Urban Planning, one per city) pays +1\u2605 a turn for each building next to it, up to 4 each. Buildings serve whoever holds the land.'],
-    ['Diplomacy','Tap the handshake button (Y) to see every faction: who is at war with whom, their strength and their attitude to you. Offer peace (10 turns and renewable, with no attacks, captures or entering each other\u2019s territory), an alliance (shared sight, pass through each other\u2019s units, and you win together when only allies remain), gift stars or demand tribute. Declaring war before a peace runs out breaks a treaty and every faction remembers. Computer rivals judge offers by who is winning, who else threatens them and whether they trust you.'],
-    ['Rank and unlocks','Every finished game earns XP (more for longer games, a little extra for a win) and climbs your commander rank, 30 ranks in all. Ranks unlock board themes, unit finishes and city flag emblems in Profile. They only change looks, never a battle.'],
-    ['Modifiers','Custom setup or the online host can add No fog, Double income, Early Titans (any city can field one) or No powers. Games with No fog, Double income or Early Titans don\u2019t earn medals.'],
-    ['Online rematch','When an online game ends the host can tap Rematch to bring everyone back to the lobby with the same factions and settings.'],
-    ['Reconnecting','If a guest drops out the game retries on its own. A guest who reloads the page or reopens the app gets a Rejoin button on the title screen for the next six hours; the host keeps their seat until the host replaces them with the AI.'],
-    ['Campaign','Campaign on the title screen gives you a random map of 10, 14 or 20 regions shared between you and three rival factions. Each campaign turn you attack one region next to yours; the battle is a normal game against that region\u2019s owner, on a map that matches the region (highlands, woodland, lakes or coast; capitals are bigger). Win and the region is yours; take a rival\u2019s capital (\u2605) and its whole faction surrenders to you. Every region has a perk (Supply depot +3 stars, Research station a free tech, Veteran garrison an extra veteran Infantry, Fortress walls on the HQ, Factory town +1 income, Watchtower longer sight). In a battle you get the perks of your regions bordering the contested one, and the defender gets theirs plus the contested region\u2019s own. Then the rivals move. They fight each other, and sometimes attack one of your regions, which you can defend in a battle or give up (except your capital, since losing it ends the campaign). Nothing else carries over between battles. Hold every region to win; a map code lets a friend play the same map.'],
+    ['Develop','Select one of your cities and tap Develop to spend stars on +1 population (4\u2605 + 2\u2605 per level, once per city each turn). A level-5 city builds Barracks instead, at 20\u2605 for +1 army size, up to three per city.'],
+    ['Army size','Each city supports its level + 1 units. Grow and capture cities to field a bigger army.'],
+    ['Tech','Combat: Sniper, then Tank, then Artillery, plus drills, armor and self-propelled guns. Industry: Ore, then Oil, then Helicopter, plus cheaper training, +1\u2605 per city and faster gunships. Support: healing, 2\u00d7 city defense, forest camouflage, field hospitals and blast protection. Intel: +1 vision, the Flak Battery and longer artillery range. Strategic: Satellite Network (reveals the map) and Manhattan Project (the Nuclear Missile, a one-use 5\u00d75 strike). A tech costs 4/6/12/18\u2605 by tier, plus its tier for every city beyond your first (counted at the start of your turn).'],
+  ]},
+  {id:'units', name:'Units', items:[
+    ['Counters','Snipers get +25% vs Infantry. Tanks resist Sniper fire. Helicopters get +50% vs Tanks and Titans and resist tank guns. Flak Batteries get +75% vs Helicopters and resist their fire. Artillery blasts also hit enemies next to the target for 25%.'],
+    ['Faction units','Every faction has one unit nobody else can train: Aegis Field Ambulance (heals the units next to it by 3 HP each turn), Crimson Shock Troops (capture a city the turn they move in), Solaris Mortar Truck (range 2, moves and fires), Ghost Recon Drone (flies 4, sees 2 tiles further), Bastion Guardian (18 HP; units next to it get +30% defense), Verdant Forest Stalker (+50% attack from a forest) and Tidewatch Hovercraft (crosses water). Each needs one tech, shown on the faction card.'],
+    ['Veterans','A unit with three kills can be promoted for +5 max HP and a full heal. It is free, so you can save it as an emergency heal.'],
+    ['Titans','Titans are the super unit, with 36 HP, 5 attack and 4 defense but only 1 move. Only a city of level 4 or higher can build one (18\u2605), and each such city you hold supports a single Titan. A city that reaches level 5 can also give you one for free. Helicopters hit it for +50% and Artillery outranges it; Snipers barely scratch it. Titans cannot be promoted.'],
+    ['Navy','Research Naval Doctrine (Industry) and any city next to water can launch Patrol Boats (cheap, fast) and Landing Craft onto a free water tile beside it; Blue-Water Fleet adds Destroyers (range 2, +50% against ships) and Battleships (range 3). Ships sail water only. Infantry, Tanks and other short-range land units can\u2019t shoot at ships, but Snipers, Artillery, Flak and Helicopters can. To cross water, select a land unit and tap a Landing Craft next to it to board, sail it beside the shore, then tap a highlighted land tile to put the unit ashore (it can act again next turn). If the craft sinks, its passenger is lost. The Inland Sea map type puts a sea in the middle of the board.'],
+    ['Danger zones',()=>'Tap the warning triangle'+(COARSE?'':' (or press D)')+' to shade every tile an enemy in sight could strike next turn.'],
     ['Sentry','Select a unit and tap Sentry to leave it on watch. The Next button and the ready count then skip it every turn until an enemy comes within 3 tiles (you get a notice) or you give it orders. Tap Wake to put it back on duty.'],
     ['Army overview','The list button on the right shows every unit (health, whether it has acted, who is aboard a Landing Craft) and every city (level, income, what it is building toward). Tap a line to jump there.'],
-    ['Pass & play','Choose Custom in the menu, then Players on this device, and two to four people can share one phone or computer. After each turn a hand-off screen hides the board until the next player taps Start turn, and everyone sees only their own explored map. Any remaining rivals are played by the computer.'],
-    ['Danger zones','Tap the warning triangle (or press D) to shade every tile an enemy in sight could strike next turn.'],
+  ]},
+  {id:'dip', name:'Diplomacy', items:[
+    ['Diplomacy','Tap the handshake button to see every faction: who is at war with whom, their strength and their attitude to you. Offer peace (10 turns and renewable, with no attacks, captures or entering each other\u2019s territory), an alliance (shared sight, pass through each other\u2019s units, and you win together when only allies remain), gift stars or demand tribute. Declaring war before a peace runs out breaks a treaty and every faction remembers. Computer rivals judge offers by who is winning, who else threatens them and whether they trust you.'],
+    ['Commander powers','Every faction has one power you can use once per game on your own turn, with the lightning button. Aegis heals everything. Crimson deals double damage this turn. Solaris collects a turn and a half of income. Ghost deals +25% damage with no return fire this turn. Iron Bastion takes half damage for two rounds. Verdant adds +1 population in every city. Tidewatch gets a free Infantry at every city. Rivals above Easy use theirs too.'],
+    ['Factions','Aegis units have +1 HP and heal while resting or on the march (free Field Medicine). Crimson pays 1\u2605 less for every unit and building. Solaris can mine from the start and pays less to harvest. Ghost sees 3 tiles, and its Snipers shoot 3 tiles when they hold still. Iron Bastion has City Walls on every city it holds and free Fortification. For Verdant, crops give +1 population and Farms cost 1\u2605 less. Tidewatch starts with a second Infantry and free Field Radio.'],
     ['Surrender','A computer rival that is down to its HQ and hopelessly outgunned gives up instead of dragging out the ending.'],
-    ['Recon','Tap any rival unit or city to inspect it. You see its stats or income, and for a unit the red zone shows where it can reach next turn. Your own units dim once they\u2019ve acted.'],
-    ['Multiplayer','Host an operation from the menu to get a 5-letter room code that up to three friends can use to join. The host\u2019s device referees the match, so keep it online; if the host drops, guests can Export Save and finish the campaign solo. The host can set a per-turn timer in the lobby.'],
+  ]},
+  {id:'modes', name:'Modes', items:[
+    ['Game modes','In Conquest the last faction standing wins. In Score attack, set up under Custom in the menu, you play 30 turns and the highest score wins.'],
     ['Difficulty','Set it under Custom in the menu. Easy rivals collect 60% of their income, train one unit a turn, research every other turn and are slow to attack. Normal rivals collect 80% and train two units a turn. Hard rivals collect full income and train three units a turn. Crazy rivals collect 70% extra, train in every city, start richer and research twice as fast.'],
-    ['Undo','In single player you can step back through this turn\u2019s moves, training, harvests and holds. Attacks, captures, supply drops, research and ending the turn are final.'],
+    ['Map types','Custom setup offers Classic, Highlands (mountain passes), Woodland (forest everywhere, so +50% defense is easy to find), Lakes (water splits the land), Inland Sea (a sea in the middle) or Mirrored (both corners get the same land).'],
+    ['Modifiers','Custom setup or the online host can add No fog, Double income, Early Titans (any city can field one) or No powers. Games with No fog, Double income or Early Titans don\u2019t earn medals.'],
+    ['Supply drops','Parachuted crates hide in the fog. The first unit to step on one opens it and finds stars, a free tech, a free Infantry, a map of the area, or settlers for your nearest city.'],
+    ['Campaign','Campaign on the title screen gives you a random map of 10, 14 or 20 regions shared between you and three rival factions. Each campaign turn you attack one region next to yours; the battle is a normal game against that region\u2019s owner, on a map that matches the region (highlands, woodland, lakes or coast; capitals are bigger). Win and the region is yours; take a rival\u2019s capital (\u2605) and its whole faction surrenders to you. Every region has a perk (Supply depot +3 stars, Research station a free tech, Veteran garrison an extra veteran Infantry, Fortress walls on the HQ, Factory town +1 income, Watchtower longer sight). In a battle you get the perks of your regions bordering the contested one, and the defender gets theirs plus the contested region\u2019s own. Then the rivals move. They fight each other, and sometimes attack one of your regions, which you can defend in a battle or give up (except your capital, since losing it ends the campaign). Nothing else carries over between battles. Hold every region to win; a map code lets a friend play the same map.'],
+    ['Pass & play','Choose Custom in the menu, then Players on this device, and two to four people can share one phone or computer. After each turn a hand-off screen hides the board until the next player taps Start turn, and everyone sees only their own explored map. Any remaining rivals are played by the computer.'],
+  ]},
+  {id:'online', name:'Online', items:[
+    ['Online play','Choose Online on the title screen, then Host Operation, and send the invite link or the 5-letter room code to up to three friends. The host\u2019s device referees the match, so keep it online. If the host drops, guests can Export Save and finish the game solo. The host can set a per-turn timer in the lobby.'],
+    ['Reconnecting','If a guest drops out the game retries on its own. A guest who reloads the page or reopens the app gets a Rejoin button on the title screen for the next six hours; the host keeps their seat until the host replaces them with the AI.'],
+    ['Online rematch','When an online game ends the host can tap Rematch to bring everyone back to the lobby with the same factions and settings.'],
+  ]},
+  {id:'rank', name:'Rank', items:[
+    ['Rank and unlocks','Every finished game earns XP (more for longer games, a little extra for a win) and climbs your commander rank, 30 ranks in all. Ranks unlock board themes, unit finishes and city flag emblems in Profile. They only change looks, never a battle.'],
+    ['Looks','Choose a board theme, unit finish and city flag emblem in Profile on the title screen. More of each unlock as your rank climbs.'],
+    ['Score & medals','Cities and their levels, research, your army, enemy units destroyed and factions eliminated all score points. A solo win earns one to three stars, more for a faster win, and each faction keeps its best medal for every difficulty.'],
+  ]},
+  {id:'controls', name:'Controls', items:[
+    ['Enemy turns',()=>'Tap the speed pill under the banner'+(COARSE?'':' (or press F)')+' to watch enemy turns at normal speed, fast, or skip straight to your turn. The Camera button in the menu chooses whether the camera follows enemy actions you can see.'],
     ['Music','The Music button in the menu switches the background music between Low, On and Off. The sound button mutes music and effects together.'],
-    ['Enemy turns','Tap the speed pill under the banner (or press F) to watch enemy turns at normal speed, fast, or skip straight to your turn. The Camera button in the menu chooses whether the camera follows enemy actions you can see.'],
-
-    ['Tutorial','Replay the guided first game any time from How to play in the menu.'],
-    ['Hotkeys','Space/Enter end turn \u00b7 Tab/N next unit \u00b7 U or Ctrl+Z undo \u00b7 F enemy speed \u00b7 C center on HQ \u00b7 V whole map \u00b7 D danger zones \u00b7 P commander power \u00b7 T tech \u00b7 H manual \u00b7 M mute \u00b7 Esc deselect.'],
-  ];
+    ['Hotkeys','Space/Enter end turn \u00b7 Tab/N next unit \u00b7 U or Ctrl+Z undo \u00b7 F enemy speed \u00b7 C center on HQ \u00b7 V whole map \u00b7 D danger zones \u00b7 P commander power \u00b7 T tech \u00b7 H manual \u00b7 M mute \u00b7 Esc deselect.','pc'],
+  ]},
+];
+let manTab='basics';
+const ovManual=document.createElement('div'); ovManual.id='ovManual'; $('ovBody').after(ovManual);
+function renderManual(){
+  const secs=MANUAL.map(s=>({...s, items:s.items.filter(i=>!(COARSE&&i[2]==='pc'))})).filter(s=>s.items.length);
+  const cur=secs.find(s=>s.id===manTab)||secs[0];
+  manTab=cur.id;
+  ovManual.innerHTML='<div class="mTabs" role="tablist" aria-label="Manual sections">'+
+    secs.map(s=>'<button role="tab" data-t="'+s.id+'" aria-selected="'+(s===cur)+'">'+esc(s.name)+'</button>').join('')+'</div>'+
+    '<div role="tabpanel">'+cur.items.map(i=>'<div class="mEnt"><b>'+esc(i[0])+'</b>'+esc(typeof i[1]==='function'?i[1]():i[1])+'</div>').join('')+'</div>';
+  ovManual.querySelectorAll('.mTabs button').forEach(b=>b.onclick=()=>{ manTab=b.dataset.t; sfx.select(); renderManual(); $('overlay').scrollTop=0; b.blur(); });
+}
+$('helpBtn').onclick=()=>{
   $('ovTitle').textContent='Field Manual';
   $('ovTitle').className='';
-  $('ovBody').innerHTML=lines.map(l=>'<b style=\"color:var(--amber)\">'+l[0]+'</b>: '+l[1]).join('<br><br>');
-  $('ovBody').style.textAlign='left';
-  $('ovBody').style.maxWidth='560px';
+  renderManual();
   const btn=$('restart');
   btn.textContent='Close';
   btn.onclick=closeManual;
