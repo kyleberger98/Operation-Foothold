@@ -3375,10 +3375,21 @@ scene.add(boardGroup, unitGroup, hlGroup, fxGroup, fogGroup, cloudGroup);
 
 /* Fog of war, a continuous cloud blanket over undiscovered land */
 let explored=[];           // [y][x] -> bool (permanent once seen)
-let fogClouds={};          // key -> cloud group covering an unexplored tile
+let fogClouds={};          // key -> {parts:[[instanced mesh, index]]} of the cloud covering an unexplored tile
 let dissolving=[];         // clouds currently puffing away
 const cloudMat=new THREE.MeshLambertMaterial({color:0xdfe6ea});
 const cloudMatSoft=new THREE.MeshLambertMaterial({color:0xbcc7cf});
+const cloudMatsD=[cloudMat.clone(), cloudMatSoft.clone()];   // the clouds puffing away are plain meshes, so they get their own materials
+/* the cover is drawn as instances; each cloud bobs in the vertex shader, phased by its position so neighbours stay joined */
+const fogU={uTime:{value:0}};
+function fogBob(sh){
+  sh.uniforms.uTime=fogU.uTime;
+  sh.vertexShader='uniform float uTime;\n'+sh.vertexShader.replace('#include <begin_vertex>',
+    '#include <begin_vertex>\n#ifdef USE_INSTANCING\n  transformed.y+=sin(uTime+(instanceMatrix[3].x*0.7+instanceMatrix[3].z*1.3)*0.25)*0.02;\n#endif');
+}
+cloudMat.onBeforeCompile=fogBob; cloudMatSoft.onBeforeCompile=fogBob;
+const fogBobAt=(x,y)=>Math.sin(fogU.uTime.value+(wx(x)*0.7+wz(y)*1.3)*0.25)*0.02;
+const TMP_M=new THREE.Matrix4();
 const skyCloudMat=new THREE.MeshLambertMaterial({color:0xf1f4f6, transparent:true, opacity:0.82});
 // shared puff geometries (3 sizes) to keep the blanket cheap
 const puffGeo=[new THREE.SphereGeometry(0.30,9,9),
@@ -3471,14 +3482,42 @@ function fogVariant(par,vi){
   }
   return FOG_VARIANTS[k]={a:a.length?mergeParts(a):null, b:b.length?mergeParts(b):null};
 }
+const fogKey=(x,y)=>((x+y)%2)+':'+((x*7+y*3)%4);
+/* a standalone copy of a tile's cloud, used only for the puff-away when the tile is revealed */
 function makeFogCloud(x,y){
   const g=new THREE.Group();
   const fv=fogVariant((x+y)%2,(x*7+y*3)%4);
-  if(fv.a) g.add(new THREE.Mesh(fv.a,cloudMat));
-  if(fv.b) g.add(new THREE.Mesh(fv.b,cloudMatSoft));
-  g.position.set(wx(x),0.52,wz(y));
-  g.userData={baseY:0.52, phase:(x*0.7+y*1.3)}; // phase comes from grid position so neighbours bob almost in sync without seams
+  if(fv.a) g.add(new THREE.Mesh(fv.a,cloudMatsD[0]));
+  if(fv.b) g.add(new THREE.Mesh(fv.b,cloudMatsD[1]));
+  const y0=0.52+fogBobAt(x,y);
+  g.position.set(wx(x),y0,wz(y));
+  g.userData={baseY:y0};
   return g;
+}
+/* one instanced mesh per cloud variant and material covers every hidden tile */
+function buildFog(tiles){
+  const m=new THREE.Matrix4();
+  for(const vk in tiles){
+    const fv=FOG_VARIANTS[vk], list=tiles[vk];
+    for(const [geo,mat] of [[fv.a,cloudMat],[fv.b,cloudMatSoft]]){
+      if(!geo) continue;
+      const im=new THREE.InstancedMesh(geo,mat,list.length);
+      im.userData.keys=list.map(([x,y])=>key(x,y));
+      list.forEach(([x,y],i)=>{ im.setMatrixAt(i, m.makeTranslation(wx(x),0.52,wz(y))); fogClouds[key(x,y)].parts.push([im,i]); });
+      fogGroup.add(im);
+    }
+  }
+}
+/* a revealed tile's instance is swapped with the last one, so only the remaining cover is drawn */
+function dropFog(fc){
+  for(const [im,i] of fc.parts){
+    const last=--im.count, ks=im.userData.keys;
+    if(i!==last){
+      im.getMatrixAt(last,TMP_M); im.setMatrixAt(i,TMP_M); ks[i]=ks[last];
+      for(const q of fogClouds[ks[i]].parts) if(q[0]===im) q[1]=i;
+    }
+    im.instanceMatrix.needsUpdate=true; im.visible=im.count>0;
+  }
 }
 let decoClouds=[];
 let surf=null;
@@ -3574,7 +3613,10 @@ function syncFog(){
     const k=key(x,y), exp=explored[y][x];
     if(tileGroups[k]) tileGroups[k].visible=exp;
     const fc=fogClouds[k];
-    if(exp&&fc){ dissolving.push(fc); delete fogClouds[k]; }
+    if(exp&&fc){
+      dropFog(fc); delete fogClouds[k];
+      const d=makeFogCloud(x,y); fogGroup.add(d); dissolving.push(d);
+    }
   }
 }
 
@@ -3592,6 +3634,7 @@ let pumpjacks=[]; // animated oil pumpjack beams
 function freeTree(o, mats){
   o.traverse(n=>{
     if(n.geometry&&!n.geometry.userData.keep) n.geometry.dispose();
+    if(n.isInstancedMesh) n.dispose();
     if(mats&&n.material){ for(const m of [].concat(n.material)){ if(m.map) m.map.dispose(); m.dispose(); } }
   });
 }
@@ -3738,6 +3781,7 @@ function buildBoard(){
   freeTree(boardGroup,false); freeTree(fogGroup,false); freeTree(terrGroup,false);
   boardGroup.clear(); terrGroup.clear(); terrSig=''; dimGroup.clear(); dimSig=''; pickTiles=[]; cityDecor={}; tileGroups={}; resourceDecor={}; buildingDecor={}; dropDecor={}; pumpjacks=[]; forestTrees={};
   fogGroup.clear(); fogClouds={}; dissolving=[];
+  const fogTiles={};
   // layered earth strata under the board
   const base=box(W+0.6, 0.34, H+0.6, M.sand);
   base.position.y=-0.42; boardGroup.add(base);
@@ -3867,11 +3911,12 @@ function buildBoard(){
     if(t.ruin) addDropDecor(x,y);
     if(!explored[y][x]){
       g.visible=false;
-      const fc=makeFogCloud(x,y);
-      fogClouds[key(x,y)]=fc;
-      fogGroup.add(fc);
+      fogVariant((x+y)%2,(x*7+y*3)%4);
+      (fogTiles[fogKey(x,y)]=fogTiles[fogKey(x,y)]||[]).push([x,y]);
+      fogClouds[key(x,y)]={parts:[]};
     }
   }
+  buildFog(fogTiles);
   setWeather((THEMES[curTheme]||{}).fx);
 }
 
@@ -4563,11 +4608,7 @@ function loop(now){
   // hover ring fades in/out smoothly
   hoverRing.material.opacity+=((hoverRing.userData.target||0)-hoverRing.material.opacity)*Math.min(1,dt*14);
   hoverRing.visible=hoverRing.material.opacity>0.02;
-  // fog clouds bob almost in sync so neighbouring clouds stay joined
-  for(const k in fogClouds){
-    const f=fogClouds[k];
-    f.position.y=f.userData.baseY+Math.sin(now*0.0009+f.userData.phase*0.25)*0.02;
-  }
+  fogU.uTime.value=now*0.0009-(ORIGIN_X*0.7+ORIGIN_Z*1.3)*0.25;   // same phase per tile as x*0.7+y*1.3
   // revealed clouds puff away
   for(let i=dissolving.length-1;i>=0;i--){
     const f=dissolving[i];
