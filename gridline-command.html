@@ -1068,13 +1068,13 @@ let cfg={size:11, enemies:1, faction:'AEGIS', diff:'normal'};
    inc: share of city income the AI collects; start: opening stars; train: units deployed per turn
    techs: techs researched per turn; every: researches only every Nth turn; reserve: stars kept before harvesting
    press: chance an idle unit marches on its targets instead of guarding; sharp: finishes off the weakest target
-   nukes: may build nuclear missiles */
+   nukes: may build nuclear missiles; betray: chance a turn to turn on a weak partner at least bratio times weaker */
 const DIFFS={
-  easy:  {name:'Easy',   note:'relaxed rivals',       inc:0.6, start:4, train:1,  techs:1, every:2, reserve:5, press:0.5, sharp:false, nukes:false},
-  normal:{name:'Normal', note:'a fair fight',         inc:0.8, start:5, train:2,  techs:1, every:1, reserve:3, press:0.8, sharp:true,  nukes:false},
-  hard:  {name:'Hard',   note:'a tough fight',        inc:1,   start:6, train:3,  techs:1, every:1, reserve:2, press:1,   sharp:true,  nukes:true},
-  brutal:{name:'Brutal', note:'rivals earn more',     inc:1.18, start:7, train:4, techs:1, every:1, reserve:2, press:1,   sharp:true,  nukes:true},
-  crazy: {name:'Crazy',  note:'rivals outbuild you',  inc:1.35, start:8, train:99, techs:2, every:1, reserve:1, press:1,   sharp:true,  nukes:true},
+  easy:  {name:'Easy',   note:'relaxed rivals',       inc:0.6, start:4, train:1,  techs:1, every:2, reserve:5, press:0.5, sharp:false, nukes:false, betray:0.08, bratio:3},
+  normal:{name:'Normal', note:'a fair fight',         inc:0.8, start:5, train:2,  techs:1, every:1, reserve:3, press:0.8, sharp:true,  nukes:false, betray:0.25, bratio:2.2},
+  hard:  {name:'Hard',   note:'a tough fight',        inc:1,   start:6, train:3,  techs:1, every:1, reserve:2, press:1,   sharp:true,  nukes:true,  betray:0.45, bratio:1.8},
+  brutal:{name:'Brutal', note:'rivals earn more',     inc:1.18, start:7, train:4, techs:1, every:1, reserve:2, press:1,   sharp:true,  nukes:true,  betray:0.55, bratio:1.7},
+  crazy: {name:'Crazy',  note:'rivals outbuild you',  inc:1.35, start:8, train:99, techs:2, every:1, reserve:1, press:1,   sharp:true,  nukes:true,  betray:0.65, bratio:1.6},
 };
 /* map types and optional rule modifiers (chosen in Custom setup or by the online host) */
 const MAP_TYPES={
@@ -1101,7 +1101,7 @@ const isAI=s=>s!==P && !HOT.includes(s) && !(NET.on&&NET.humans[s]);
    Peace rules out attacks, captures and entering the other's territory. An alliance adds shared sight
    and passing through each other's units. When only allies remain, they share the victory. */
 const PEACE_TURNS=10;
-const dip0=()=>({rel:{}, offers:[], rep:{}, good:{}, last:{}, win:null, oid:1});
+const dip0=()=>({rel:{}, offers:[], rep:{}, good:{}, last:{}, warn:{}, win:null, oid:1});
 let dip=dip0();
 const relKey=(a,b)=>a<b?a+'|'+b:b+'|'+a;
 const relRec=(a,b)=>dip.rel[relKey(a,b)]||null;
@@ -1316,6 +1316,12 @@ function scoreParts(s){
 }
 function scoreOf(s){ return Object.values(scoreParts(s)).reduce((a,b)=>a+b,0); }
 function scoreLeader(){ return turnOrder.filter(s=>alive[s]).sort((a,b)=>scoreOf(b)-scoreOf(a))[0]; }
+/* a shared victory is a full win only for a side that holds a third of the allies' cities or score */
+function minorAlly(s){
+  const w=dip.win; if(!w||!w.includes(s)||hotOn()) return false;
+  const sum=f=>w.reduce((m,o)=>m+f(o),0), tc=sum(cityCount), ts=sum(scoreOf);
+  return Math.max(tc?cityCount(s)/tc:0, ts?scoreOf(s)/ts:0)<1/3;
+}
 /* Medals and records, kept on this device */
 const PROG_KEY='foothold-progress';
 function loadProg(){ try{ return JSON.parse(localStorage.getItem(PROG_KEY))||{}; }catch(e){ return {}; } }
@@ -1349,7 +1355,7 @@ function rankOf(xp){ let n=1; xp=xp||0; while(n<RANKS.length&&xp>=rankNeed(n)){ 
 const rankTier=n=>n<=10?1:n<=20?2:3;
 const rankBadge=(n,sm)=>`<i class="rkBadge ${sm?'sm ':''}t${rankTier(n)}">${n}</i>`;
 /* XP for one finished game: mostly for playing it out, a little extra for winning */
-const gameXP=won=>50+5*Math.min(turn,40)+(won?50:0);
+const gameXP=won=>50+5*Math.min(turn,40)+Math.round(50*won);   // won: true, false, or a share for a minor allied win
 const THEMES={
   temperate:{name:'Temperate', rank:1, sw:'#4f6b47', fx:null},
   autumn:{name:'Autumn', rank:3, sw:'#b3652a', fx:'leaves', oaks:2, m:{'M.plains':0x7d8a45,'M.plains2':0x75803f,'M.plains3':0x86924c,'M.forest':0x5f5a2c,'S.plains':0x4a4a28,'S.forest':0x3c3a1e,'M.leaf':0xc0782c,'M.leaf2':0xa65a22,
@@ -1456,7 +1462,10 @@ function resultHtml(winner, firstTime){
     note=won?(stars===3?'A commanding lead.':'Three stars need a 25% lead over the runner-up.'):(alive[me]?'One star for holding out. Finish with the top score for more.':'');
   } else {
     const par=parTurns();
-    if(won){
+    if(won&&minorAlly(me)){
+      parts['Allied victory']=150; stars=1;
+      note='A full win needs a third of the allied cities or score.';
+    } else if(won){
       parts['Victory']=500; parts['Speed bonus']=30*Math.max(0,par+8-turn);
       stars=turn<=par?3:turn<=par+8?2:1;
       note=stars===3?'Won by turn '+par+'.':stars===2?'Three stars need a win by turn '+par+'.':'Two stars need a win by turn '+(par+8)+'.';
@@ -1465,7 +1474,7 @@ function resultHtml(winner, firstTime){
   const total=Object.values(parts).reduce((a,b)=>a+b,0);
   let rec=null;
   const helped=['nofog','rich','titans'].filter(mod);   // modifiers that make the game easier don't count toward medals
-  if(solo&&firstTime&&!helped.length) rec=recordResult(won, stars, total);
+  if(solo&&firstTime&&!helped.length) rec=recordResult(won&&!minorAlly(me), stars, total);
   const fac=meta(me).faction, dn=(DIFFS[(gcfg||cfg).diff]||DIFFS.normal).name;
   const board=turnOrder.map(s=>({s, v:s===me?total:scoreOf(s)})).sort((a,b)=>b.v-a.v)
     .map(o=>`<span class="${alive[o.s]?'':'out'}" style="color:${meta(o.s).css}">${esc(meta(o.s).name)}${hot?(HOT.includes(o.s)?' · '+pname(o.s):''):(o.s===me?' (you)':'')}</span><b>${o.v}</b>`).join('');
@@ -2457,6 +2466,7 @@ function aiMood(me, x, kind){
     parts.push([others.length?0:-1.5, 'only one of you can rule the region']);
     const r=relRec(me,x);
     if(r&&r.s==='peace') parts.push([1, '']);   // renewing an existing peace is easy
+    if(dip.warn&&dip.warn[me+'>'+x]!=null) parts.push([-3, 'they are getting ready to attack you']);
   } else if(kind==='ally'){
     const common=others.filter(o=>!friendly(o,me)&&!friendly(o,x)), cp=common.reduce((m,o)=>Math.max(m,strength(o)),0)/pm;
     parts.push([cp>1?2.2:cp>0.7?1.4:0.4, 'there is no common rival worth it']);
@@ -2464,7 +2474,8 @@ function aiMood(me, x, kind){
     parts.push([good, '']);
     parts.push([dd*0.6, 'they prefer to stand alone']);
     parts.push([leader?-2:0, 'you are too far ahead']);
-    parts.push([ratio<0.35?-1:0, 'you are too weak to be worth it']);
+    parts.push([ratio<0.35?-2.5:0, 'you are too weak to be worth it']);
+    if(dip.warn&&dip.warn[me+'>'+x]!=null) parts.push([-3, 'they are getting ready to attack you']);
   }
   const score=parts.reduce((m,p)=>m+p[0],0);
   const worst=parts.filter(p=>p[1]&&p[0]<0).sort((a,b)=>a[0]-b[0])[0];
@@ -2560,10 +2571,46 @@ function inContact(a,b){
   const ca=cities(a), cb=cities(b);
   return ua.some(u=>ub.some(v=>cheb(u,v)<=3)||cb.some(c=>cheb(u,c)<=3))||ub.some(v=>ca.some(c=>cheb(v,c)<=3));
 }
+/* a partner looks easy prey when side me has more troops near its cities than it has defending them */
+function borderWeak(me, x){
+  const xc=[]; for(let y=0;y<H;y++)for(let x2=0;x2<W;x2++){ const c=tileAt(x2,y).city; if(c&&c.owner===x) xc.push({x:x2,y}); }
+  const near=(o,d)=>units.filter(u=>u.owner===o&&u.type!=='NUKE'&&!naval(u)&&xc.some(c=>cheb(u,c)<=d)).length;
+  return xc.length>0&&near(me,5)>=near(x,2)+2;
+}
+/* A computer side that is much stronger may turn on a weak partner it does not like: it warns first ('massing troops'),
+   then declares war a turn or more later, paying the usual reputation cost if the peace had not run out.
+   It also drops an ally that is running away with the game, or one that adds little once the common rival is nearly beaten. */
+function aiTreachery(me){
+  const D=diff(), others=turnOrder.filter(o=>alive[o]&&o!==me);
+  for(const x of others){
+    const r=relOf(me,x), k=me+'>'+x, w=dip.warn[k];
+    if(r!=='peace'){ if(w!=null) delete dip.warn[k]; }
+    if(r==='peace'){
+      const rr=relRec(me,x), sx=strength(x);
+      const want=turn-rr.since>=3&&aiMood(me,x,'peace').score<0.5&&
+        ((strength(me)>=sx*D.bratio&&borderWeak(me,x))||(others.length>1&&scoreLeader()===x&&strength(me)>=sx*1.2&&borderWeak(me,x)));
+      if(w!=null){
+        if(turn>w&&want){ delete dip.warn[k]; dip.last[k]=turn; dipAction(me,{op:'war',to:x}); return true; }
+        if(!want&&turn-w>=3){ delete dip.warn[k]; dipNote(dipName(me)+' pulls its troops back from the border with '+dipName(x)+'.', [x]); }
+        continue;
+      }
+      if(want&&Math.random()<D.betray){ dip.warn[k]=turn; dipNote(dipName(me)+' is massing troops on the border with '+dipName(x)+'.', [x]); return true; }
+    }
+    if(r==='ally'&&turn-relRec(me,x).since>=4){
+      const rivals=others.filter(o=>o!==x&&hostile(me,o)&&hostile(x,o)), rc=rivals.reduce((m,o)=>m+cityCount(o),0);
+      const leads=others.length>1&&scoreLeader()===x&&scoreOf(x)>scoreOf(me)*1.5;
+      const idle=strength(x)<strength(me)*0.4&&rc<=2;
+      if((leads||idle)&&aiMood(me,x,'ally').score<AI_NEED.ally&&Math.random()<D.betray){ dip.last[k]=turn; dipAction(me,{op:'leave',to:x}); return true; }
+    }
+  }
+  return false;
+}
 /* the computer's own diplomacy. It makes at most one move a turn and contacts the same side at most once every 4 turns.
    It only reaches out for peace with a side it is actually fighting. */
 function aiDiplomacy(me){
   if(turn<3) return;
+  if(!dip.warn) dip.warn={};
+  if(aiTreachery(me)) return;
   const others=turnOrder.filter(o=>alive[o]&&o!==me).sort(()=>Math.random()-0.5);
   const ready=x=>turn-(dip.last[me+'>'+x]??-99)>=4;
   const propose=(x,kind)=>{
@@ -2574,7 +2621,7 @@ function aiDiplomacy(me){
     dipNote(dipName(me)+' offers '+dipName(x)+' '+(kind==='ally'?'an alliance':'peace')+'. Answer in Diplomacy.', [x]);
   };
   for(const x of others){
-    if(!ready(x)) continue;
+    if(!ready(x)||dip.warn[me+'>'+x]!=null) continue;
     const r=relOf(me,x);
     if(r==='war'&&!dipBlock(me,x,'peace')&&aiMood(me,x,'peace').score>=1.6&&inContact(me,x)){ propose(x,'peace'); return; }
     if(r==='peace'){
@@ -4908,7 +4955,7 @@ function swapSaveSides(d, me){
     const swPair=(k,sep)=>k.split(sep).map(x=>x.endsWith('$')?sw(x.slice(0,-1))+'$':sw(x)).join(sep);
     const rel={}; for(const k in d.dip.rel||{}){ const [a,b]=k.split('|').map(sw); rel[relKey(a,b)]=d.dip.rel[k]; } d.dip.rel=rel;
     d.dip.rep=swKeys(d.dip.rep);
-    for(const f of ['good','last']){ const o={}; for(const k in d.dip[f]||{}) o[swPair(k,'>')]=d.dip[f][k]; d.dip[f]=o; }
+    for(const f of ['good','last','warn']){ const o={}; for(const k in d.dip[f]||{}) o[swPair(k,'>')]=d.dip[f][k]; d.dip[f]=o; }
     (d.dip.offers||[]).forEach(o=>{ o.from=sw(o.from); o.to=sw(o.to); });
     if(d.dip.win) d.dip.win=d.dip.win.map(sw);
   }
@@ -6323,6 +6370,7 @@ let dipArm=null;
 function dipMoodLabel(s){
   const r=relOf(s,MYSIDE), m=aiMood(s,MYSIDE,r==='war'?'peace':'ally').score;
   if(r==='ally') return ['Loyal ally','#8fd89a'];
+  if(r==='peace'&&dip.warn&&dip.warn[s+'>'+MYSIDE]!=null) return ['Massing troops','#ff9384'];
   if(r==='peace') return m>=2.6?['Wants an alliance','#8fd89a']:m>=1.4?['Friendly','#b8e08a']:dip.rep[MYSIDE]?['Distrustful','#ff9384']:['Keeps the peace','var(--amber)'];
   return m>=1.8?['Wants peace','#8fd89a']:m>=1?['Open to talks','#b8e08a']:m>=-0.5?['Wary','var(--amber)']:['Hostile','#ff9384'];
 }
@@ -6590,7 +6638,7 @@ function endGame(winner){
   const tally=` Turn ${turn} \u00b7 ${stats.kills} enemy units destroyed \u00b7 ${stats.losses} lost.`;
   const timeUp=gameMode()==='score'&&turnOrder.filter(s=>alive[s]).length>1;
   if(dip.win&&winner===MYSIDE&&!hotOn()){ t.textContent='Allied victory'; t.className='win';
-    b.textContent='Every rival is beaten. You share the region with '+dip.win.filter(x=>x!==MYSIDE).map(x=>meta(x).name).join(' and ')+'.'+tally; }
+    b.textContent='Every rival is beaten. You share the region with '+dip.win.filter(x=>x!==MYSIDE).map(x=>meta(x).name).join(' and ')+'.'+(minorAlly(MYSIDE)?' They did most of the fighting.':'')+tally; }
   else if(winner===MYSIDE){ t.textContent='Victory'; t.className='win';
     b.textContent=(timeUp?'Time is up. You finished with the highest score.'
                   :NET.on?'All rival factions eliminated. The region is yours.'
@@ -6603,7 +6651,7 @@ function endGame(winner){
   else if(hotOn()){ t.textContent=pname(winner)+' wins'; t.className='win';
     b.textContent=meta(winner).name+(timeUp?' finished with the highest score.':' holds the region.')+' Turn '+turn+'.'; }
   { const d=document.createElement('div'); d.className='ovScore'; d.innerHTML=resultHtml(winner, firstTime); b.appendChild(d); }
-  if(firstTime&&!hotOn()){ const d=document.createElement('div'); d.innerHTML=xpHtml(awardXP(winner===MYSIDE)); b.appendChild(d.firstChild); renderRankBtn(); }
+  if(firstTime&&!hotOn()){ const d=document.createElement('div'); d.innerHTML=xpHtml(awardXP(winner===MYSIDE&&(minorAlly(MYSIDE)?0.3:1))); b.appendChild(d.firstChild); renderRankBtn(); }
   const camp=(gcfg||{}).campaign;
   if(camp&&!NET.on&&!hotOn()){
     const line=firstTime?campaignResult(camp, winner===MYSIDE):null;
