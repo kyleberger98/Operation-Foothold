@@ -783,7 +783,8 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
       <button class="opt" data-diff="easy">Easy<span>relaxed rivals</span></button>
       <button class="opt sel" data-diff="normal">Normal<span>a fair fight</span></button>
       <button class="opt" data-diff="hard">Hard<span>a tough fight</span></button>
-      <button class="opt" data-diff="crazy">Crazy<span>rivals earn far more</span></button>
+      <button class="opt" data-diff="brutal">Brutal<span>rivals earn more</span></button>
+      <button class="opt" data-diff="crazy">Crazy<span>rivals outbuild you</span></button>
     </div>
     <button id="startBtn" class="bigbtn primary">Begin operation<span>start a new game with these settings</span></button>
     <div class="saveRow">
@@ -816,6 +817,7 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
           <button class="opt" data-diff="easy">Easy</button>
           <button class="opt sel" data-diff="normal">Normal</button>
           <button class="opt" data-diff="hard">Hard</button>
+          <button class="opt" data-diff="brutal">Brutal</button>
           <button class="opt" data-diff="crazy">Crazy</button>
         </div>
         <div class="sec">Map code <span class="secNote">optional, the same code gives the same map</span></div>
@@ -1071,7 +1073,8 @@ const DIFFS={
   easy:  {name:'Easy',   note:'relaxed rivals',       inc:0.6, start:4, train:1,  techs:1, every:2, reserve:5, press:0.5, sharp:false, nukes:false},
   normal:{name:'Normal', note:'a fair fight',         inc:0.8, start:5, train:2,  techs:1, every:1, reserve:3, press:0.8, sharp:true,  nukes:false},
   hard:  {name:'Hard',   note:'a tough fight',        inc:1,   start:6, train:3,  techs:1, every:1, reserve:2, press:1,   sharp:true,  nukes:true},
-  crazy: {name:'Crazy',  note:'rivals earn far more', inc:1.7, start:10, train:99, techs:2, every:1, reserve:1, press:1,   sharp:true,  nukes:true},
+  brutal:{name:'Brutal', note:'rivals earn more',     inc:1.18, start:7, train:4, techs:1, every:1, reserve:2, press:1,   sharp:true,  nukes:true},
+  crazy: {name:'Crazy',  note:'rivals outbuild you',  inc:1.35, start:8, train:99, techs:2, every:1, reserve:1, press:1,   sharp:true,  nukes:true},
 };
 /* map types and optional rule modifiers (chosen in Custom setup or by the online host) */
 const MAP_TYPES={
@@ -2440,7 +2443,7 @@ function aiMood(me, x, kind){
   const others=turnOrder.filter(o=>alive[o]&&o!==me&&o!==x);
   const warPow=others.filter(o=>hostile(me,o)).reduce((m,o)=>Math.max(m,strength(o)),0)/pm;
   const trust=-(dip.rep[x]||0)*2.5, good=Math.min(3,dip.good[x+'>'+me]||0);
-  const dd={easy:0.8,normal:0.2,hard:-0.4,crazy:-1.2}[(gcfg||cfg).diff]||0;
+  const dd={easy:0.8,normal:0.2,hard:-0.4,brutal:-0.8,crazy:-1.2}[(gcfg||cfg).diff]||0;
   const leader=others.length>0&&scoreLeader()===x;
   const parts=[];   // [value, reason-against]
   if(kind==='peace'){
