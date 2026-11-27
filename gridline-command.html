@@ -795,7 +795,7 @@ body.tsz #techTree .tn-cost{font-size:12px}
       <div class="tag">Turn-based tactics · capture the enemy HQ</div>
       <div class="homeBtns">
         <button id="resumeBtn" class="bigbtn primary" style="display:none">Resume<span>back to the battlefield</span></button>
-        <button id="continueBtn" class="bigbtn primary" style="display:none">Continue campaign<span id="continueInfo"></span></button>
+        <button id="continueBtn" class="bigbtn primary" style="display:none">Continue game<span id="continueInfo"></span></button>
         <button id="rejoinBtn" class="bigbtn primary" style="display:none">Rejoin online game<span id="rejoinInfo"></span></button>
         <button id="hostResumeBtn" class="bigbtn primary" style="display:none">Resume room<span id="hostResumeInfo"></span></button>
         <button id="quickBtn" class="bigbtn gold">Quick play<span id="quickInfo"></span></button>
@@ -1072,7 +1072,7 @@ const POWERS={
   AEGIS:  {key:'triage',   name:'Field Triage',      desc:'Every unit you have is healed to full health.'},
   CRIMSON:{key:'assault',  name:'All-Out Assault',   desc:'For the rest of this turn your units deal double damage.'},
   SOLARIS:{key:'windfall', name:'Windfall',          desc:'Collect one and a half turns of income right now (at least 9\u2605, at most 30\u2605).'},
-  GHOST:  {key:'ambush',   name:'Ambush',            desc:'For the rest of this turn your units deal +25% damage and enemies cannot return fire.'},
+  GHOST:  {key:'ambush',   name:'Ambush',            desc:'For the rest of this turn your units deal +10% damage and enemies cannot return fire.'},
   BASTION:{key:'bulwark',  name:'Hold the Line',     desc:'For two rounds, your units take half damage.'},
   VERDANT:{key:'festival', name:'Harvest Festival',  desc:'Every city you hold gains +2 population. Fully grown cities pay 4\u2605 each instead.'},
   TIDE:   {key:'airdrop',  name:'Reinforcements',    desc:'A free unit lands at every city you hold: Infantry, or once you have Mechanized Warfare, Tanks at up to four cities.'},
@@ -1263,7 +1263,7 @@ const UNIT_TYPES={
   INF:{key:'INF', name:'Infantry',   cost:2, hp:10, atk:2, def:2, move:1, range:1, fly:false, desc:'Cheap, dependable riflemen.'},
   SNP:{key:'SNP', name:'Sniper',     cost:5, hp:8,  atk:3, def:1, move:1, range:2, fly:false, desc:'Strikes from 2 tiles. +25% damage vs Infantry; armor shrugs it off.'},
   TNK:{key:'TNK', name:'Tank',       cost:7, hp:16, atk:4, def:3, move:2, range:1, fly:false, desc:'Heavy armor. Fast, and takes far less damage from Snipers.'},
-  ART:{key:'ART', name:'Artillery',  cost:9, hp:10,  atk:5, def:1, move:1, range:3, fly:false, siege:true, splash:0.25, desc:'Fires at range 3. Its blast also hits enemies next to the target for 25% damage. Cannot move and fire on the same turn.'},
+  ART:{key:'ART', name:'Artillery',  cost:9, hp:10,  atk:5, def:1, move:1, range:3, fly:false, siege:true, splash:0.5, desc:'Fires at range 3. Its blast also hits enemies next to the target for 50% damage. Cannot move and fire on the same turn.'},
   AA: {key:'AA',  name:'Flak Battery', cost:4, hp:12, atk:2, def:2, move:1, range:2, fly:false, desc:'Anti-air guns that strike from 2 tiles. +75% damage vs Helicopters, and shrugs off their return fire.'},
   HEL:{key:'HEL', name:'Helicopter', cost:8, hp:14, atk:3, def:2, move:3, range:1, fly:true, desc:'Flies over water and mountains. +75% damage vs Tanks and Titans, and their guns can barely track it.'},
   TTN:{key:'TTN', name:'Titan', cost:18, hp:36, atk:5, def:4, move:1, range:1, fly:false, super:true, splash:0.25, desc:'A colossal war walker. Slow, but it shrugs off Sniper fire, and each blow also hits enemies next to its target for 25% damage. Only a city of level 4 or higher can field one, and each such city supports a single Titan.'},
@@ -1271,8 +1271,8 @@ const UNIT_TYPES={
 };
 /* one unit only its own faction can train */
 Object.assign(UNIT_TYPES,{
-  AMB:{key:'AMB', name:'Field Ambulance', faction:'AEGIS',   cost:5, hp:12, atk:1, def:2, move:2, range:1, fly:false, medic:3,
-       desc:'Aegis only. At the start of your turn it heals every friendly unit next to it by 3 HP.'},
+  AMB:{key:'AMB', name:'Field Ambulance', faction:'AEGIS',   cost:5, hp:12, atk:1, def:2, move:2, range:1, fly:false, medic:4,
+       desc:'Aegis only. At the start of your turn it heals every friendly unit next to it by 4 HP.'},
   SHK:{key:'SHK', name:'Shock Troops',    faction:'CRIMSON', cost:5, hp:10, atk:3, def:1, move:2, range:1, fly:false, blitz:true,
        desc:'Crimson only. Fast assault infantry that can capture a city on the same turn it moves in.'},
   MRT:{key:'MRT', name:'Mortar Truck',    faction:'SOLARIS', cost:6, hp:8, atk:4, def:1, move:2, range:2, fly:false,
@@ -1326,7 +1326,7 @@ const TECHS={
   DRILLS:{key:'DRILLS',name:'Combat Drills',    branch:'Combat',   tier:2, req:'MARKS', unlocks:'Infantry and Snipers deal +30% damage, and Infantry gain +1 DEF.'},
   MECH: {key:'MECH',  name:'Mechanized Warfare',branch:'Combat',   tier:2, req:'MARKS', unlocks:'Unlocks the Tank. Tanks gain +1 DEF when attacked; their return fire is unchanged.'},
   ARMOR:{key:'ARMOR', name:'Composite Armor',   branch:'Combat',   tier:3, req:'MECH',  unlocks:'Tanks, Artillery and Flak gain +2 DEF.'},
-  SIEGE:{key:'SIEGE', name:'Siege Doctrine',    branch:'Combat',   tier:3, req:'MECH',  unlocks:'Unlocks Artillery. Its blast hits enemies next to the target for 50% damage instead of 25%.'},
+  SIEGE:{key:'SIEGE', name:'Siege Doctrine',    branch:'Combat',   tier:3, req:'MECH',  unlocks:'Unlocks Artillery, whose blast also hits enemies next to the target for 50% damage.'},
   SPG:  {key:'SPG',   name:'Self-Propelled Guns',branch:'Combat',  tier:3, req:'SIEGE', unlocks:'Artillery can move and fire in the same turn, and gains +1 move.'},
   MINING:{key:'MINING',name:'Mining',           branch:'Industry', tier:1, req:null,    unlocks:'Unlocks ore harvesting (4\u2605 for +2 pop) and Quarries on mountains (+2 pop).'},
   DRILL:{key:'DRILL', name:'Oil Drilling',      branch:'Industry', tier:2, req:'MINING',unlocks:'Unlocks oil harvesting (6\u2605 for +3 pop). Every harvest costs 1\u2605 less.'},
@@ -1341,7 +1341,7 @@ const TECHS={
   CAMO: {key:'CAMO',  name:'Camouflage',        branch:'Support',  tier:2, req:'MEDIC', unlocks:'Forest cover doubles defense (2x instead of 1.5x), and units attacking from a forest deal +20% damage.'},
   HOSP: {key:'HOSP',  name:'Field Hospitals',   branch:'Support',  tier:3, req:'FORT',  unlocks:'Units inside your cities heal 5 HP every turn, even after acting; anywhere in your territory they heal 2 HP.'},
   CIVDEF:{key:'CIVDEF',name:'Civil Defense',    branch:'Support',  tier:3, req:'FORT',  unlocks:'Artillery and nuclear blasts deal half damage to your units and can\u2019t kill them inside your cities. Units in your cities gain +1 DEF.'},
-  RADIO:{key:'RADIO', name:'Field Radio',       branch:'Intel',    tier:1, req:null,    unlocks:'+1 vision, every village and supply drop is revealed, and each supply drop you open also yields +3\u2605.'},
+  RADIO:{key:'RADIO', name:'Field Radio',       branch:'Intel',    tier:1, req:null,    unlocks:'+1 vision, every village and supply drop is revealed, and each supply drop you open (not airdrops) also yields +3\u2605.'},
   AIRDEF:{key:'AIRDEF',name:'Air Defense',      branch:'Intel',    tier:2, req:'RADIO', unlocks:'Unlocks the Flak Battery. Helicopters deal 25% less damage to all your units.'},
   FWDOBS:{key:'FWDOBS',name:'Forward Observers',branch:'Intel',    tier:3, req:'RADIO', unlocks:'Artillery and Flak gain +1 range, and Artillery, Flak, Mortars and ships deal +15% damage.'},
   SAT:  {key:'SAT',  name:'Satellite Network', branch:'Strategic', tier:4, req:'AVIA',  unlocks:'Reveals the whole map. Artillery, Flak and Nuclear Missiles gain +1 range, and precision targeting gives all units +10% damage.'},
@@ -1581,6 +1581,7 @@ const unitAt=(x,y)=>units.find(u=>u.x===x&&u.y===y);
 const tileAt=(x,y)=>map[y][x];
 
 /* keep the fairest of a few candidate maps, so villages and resources split evenly between the HQs */
+let tutNear=false;   // the guided game, first or replayed, starts in a corner near the camera
 function genMap(){
   let best=null, bs=1e9;
   for(let i=0;i<(mapType().mirror&&enemySides.length<2?1:12)&&bs>1;i++){   // a 1v1 mirror is fair already
@@ -1673,7 +1674,7 @@ function genMap1(){
   }
   // seats get a random corner; the first rival sits opposite you, the others take the other diagonal
   const C=[{x:1,y:H-2},{x:W-2,y:1},{x:1,y:1},{x:W-2,y:H-2}];
-  const r0=(!NET.on&&!tutDone())?(rnd(2)?3:0):rnd(4), rest=r0<2?[2,3]:[0,1];   // the first game starts near the camera
+  const r0=(!NET.on&&(!tutDone()||tutNear))?(rnd(2)?3:0):rnd(4), rest=r0<2?[2,3]:[0,1];   // the first game starts near the camera
   if(mapType().mirror?rest[0]===3||rest[0]===0:rnd(2)) rest.reverse();   // a mirrored map keeps its top half, so a third seat goes there
   const corners=[C[r0],C[[1,0,3,2][r0]],...rest.map(i=>C[i])];
   const caps={[P]:corners[0]};
@@ -1948,7 +1949,7 @@ const coastal=(x,y)=>[[0,1],[1,0],[-1,0],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]].som
 /* empty friendly landing craft next to a tile this land unit can reach, so it could board this turn */
 function boardable(u){
   if(naval(u)||UNIT_TYPES[u.type].fly||u.type==='NUKE'||u.moved||u.attacked) return [];
-  const spots=[{x:u.x,y:u.y},...reachable(u).values()];
+  const spots=[{x:u.x,y:u.y},...[...reachable(u).values()].filter(p=>!p.zoc)];   // boarding is one more step, so not from a tile held by an enemy
   return units.filter(c=>c.owner===u.owner&&UNIT_TYPES[c.type].carry&&!c.cargo&&spots.some(p=>cheb(p,c)<=1));
 }
 /* land tiles next to a loaded craft where its passenger can step ashore */
@@ -2304,7 +2305,7 @@ function calcDamage(u,d,frac){
   const AF=effAtk*(u.hp/u.maxHp);
   const DF=uDef(d)*defMult(u,d)*(d.hp/d.maxHp)*defBonus(d)*guardAura(d);
   const drill=techDmg(u,d);
-  const rage=(pw.rage[u.owner]===turn&&side===u.owner?2:1)*(pw.ghost[u.owner]===turn&&side===u.owner?1.25:1);   // All-Out Assault, Ambush
+  const rage=(pw.rage[u.owner]===turn&&side===u.owner?2:1)*(pw.ghost[u.owner]===turn&&side===u.owner?1.1:1);   // All-Out Assault, Ambush
   const dmg=Math.max(1, Math.round(AF/(AF+DF)*effAtk*4.5*(frac||1)*drill*rage*shieldMul(d.owner)));
   return {dmg, AF, DF};
 }
@@ -2345,7 +2346,7 @@ function fcText(f,tu){
   return `Attack ${UNIT_TYPES[tu.type].name}: deal <b>${f.dmg}</b>`+
     (f.cAtk?` <b style="color:var(--amber)">\u25b2 strong vs ${UNIT_TYPES[tu.type].name}</b>`:'')+
     (f.cDef?' <b style="color:#8aa08c">\u25bc armored target</b>':'')+
-    (f.splashN?` <b style="color:var(--amber)">blast hits ${f.splashN} more</b>`:'')+
+    (f.splashN?` <b style="color:var(--amber)">blast hits ${f.splashN} more for ${f.splashP}%</b>`:'')+
     (f.kills?(' · <b>destroys it'+(f.advances?' and advances':'')+'</b>')
             :(f.rdmg?` \u00b7 take <b>${f.rdmg}</b> back`+(f.dies?', <b>enough to destroy your unit</b>':'')
                     :' \u00b7 no retaliation'));
@@ -2366,7 +2367,7 @@ function forecast(u,d){
     splashN=units.filter(e=>hostile(e.owner,u.owner) && e!==d &&
       Math.max(Math.abs(e.x-d.x),Math.abs(e.y-d.y))<=R).length;
   }
-  return {dmg,kills,advances,rdmg,dies,cAtk:atkMult(u,d)>1,cDef:defMult(u,d)>1,splashN};
+  return {dmg,kills,advances,rdmg,dies,cAtk:atkMult(u,d)>1,cDef:defMult(u,d)>1,splashN,splashP:Math.round(100*splashFrac(u))};
 }
 
 function passable(u,x,y){
@@ -2382,11 +2383,24 @@ function treatyLand(s,x,y,f){
   const tg=terrGrid(), o=tg[y][x];
   return !!o&&pp.includes(o)&&!(f&&tg[f.y][f.x]===o);
 }
+/* zone of control: a unit that moves next to a hostile unit it can see must stop there. Aircraft ignore it and
+   don't exert it, ships only hold ships, and missiles and unarmed units hold nothing */
+function zocTiles(u,maxMv){
+  const ut=UNIT_TYPES[u.type]; if(ut.fly) return null;
+  const nv=!!ut.naval;
+  const es=units.filter(e=>{ const et=UNIT_TYPES[e.type];
+    return !et.fly&&!!et.naval===nv&&et.range>0&&e.type!=='NUKE'&&cheb(e,u)<=maxMv+1&&hostile(e.owner,u.owner); });
+  if(!es.length) return null;
+  const g=sightOf(u.owner), z=new Set();
+  for(const e of es) if(g[e.y][e.x]) for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++) z.add(key(e.x+dx,e.y+dy));
+  return z;
+}
 function reachable(u){
   if(u.moved||u.attacked) return new Map();
   const maxMv=uMove(u);
   const seen=new Map(); seen.set(key(u.x,u.y),0);
   const out=new Map();
+  const zoc=zocTiles(u,maxMv);
   const pp=peaceWith(u.owner), tg=pp.length?terrGrid():null;   // treaty partners' land is closed (a unit already inside may walk out)
   let frontier=[{x:u.x,y:u.y,d:0}];
   while(frontier.length){
@@ -2401,10 +2415,11 @@ function reachable(u){
       if(!passable(u,nx,ny)) continue;
       if(tg){ const o=tg[ny][nx]; if(o&&pp.includes(o)&&tg[cur.y][cur.x]!==o) continue; }
       const blk=unitAt(nx,ny);
-      if(blk){ if(blk.owner!==u.owner&&relOf(blk.owner,u.owner)==='ally'){ seen.set(k,cur.d+1); frontier.push({x:nx,y:ny,d:cur.d+1}); } continue; }   // pass through allies, never stop on them
+      const stop=zoc&&zoc.has(k);
+      if(blk){ if(!stop&&blk.owner!==u.owner&&relOf(blk.owner,u.owner)==='ally'){ seen.set(k,cur.d+1); frontier.push({x:nx,y:ny,d:cur.d+1}); } continue; }   // pass through allies, never stop on them
       seen.set(k,cur.d+1);
-      out.set(k,{x:nx,y:ny});
-      frontier.push({x:nx,y:ny,d:cur.d+1});
+      out.set(k,stop?{x:nx,y:ny,zoc:true}:{x:nx,y:ny});
+      if(!stop) frontier.push({x:nx,y:ny,d:cur.d+1});
     }
   }
   return out;
@@ -2488,7 +2503,7 @@ function defBonus(d){
   return 1;
 }
 function blastR(u){ return UNIT_TYPES[u.type].nuke || 1; }
-const splashFrac=u=>(UNIT_TYPES[u.type].splash||0)+(u.type==='ART'&&hasTech(u.owner,'SIEGE')?0.25:0);   // Siege Doctrine
+const splashFrac=u=>UNIT_TYPES[u.type].splash||0;
 /* buildings a blast at (x,y) flattens: side s's own and its allies' (g = terrGrid()) */
 function blastBuildings(s,x,y,R,g){
   let own=0, ally=0;
@@ -2600,7 +2615,7 @@ function openDrop(u,x,y){
     addPop(home.c,2);
     msg='settlers bringing +2 population to the nearest city';
   }
-  if(hasTech(s,'RADIO')){ stars[s]+=3; msg+=' (+3\u2605 radio intel)'; }
+  if(hasTech(s,'RADIO')&&!big){ stars[s]+=3; msg+=' (+3\u2605 radio intel)'; }
   fx.popup(x,y,'SUPPLY DROP','#f0b35c');
   if(s===MYSIDE) sfx.level();
   log(s, `${whose} opened a supply drop: ${msg}.`);
@@ -4082,6 +4097,7 @@ function freeTree(o, mats){
   });
 }
 function fxFree(o){ fxGroup.remove(o); freeTree(o,true); }
+function fxReset(){ for(const f of fx.flashes) fxFree(f.m); for(const p of fx.pops) fxFree(p.sp); fxGroup.clear(); fx.flashes.length=0; fx.pops.length=0; }
 function box(w,h,d,mat){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.castShadow=true;m.receiveShadow=true;return m}
 function cyl(rt,rb,h,mat,seg=10){const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg),mat);m.castShadow=true;m.receiveShadow=true;return m}
 function cone(r,h,mat,seg=7){const m=new THREE.Mesh(new THREE.ConeGeometry(r,h,seg),mat);m.castShadow=true;m.receiveShadow=true;return m}
@@ -4243,6 +4259,7 @@ function drawCityLabel(sp,city){
 /* Static board */
 function buildBoard(){
   applyTheme(cosmetics().theme, false);
+  for(const k in cityDecor){ const cd=cityDecor[k]; cd.sprite.material.map.dispose(); cd.sprite.material.dispose(); cd.flagMat.dispose(); cd.roof.dispose(); }
   freeTree(boardGroup,false); freeTree(fogGroup,false); freeTree(terrGroup,false); freeTree(dimGroup,false);
   boardGroup.clear(); terrGroup.clear(); terrSig=''; dimGroup.clear(); dimSig=''; scat={}; tileInst={}; pickTiles=[]; cityDecor={}; tileGroups={}; resourceDecor={}; buildingDecor={}; dropDecor={}; pumpjacks=[]; forestTrees={};
   fogGroup.clear(); fogClouds={}; dissolving=[];
@@ -4633,7 +4650,8 @@ function drawLabel(sp,u){
 /* Unit mesh sync */
 function unitBaseY(u){ return UNIT_TYPES[u.type].fly ? TOP+0.55 : (UNIT_TYPES[u.type].hover||UNIT_TYPES[u.type].naval)&&inb(u.x,u.y)&&tileAt(u.x,u.y).terrain==='water' ? TOP-0.12 : TOP; }
 const dyingUnits=[], deathDelay={};
-function freeUnitMesh(g){ freeTree(g,false); for(const m of g.userData.mats||[]) m.dispose(); }
+function freeLabel(g){ const l=g.userData.label; if(l){ l.material.map.dispose(); l.material.dispose(); g.remove(l); g.userData.label=null; } }
+function freeUnitMesh(g){ freeLabel(g); freeTree(g,false); for(const m of g.userData.mats||[]) m.dispose(); }
 let labelF=1, labelShow=true;
 let fullResync=false;   // set while a whole game is rebuilt (new game, load, undo) to skip death animations
 /* your own units wear the finish picked in Profile (on your screen only) */
@@ -4682,8 +4700,7 @@ function syncUnits(){
   }
   for(const [id,g] of unitMeshes){
     if(!live.has(id)){
-      const lbl=g.userData.label;
-      if(lbl){ lbl.material.map.dispose(); lbl.material.dispose(); g.remove(lbl); }
+      freeLabel(g);
       unitMeshes.delete(id);
       const aboard=units.some(c=>c.cargo&&c.cargo.id===id);   // boarded a landing craft, so it just disappears
       if(g.visible&&!fullResync&&!aboard) dyingUnits.push({g,t:-(deathDelay[id]||0)}); else { unitGroup.remove(g); freeUnitMesh(g); }   // a destroyed unit sinks and fades
@@ -5597,7 +5614,7 @@ function restoreGame(data, net){
     if(net){ for(const r of data.rv||[]) if(r.s===MYSIDE) revealAround(r.x,r.y,r.r); computeVision(); }
     for(const [,g] of unitMeshes){ unitGroup.remove(g); freeUnitMesh(g); }
     dyingUnits.forEach(d=>{ unitGroup.remove(d.g); freeUnitMesh(d.g); }); dyingUnits.length=0;
-    unitMeshes.clear(); hlGroup.clear(); fxGroup.clear(); fx.flashes.length=0; fx.pops.length=0;
+    unitMeshes.clear(); hlGroup.clear(); fxReset();
     buildBoard();
     buildSkyClouds();
     const sb=Math.max(9, W*0.85);
@@ -5823,7 +5840,7 @@ const campCanHit=(c,r,f)=>campHit2(c,r,f)||(r.capital&&r.owner!==f&&campNear(c,r
 const campCanAttack=(c,r)=>campCanHit(c,r,c.fac);
 /* Battle objectives. Most battles are won by taking the enemy HQ, but some ask for something else:
    take: take their HQ. hold: last a number of turns with as many cities as the attacker. raid: hold a number of cities by a turn.
-   two: a third faction joins and you get +6 stars; take the defender's HQ. cap: a capital, with walls, a veteran guard and +3 stars.
+   two: a third faction joins, you get +12 stars and it gets 4 fewer and no perks; take the defender's HQ. cap: a capital, with walls, a veteran guard and +3 stars.
    Any but a capital battle can also have a match modifier. Older saves have no objective, which means take. */
 const CAMP_OBJ={take:'Conquest', hold:'Hold out', raid:'Raid', two:'Two fronts', cap:'Capital assault'};
 const CAMP_CAP=[{bonus:'walls'},{bonus:'vet'},{bonus:'stars'}];
@@ -5844,7 +5861,7 @@ function campObjText(o, enemy){
   o=o||{k:'take'};
   const t=o.k==='hold'?'Last '+o.turns+' turns with at least as many cities as them, or take their HQ.':
     o.k==='raid'?'Hold '+o.cities+' cities at once by turn '+o.turns+', or take their HQ.':
-    o.k==='two'&&FACTIONS[o.with]?'Take the '+FACTIONS[enemy].name+' HQ. '+FACTIONS[o.with].name+' joins the fight against you both. You start with +6\u2605.':
+    o.k==='two'&&FACTIONS[o.with]?'Take the '+FACTIONS[enemy].name+' HQ. '+FACTIONS[o.with].name+' joins the fight against you both. You start with +12\u2605.':
     o.k==='cap'?'Take their HQ. A capital has City Walls, a veteran guard and +3\u2605.':FACTIONS[o.vs]?'Take the '+FACTIONS[o.vs].name+' HQ.':'Take their HQ.';
   return t+(MODS[o.mod]?' '+MODS[o.mod].name+': '+MODS[o.mod].note+'.':'');
 }
@@ -5863,7 +5880,7 @@ function campBattle(kind, regionId, enemy, obj){
   cfg=keep;
   const bon=campBonuses(c, r, c.fac, enemy), go=gcfg.campaign.obj;
   campApplyBonuses(P, bon.me); campApplyBonuses(enemySides[0], bon.enemy);
-  if(two){ campApplyBonuses(enemySides[1], r.nb.map(k=>c.regions[k]).filter(q=>q.owner===o.with)); stars[P]+=6; }
+  if(two){ stars[P]+=12; stars[enemySides[1]]-=4; }   // the third rival brings no region perks
   if(r.capital) campApplyBonuses(kind==='attack'?enemySides[0]:P, CAMP_CAP);
   if(o.k==='raid'){ let v=0; map.flat().forEach(t=>{ if(t.city&&!t.city.owner) v++; }); go.cities=Math.min(o.cities, 1+v); }
   computeVision(); refresh(); autoSave();
@@ -5909,7 +5926,10 @@ function campaignResult(info, won){
     if(won){ line=campTake(c, r, c.fac) || r.name+' is yours.'; }
     else line='The assault on '+r.name+' failed.';
   } else {
-    if(won) line=r.name+' holds.';
+    if(won){   // a won defence pushes on into a region the attacker holds next to it
+      line=r.name+' holds.'; const q=r.nb.map(k=>c.regions[k]).find(q=>q.owner===enemy&&!q.capital);
+      if(q){ q.owner=c.fac; line+=' You push on and take '+q.name+'.'; }
+    }
     else { line=campTake(c, r, enemy) || r.name+' falls to '+FACTIONS[enemy].name+'.'; }
   }
   c.log.unshift('Turn '+c.turn+': '+line);
@@ -5939,6 +5959,8 @@ function campTake(c, r, to){
   return line;
 }
 function campEliminations(c){
+  // a rival region with only your regions around it (not a capital) surrenders
+  for(let k=0;k<3;k++) for(const q of c.regions) if(q.owner!==c.fac&&!q.capital&&q.nb.length&&q.nb.every(j=>c.regions[j].owner===c.fac)){ c.log.unshift(q.name+' is cut off and surrenders.'); q.owner=c.fac; }
   for(const f of c.sides) if(f!==c.fac&&!(c.out||[]).includes(f)&&!campOwned(c,f).length){ c.out=[...(c.out||[]),f]; c.log.unshift(FACTIONS[f].name+' has been driven from the map.'); }
 }
 function campCheckEnd(c){
@@ -5946,7 +5968,9 @@ function campCheckEnd(c){
   if(c.regions.every(r=>r.owner===c.fac)){ c.over='won'; c.log.unshift('Every region is yours. Campaign won in '+c.turn+' turns.'); return true; }
   return false;
 }
-/* the rivals' moves after each of your battles: attacks on each other are settled at once, an attack on you is a battle */
+/* the rivals' moves after each of your battles: attacks on each other are settled at once, an attack on you is a battle,
+   at most once every CAMP_DEF_GAP campaign turns */
+const CAMP_DEF_GAP=4;
 function campRivals(c){
   const R=campRng((c.seed^(c.turn*2654435761))>>>0);
   const live=c.sides.filter(f=>f!==c.fac&&campOwned(c,f).length);
@@ -5957,7 +5981,7 @@ function campRivals(c){
     let targets=c.regions.filter(r=>campCanHit(c,r,f));
     // you get at most one attack per turn, and rivals pick on each other two times in three when they can
     const others=targets.filter(r=>r.owner!==c.fac);
-    if(others.length&&(defend||R()<0.67)) targets=others;
+    if(others.length&&(defend||R()<0.67)||(c.defT&&c.turn+1-c.defT<CAMP_DEF_GAP)) targets=others;
     if(!targets.length) continue;
     targets.sort((a,b)=>campOwned(c,b.owner).length-campOwned(c,a.owner).length);   // they lean toward the biggest
     const t=R()<0.6?targets[0]:targets[Math.floor(R()*targets.length)];
@@ -5971,7 +5995,7 @@ function campRivals(c){
   }
   campEliminations(c);
   c.turn++;
-  if(defend){ defend.obj=campObjFor(c, c.regions[defend.region], 'defend', defend.enemy); c.defend=defend; c.log.unshift(FACTIONS[defend.enemy].name+' marches on '+c.regions[defend.region].name+'.'); }
+  if(defend){ defend.obj=campObjFor(c, c.regions[defend.region], 'defend', defend.enemy); c.defend=defend; c.defT=c.turn; c.log.unshift(FACTIONS[defend.enemy].name+' marches on '+c.regions[defend.region].name+'.'); }
   else c.defend=null;
   if(c.log.length>40) c.log.length=40;
 }
@@ -6126,8 +6150,9 @@ function renderCampaign(){
     else btn('Fight the battle','it was interrupted, so start it again',()=>campBattle(c.battle.kind,c.battle.region,c.battle.enemy,c.battle.obj));
   } else if(c.defend){
     const r=c.regions[c.defend.region];
+    const push=r.nb.map(k=>c.regions[k]).find(q=>q.owner===c.defend.enemy&&!q.capital);
     const bd=campBonuses(c,r,c.defend.enemy,c.fac), lst=a=>a.length?a.map(q=>CAMP_BONUS[q.bonus].name).join(', '):'none';
-    card.innerHTML='<h4>'+esc(r.name)+' is under attack</h4><div class="cs">Your perks: <b>'+lst(bd.enemy)+'</b> \u00b7 theirs: <b>'+lst(bd.me)+'</b></div><div class="cs">'+FACTIONS[c.defend.enemy].name+' is marching in. Fight them off, or give the region up.'+(r.capital?' <b>This is your capital. If you lose it, the campaign is over.</b>':'')+'</div>'+
+    card.innerHTML='<h4>'+esc(r.name)+' is under attack</h4><div class="cs">Your perks: <b>'+lst(bd.enemy)+'</b> \u00b7 theirs: <b>'+lst(bd.me)+'</b></div><div class="cs">'+FACTIONS[c.defend.enemy].name+' is marching in. Fight them off'+(push?' and you push on into '+esc(push.name):'')+', or give the region up.'+(r.capital?' <b>This is your capital. If you lose it, the campaign is over.</b>':'')+'</div>'+
       '<div class="cs cobj"><b>'+CAMP_OBJ[(c.defend.obj||{}).k||'take']+':</b> '+esc(campObjText(c.defend.obj,c.defend.enemy))+'</div>';
     btn('Defend '+esc(r.name),CAMP_TERRAIN[r.terrain]+' \u00b7 '+r.size+'\u00d7'+r.size,()=>{ const d=c.defend; c.defend=null; campSave(c); campBattle('defend',d.region,d.enemy,d.obj); });
     if(!r.capital) btn('Give it up','the region falls without a fight',()=>{ r.owner=c.defend.enemy; c.log.unshift('Turn '+c.turn+': '+r.name+' abandoned to '+FACTIONS[c.defend.enemy].name+'.'); c.defend=null; campEliminations(c); if(!campCheckEnd(c)) campRivals(c); campSave(c); renderCampaign(); },'');
@@ -6215,10 +6240,11 @@ function showSetup(){
   let mainSave=null; try{ mainSave=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); }catch(e){}
   if(!running&&mainSave&&!(mainSave.cfg&&mainSave.cfg.campaign)){
     cb.style.display='';
+    cb.firstChild.nodeValue=mainSave.hot?'Continue pass & play':mainSave.cfg&&mainSave.cfg.mode==='score'?'Continue score attack':'Continue game';
     try{
-      const d=JSON.parse(localStorage.getItem(SAVE_KEY));
+      const d=mainSave;
       $('continueInfo').textContent=(d.hot?'Pass & play · '+d.hot.length+' players':FACTIONS[d.sides.P].name)+' · turn '+d.turn+' · '+d.W+'×'+d.W;
-    }catch(e){ $('continueInfo').textContent='saved campaign'; }
+    }catch(e){ $('continueInfo').textContent='saved game'; }
   } else cb.style.display='none';
   disarm();
   syncRejoin(); syncCampBtn();
@@ -6258,7 +6284,7 @@ $('resumeBtn').onclick=()=>{ disarm(); $('setup').classList.remove('show'); sfx.
 function launchTutorial(){
   const keep={...cfg};
   cfg.size=9; cfg.enemies=1; cfg.diff='easy'; cfg.hot=1; cfg.mode='conquest'; cfg.map='classic'; cfg.mods=[];   // guided game on a small map with one easy rival
-  launchSolo(true,true);
+  tutNear=true; launchSolo(true,true); tutNear=false;
   cfg=keep;
 }
 $('quickBtn').onclick=()=>{ if(!confirmAbandon($('quickBtn'))) return; if(tutDone()) launchSolo(false); else launchTutorial(); };
@@ -7583,6 +7609,7 @@ const MANUAL=[
     ['Goal','Capture every enemy HQ. You lose if your own HQ falls.'],
     ['Your turn','Each unit can move once and attack once per turn. Next jumps to a unit that can still act. When you are done, tap End turn.'],
     ['Move & attack',()=>COARSE?'Tap a unit to see where it can move (blue tiles) and what it can attack (red rings). Tap a red ring to see the battle forecast, then tap again to strike. Melee units (range 1) move into the tile when they destroy its defender.':'Click a unit to see where it can move (blue tiles) and what it can attack (red rings). Point at a red ring to see the battle forecast, then click to strike. Right-click a tile to move or fire straight away. Melee units (range 1) move into the tile when they destroy its defender.'],
+    ['Zone of control','A unit that moves next to an enemy unit you can see must stop there, so a line of troops can screen the units behind it. A unit that starts its turn next to an enemy can still move away. Helicopters and Recon Drones fly past and hold nobody. Ships only stop next to enemy ships, and land units, Hovercraft included, only next to enemy land units. Factions at peace or allied with you don\u2019t stop you, and neither do missiles or Landing Craft. The blue tiles always show where you can go.'],
     ['Capturing','Move a unit onto a village or enemy city, then at the start of your next turn select it and tap Capture (it uses the unit\u2019s action). The defender gets a turn to strike back.'],
     ['Fog','Cloud cover hides undiscovered land. Units and cities see 2 tiles around them. Explored ground stays on the map, but enemy units only show where you can see right now. Shaded tiles are out of sight.'],
     ['Recon','Tap any rival unit or city to inspect it. You see its stats or income, and for a unit the red zone shows where it can reach next turn. Your own units dim once they\u2019ve acted.'],
@@ -7597,11 +7624,11 @@ const MANUAL=[
     ['Buildings','Tap a tile inside your territory to build. Farm (plains, +2 pop), Lumber Camp (forest, +1 pop) and Quarry (mountain, Mining, +2 pop) grow the nearby city. Port (water, Naval Doctrine) adds +1 pop and +1\u2605 a turn. Factory (Logistics, one per city) pays +1\u2605 a turn for each Farm, Camp or Quarry next to it; Market (Urban Planning, one per city) pays +1\u2605 a turn for each building next to it, up to 4 each. Buildings serve whoever holds the land.'],
     ['Develop','Select one of your cities and tap Develop to spend stars on +1 population (4\u2605 + 2\u2605 per level, once per city each turn). A level-5 city builds Barracks instead, at 20\u2605 for +1 army size, up to three per city.'],
     ['Army size','Each city supports its level + 1 units, and a Command post adds 2 more. Grow and capture cities to field a bigger army.'],
-    ['Tech','Combat: Sniper, then Tank, then Artillery, plus drills, armor and self-propelled guns. Mechanized Warfare unlocks the Tank, and Tanks gain +1 DEF when attacked. It doesn\u2019t add to their return fire. Siege Doctrine makes Artillery blasts hit for 50%. Industry: Ore, then Oil, then Helicopter, plus cheaper training, +1\u2605 per city and faster gunships. Support: healing, 2\u00d7 city defense, forest camouflage, field hospitals and blast protection. Intel: +1 vision, the Flak Battery and longer artillery range. Strategic: Satellite Network (reveals the map) and Manhattan Project (the Nuclear Missile, a one-use 5\u00d75 strike). A tech costs 4/6/12/18\u2605 by tier, plus its tier for every city beyond your first (counted at the start of your turn). In the tech tree, dashed rings with a padlock are locked until you research the tech they branch from.'],
+    ['Tech','Combat: Sniper, then Tank, then Artillery, plus drills, armor and self-propelled guns. Mechanized Warfare unlocks the Tank, and Tanks gain +1 DEF when attacked. It doesn\u2019t add to their return fire. Industry: Ore, then Oil, then Helicopter, plus cheaper training, +1\u2605 per city and faster gunships. Support: healing, 2\u00d7 city defense, forest camouflage, field hospitals and blast protection. Intel: +1 vision, the Flak Battery and longer artillery range. Strategic: Satellite Network (reveals the map) and Manhattan Project (the Nuclear Missile, a one-use 5\u00d75 strike). A tech costs 4/6/12/18\u2605 by tier, plus its tier for every city beyond your first (counted at the start of your turn). In the tech tree, dashed rings with a padlock are locked until you research the tech they branch from.'],
   ]},
   {id:'units', name:'Units', items:[
-    ['Counters','Snipers get +25% vs Infantry. Tanks resist Sniper fire. Helicopters get +75% vs Tanks and Titans and resist tank guns. Flak Batteries get +75% vs Helicopters and resist their fire. A unit that resists its attacker also takes less return fire from it. Mechanized Warfare\u2019s extra Tank DEF only protects the Tank; it doesn\u2019t make it hit back harder. Artillery blasts also hit enemies next to the target for 25% (50% with Siege Doctrine).'],
-    ['Faction units','Every faction has one unit nobody else can train: Aegis Field Ambulance (heals the units next to it by 3 HP each turn), Crimson Shock Troops (capture a city the turn they move in), Solaris Mortar Truck (6\u2605, range 2, moves and fires), Ghost Recon Drone (flies 4, sees 2 tiles further), Bastion Guardian (18 HP; units next to it get +30% defense), Verdant Forest Stalker (+50% attack from a forest) and Tidewatch Hovercraft (crosses water). Each needs one tech, shown on the faction card.'],
+    ['Counters','Snipers get +25% vs Infantry. Tanks resist Sniper fire. Helicopters get +75% vs Tanks and Titans and resist tank guns. Flak Batteries get +75% vs Helicopters and resist their fire. A unit that resists its attacker also takes less return fire from it. Mechanized Warfare\u2019s extra Tank DEF only protects the Tank; it doesn\u2019t make it hit back harder. Artillery blasts also hit enemies next to the target for 50%.'],
+    ['Faction units','Every faction has one unit nobody else can train: Aegis Field Ambulance (heals the units next to it by 4 HP each turn), Crimson Shock Troops (capture a city the turn they move in), Solaris Mortar Truck (6\u2605, range 2, moves and fires), Ghost Recon Drone (flies 4, sees 2 tiles further), Bastion Guardian (18 HP; units next to it get +30% defense), Verdant Forest Stalker (+50% attack from a forest) and Tidewatch Hovercraft (crosses water). Each needs one tech, shown on the faction card.'],
     ['Veterans','A unit with three kills can be promoted for +5 max HP and a full heal. It is free, so you can save it as an emergency heal.'],
     ['Titans','Titans are the super unit, with 36 HP, 5 attack and 4 defense but only 1 move. Only a city of level 4 or higher can build one (18\u2605, 10\u2605 in a city with a Titan foundry), and each such city you hold supports a single Titan. Each blow also hits enemies next to the target for 25%. Helicopters hit it for +75% and Artillery outranges it; Snipers barely scratch it. Titans cannot be promoted.'],
     ['Navy','Research Naval Doctrine (Industry) and any city next to water can launch Patrol Boats (cheap, fast) and Landing Craft onto a free water tile beside it; Blue-Water Fleet adds Destroyers (range 2, +50% against ships) and Battleships (range 3). Ships sail water only. Infantry, Tanks and other short-range land units can\u2019t shoot at ships, but Snipers, Artillery, Flak and Helicopters can. To cross water, select a land unit and tap a Landing Craft next to it to board, sail it beside the shore, then tap a highlighted land tile to put the unit ashore (it can act again next turn). If the craft sinks, its passenger is lost. The Inland Sea map type puts a sea in the middle of the board.'],
@@ -7615,19 +7642,25 @@ const MANUAL=[
     ['Diplomacy','Tap the handshake button to see every faction: who is at war with whom, their strength and their attitude to you. Offer peace (10 turns and renewable, with no attacks, captures or entering each other\u2019s territory), an alliance (shared sight, pass through each other\u2019s units, and you win together when only allies remain), gift stars or demand tribute. Declaring war before a peace runs out breaks a treaty and every faction remembers. Computer rivals judge offers by who is winning, who else threatens them and whether they trust you.'],
     ['Tribute','You can demand tribute from each rival once every 6 turns. A computer pays only if you are much stronger, never more than half its stars, and while at war only if your troops are within 3 tiles of one of its cities.'],
     ['Broken treaties','A computer rival that is much stronger than you may turn on you. First it masses troops on your border: you get a notice, and its attitude reads Massing troops. A turn or more later it declares war, breaking the treaty, and every faction remembers. Gifts and a well-defended border make this less likely. A computer ally may also leave an alliance if you pull far ahead, or if you add little once the common rival is nearly beaten.'],
-    ['Commander powers','Every faction has one power you can use once per game on your own turn, with the lightning button. Aegis heals everything. Crimson deals double damage this turn. Solaris collects a turn and a half of income (9 to 30\u2605). Ghost deals +25% damage with no return fire this turn. Iron Bastion takes half damage for two rounds. Verdant adds +2 population in every city, and a fully grown city pays 4\u2605 instead. Tidewatch gets a free unit at every city: Infantry, or once it has Mechanized Warfare, Tanks at up to four cities (HQ first) and Infantry at the rest. Rivals above Easy use theirs too.'],
+    ['Commander powers','Every faction has one power you can use once per game on your own turn, with the lightning button. Aegis heals everything. Crimson deals double damage this turn. Solaris collects a turn and a half of income (9 to 30\u2605). Ghost deals +10% damage with no return fire this turn. Iron Bastion takes half damage for two rounds. Verdant adds +2 population in every city, and a fully grown city pays 4\u2605 instead. Tidewatch gets a free unit at every city: Infantry, or once it has Mechanized Warfare, Tanks at up to four cities (HQ first) and Infantry at the rest. Rivals above Easy use theirs too.'],
     ['Factions','Aegis units have +2 HP and heal while resting or on the march (free Field Medicine). Crimson pays 1\u2605 less for every unit and building. Solaris can mine from the start and pays less to harvest. Ghost sees 3 tiles and starts with Marksmanship. Iron Bastion has City Walls on every city it holds and free Fortification. For Verdant, crops give +1 population. Tidewatch starts with free Field Radio.'],
     ['Surrender','A computer rival that is down to its HQ and hopelessly outgunned gives up instead of dragging out the ending.'],
   ]},
   {id:'modes', name:'Modes', items:[
     ['Game modes','In Conquest the last faction standing wins. If no HQ has fallen for 10 turns after turn 50 (turn 60 on huge maps), the top score wins in 10 turns unless an HQ falls first. In Score attack, set up under Custom in the menu, you play 30 turns and the highest score wins.'],
-    ['Difficulty','Set it under Custom in the menu. Easy rivals collect 60% of their income, train one unit a turn, research every other turn and are slow to attack. Normal rivals collect 80% and train two units a turn. Hard rivals collect full income and train three units a turn. Brutal rivals collect 18% extra, start richer and train four units a turn. Crazy rivals collect 35% extra, train in every city, start richer still and research twice as fast. From Normal up, a rival with a big empire trains one unit for every two cities it holds. A rival with stars to spare trains in every free city. Computer rivals play under the same fog as you: they only chase what they can see or saw in the last two turns, and only fire nuclear missiles at units they can see.'],
+    ['Difficulty','Set it under Custom in the menu. Easy rivals collect 60% of their income, train one unit a turn, research every other turn and are slow to attack. Normal: 80% income, two units a turn. Hard: full income, three units a turn. Brutal: 18% extra income, a richer start, four units a turn. Crazy: 35% extra, an even richer start, training in every city and research twice as fast. From Normal up, a rival with a big empire trains one unit for every two cities it holds, and one with stars to spare trains in every free city. Computer rivals play under the same fog as you: they only chase what they can see or saw in the last two turns, and only fire nuclear missiles at units they can see.'],
     ['Map types','Custom setup offers Classic, Highlands (mountain ridges crossed by a few passes), Woodland (forest groves everywhere, so +50% defense is easy to find), River (a river with a few fords splits the land), Lakes (water splits the land), Inland Sea or Mirrored (both corners get the same land). You start in a random corner, and maps are picked so villages and resources split evenly between HQs.'],
     ['Modifiers','Custom setup or the online host can add No fog, Double income, Early Titans (any city can field one), No powers, Scarce stars (cities pay half income), Fortress world (every city starts with walls), Barren land (no resources outside city borders and no supply drops at the start; airdrops still come) or Turn limit (the top score wins after turn 40). Games with No fog, Double income or Early Titans don\u2019t earn medals.'],
     ['Supply drops','Parachuted crates hide in the fog. The first unit to step on one opens it and finds stars, a free tech, a free Infantry, a map of the area, or settlers for your nearest city.'],
-    ['Airdrops','From turn 10, about every 5 turns, an airdrop is announced near the middle of the map and marked with an amber ring. It lands at the start of one player\u2019s turn. The turn card says whose. A unit standing on the ring when it lands opens it; otherwise the first unit to reach it does. Airdrops hold more than normal supply drops: an advanced tech, a free Tank, +1 population in every city, or 25 stars.'],
-    ['Campaign','Campaign on the title screen gives you a random map of 10, 14 or 20 regions shared between you and three rival factions. Each campaign turn you attack one region next to yours and fight a battle for it, on a map that matches the region (highlands, woodland, lakes or coast; capitals are bigger). The card shows the objective: Conquest (take their HQ), Raid (hold a number of cities at once by a set turn, or take their HQ), Two fronts (a third rival joins and fights you both; take the defender\u2019s HQ, and you start with +6 stars) or Capital assault (their HQ has City Walls, a veteran guard and +3 stars). In Two fronts you can\u2019t make peace or an alliance with the defender, and if the third rival knocks the defender out first, your objective becomes taking the third rival\u2019s HQ. Some battles also carry a match modifier. Win and the region is yours. A rival\u2019s capital (\u2605) can only be attacked once you hold 2 of the regions next to it and none of its neighbours still belong to its faction. When it falls, any neighbours it still has surrender, and the rest of that faction joins its strongest rival neighbour or fights on without a capital. Every region has a perk (Supply depot +3 stars, Research station a free tech, Veteran garrison an extra veteran Infantry, Fortress walls on the HQ, Factory town +1 income, Watchtower longer sight). In a battle you get the perks of your regions bordering the contested one, and the defender gets theirs plus the contested region\u2019s own. Then the rivals move. They fight each other, and sometimes attack one of your regions. You can defend it in a battle or give it up (except your capital, since losing it ends the campaign). Some defences are Hold out: last the shown number of turns with at least as many cities as the attacker, or take their HQ. Nothing else carries over between battles. Hold every region to win; a map code lets a friend play the same map.'],
+    ['Airdrops','From turn 10, about every 5 turns, an airdrop is announced near the middle of the map and marked with an amber ring. It lands at the start of one player\u2019s turn, and the turn card says whose. A unit on the ring when it lands opens it, or else the first unit to reach it. It holds more than a supply drop: an advanced tech, a free Tank, +1 population in every city, or 25\u2605.'],
     ['Pass & play','Choose Custom in the menu, then Players on this device, and two to four people can share one phone or computer. After each turn a hand-off screen hides the board until the next player taps Start turn, and everyone sees only their own explored map. Any remaining rivals are played by the computer.'],
+  ]},
+  {id:'camp', name:'Campaign', items:[
+    ['Campaign','Campaign on the title screen gives you a random map of 10, 14 or 20 regions shared between you and three rival factions. Each campaign turn you attack a region next to yours and fight a battle for it, on a map that matches the region (highlands, woodland, lakes or coast; capitals are bigger). Win and the region is yours. Hold every region to win the campaign. A map code lets a friend play the same map.'],
+    ['Objectives','The card shows the objective. Conquest: take their HQ. Raid: hold a number of cities at once by a set turn, or take their HQ. Two fronts: a third rival joins and fights you both. You start with +12\u2605, and the third rival starts 4\u2605 short and without region perks. Take the defender\u2019s HQ; you can\u2019t make peace or an alliance with the defender, and if the third rival knocks it out first, take the third rival\u2019s HQ instead. Capital assault: their HQ has City Walls, a veteran guard and +3\u2605. Some battles also carry a match modifier.'],
+    ['Capitals','You can only attack a rival\u2019s capital (\u2605) once you hold 2 of the regions next to it and none of its neighbours still belong to its faction. When it falls, any neighbours it still has surrender, and the rest of that faction joins its strongest rival neighbour or fights on without a capital. A rival region with only your regions around it surrenders too.'],
+    ['Perks','Every region has a perk: Supply depot +3\u2605, Research station a free tech, Veteran garrison an extra veteran Infantry, Fortress walls on the HQ, Factory town +1\u2605 income, Watchtower longer sight. In a battle you get the perks of your regions next to the contested one, and the defender gets theirs plus the contested region\u2019s own. Nothing else carries over between battles.'],
+    ['Rival moves','After each of your attacks the rivals move. They fight each other, and now and then one attacks a region of yours, at most once every 4 campaign turns. Defend it in a battle or give it up (not your capital: losing it ends the campaign). Win the defence and you push on into a region the attacker holds next to it. Some defences are Hold out: last the shown number of turns with at least as many cities as the attacker, or take their HQ.'],
   ]},
   {id:'online', name:'Online', items:[
     ['Online play','Choose Online on the title screen, then Host Operation, and send the invite link or the 5-letter room code to up to three friends. The host\u2019s device referees the match, so keep it online. The host can set a per-turn timer in the lobby, and everyone sees it. The lobby shows each player\u2019s rank and flag.'],
@@ -8666,7 +8699,7 @@ function newGame(){
   }
   for(const [,g] of unitMeshes){ unitGroup.remove(g); freeUnitMesh(g); }
   dyingUnits.forEach(d=>{ unitGroup.remove(d.g); freeUnitMesh(d.g); }); dyingUnits.length=0;
-  unitMeshes.clear(); hlGroup.clear(); fxGroup.clear(); fx.flashes.length=0; fx.pops.length=0;
+  unitMeshes.clear(); hlGroup.clear(); fxReset();
   const caps=genMap();
   explored=Array.from({length:H},()=>Array(W).fill(false));
   for(const s of turnOrder){
