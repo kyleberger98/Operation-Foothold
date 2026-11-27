@@ -500,6 +500,7 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
 .saveRow{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
 .saveRow .opt{flex:1 1 140px}
 .saveNote{margin-top:10px; font-size:10.5px; color:var(--dim); letter-spacing:.04em; text-align:center}
+.loadMsg{color:#ffb4aa; font-size:12px}
 #factionGrid,.optRow,.homeBtns{animation:panelIn .22s ease both}
 @keyframes panelIn{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:none}}
 
@@ -685,6 +686,14 @@ body.tsz #techTree .tn-cost{font-size:12px}
 #mpStartBtn:hover{background:#31597a}
 #mpWait{margin-top:14px; text-align:center; color:var(--dim); font-size:12px; letter-spacing:.06em}
 #mpLeaveBtn{margin-top:12px; width:100%}
+#emoteBtn{position:fixed; z-index:11; right:calc(env(safe-area-inset-right,0px) + 12px); top:calc(env(safe-area-inset-top,0px) + 312px)}
+#emoteBar{position:fixed; z-index:12; right:calc(env(safe-area-inset-right,0px) + 64px); top:calc(env(safe-area-inset-top,0px) + 306px); display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px; max-width:260px}
+#emoteBar button{background:var(--panel2); border:1px solid var(--line); color:#eef3ee; border-radius:99px; padding:7px 12px; font:inherit; font-size:12.5px; cursor:pointer}
+#emoteBar button:disabled{opacity:.4}
+@media (max-height:520px){ #emoteBtn{top:calc(env(safe-area-inset-top,0px) + 162px); right:calc(env(safe-area-inset-right,0px) + 64px)} #emoteBar{top:calc(env(safe-area-inset-top,0px) + 162px); right:calc(env(safe-area-inset-right,0px) + 116px)} }
+.mpslot img.flg,.dpName img.flg{width:22px; height:13px; flex:none; border-radius:2px; box-shadow:0 0 4px rgba(0,0,0,.4)}
+.dpName img.flg{vertical-align:-1px; margin-right:6px}
+.mpslot .rkBadge{margin-left:6px; vertical-align:middle}
 #netBar{position:fixed; left:50%; transform:translateX(-50%); bottom:16px; z-index:80;
   background:#241a18; border:1px solid var(--red); color:#ffd9d4; padding:9px 14px; border-radius:10px;
   font-size:12px; display:flex; gap:12px; align-items:center; max-width:92vw}
@@ -709,6 +718,8 @@ body.tsz #techTree .tn-cost{font-size:12px}
 <button id="powerBtn" class="rb" title="Commander power (P)" aria-label="Commander power" hidden><svg viewBox="0 0 24 24"><path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/></svg></button>
 <button id="armyBtn" class="rb" title="Army overview (O)" aria-label="Army overview"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg></button>
 <button id="dipBtn" class="rb" title="Diplomacy (Y)" aria-label="Diplomacy"><svg viewBox="0 0 24 24"><path d="M3 11.5 7 8l3.2 1.6L13 8l4 1.5 4 2"/><path d="m7 8 5 5.2c.7.7 1.8.7 2.4 0 .6-.6.6-1.6 0-2.2L12.6 9"/><path d="M3 11.5 9.5 18c.6.6 1.5.6 2.1 0M21 11.5l-4.5 4.6"/></svg><span class="badge" id="dipBadge" hidden>1</span></button>
+<button id="emoteBtn" class="rb" title="Quick message" aria-label="Quick message" hidden><svg viewBox="0 0 24 24"><path d="M5 5h14v10H10l-4 4v-4H5z"/></svg></button>
+<div id="emoteBar" hidden></div>
 <div id="dipPanel" hidden><div class="apInner"><div class="apHead"><b>Diplomacy</b><button id="dipClose" aria-label="Close">&#10005;</button></div><div id="dipList"></div></div></div>
 <div id="armyPanel" hidden><div class="apInner"><div class="apHead"><b>Army overview</b><button id="armyClose" aria-label="Close">&#10005;</button></div><div id="armyList"></div></div></div>
 <button id="dangerBtn" class="rb" title="Show danger zones, where enemies in sight can strike next turn (D)" aria-label="Danger zones"><svg viewBox="0 0 24 24"><path d="M12 4 21 19.5H3z"/><path d="M12 10v4.5M12 17v.3"/></svg></button>
@@ -770,6 +781,7 @@ body.tsz #techTree .tn-cost{font-size:12px}
         <button id="resumeBtn" class="bigbtn primary" style="display:none">Resume<span>back to the battlefield</span></button>
         <button id="continueBtn" class="bigbtn primary" style="display:none">Continue campaign<span id="continueInfo"></span></button>
         <button id="rejoinBtn" class="bigbtn primary" style="display:none">Rejoin online game<span id="rejoinInfo"></span></button>
+        <button id="hostResumeBtn" class="bigbtn primary" style="display:none">Resume room<span id="hostResumeInfo"></span></button>
         <button id="quickBtn" class="bigbtn gold">Quick play<span id="quickInfo"></span></button>
         <button id="campBtn" class="bigbtn">Campaign<span id="campInfo">conquer a region map, one battle at a time</span></button>
         <div class="homeRow">
@@ -779,6 +791,7 @@ body.tsz #techTree .tn-cost{font-size:12px}
         <button id="profileBtn" class="bigbtn"><i id="pbBadge" class="rkBadge t1">1</i><div class="pbTxt">Profile<span id="pbInfo">rank and unlocks</span></div></button>
         <button id="tutBtn" class="bigbtn">How to play<span>a guided first game</span></button>
       </div>
+      <div class="saveNote loadMsg" role="alert" hidden></div>
       <div class="saveNote">Your campaign auto-saves every move on this device.</div>
       <div class="saveNote" id="progLine" hidden></div>
       <div class="setRow"><button id="speedMenuBtn" class="speedMenu"></button><button id="soundMenuBtn" class="speedMenu"></button><button id="musicMenuBtn" class="speedMenu"></button><button id="sfxMenuBtn" class="speedMenu"></button><button id="gfxMenuBtn" class="speedMenu"></button><button id="followMenuBtn" class="speedMenu"></button><button id="textMenuBtn" class="speedMenu"></button><button id="installBtn" class="speedMenu install" hidden></button></div>
@@ -834,6 +847,7 @@ body.tsz #techTree .tn-cost{font-size:12px}
       <button id="importBtn" class="opt">Import Save<span>load from file</span></button>
       <input type="file" id="importFile" accept=".json,application/json" style="display:none">
     </div>
+    <div class="saveNote loadMsg" role="alert" hidden></div>
     </div>
     <div id="profilePane" style="display:none">
       <button class="backBtn" data-back>◂ Back</button>
@@ -1138,7 +1152,7 @@ const mapType=()=>MAP_TYPES[((gcfg||cfg).map)]||MAP_TYPES.classic;
 const mod=k=>{ const m=(gcfg||cfg).mods; return !!(m&&m.includes(k)); };
 let gcfg=null, blockedHint=false, lastNuke={}, nukeWarned={}, mapReveals=[];   // settings of the game being played (the menu's cfg can change underneath it)
 const diff=()=>DIFFS[(gcfg||cfg).diff]||DIFFS.normal;
-const isAI=s=>s!==P && !HOT.includes(s) && !(NET.on&&NET.humans[s]);
+const isAI=s=>s!==P && !HOT.includes(s) && !(NET.on&&NET.isHuman(s));
 /* Diplomacy
    Every pair of factions is at war unless they ally or sign a peace that lasts PEACE_TURNS and can be renewed.
    Peace rules out attacks, captures and entering the other's territory. An alliance adds shared sight
@@ -1521,7 +1535,7 @@ function resultHtml(winner, firstTime){
   if(solo&&firstTime&&!helped.length) rec=recordResult(won&&!minorAlly(me), stars, total);
   const fac=meta(me).faction, dn=(DIFFS[(gcfg||cfg).diff]||DIFFS.normal).name;
   const board=turnOrder.map(s=>({s, v:s===me?total:scoreOf(s)})).sort((a,b)=>b.v-a.v)
-    .map(o=>`<span class="${alive[o.s]?'':'out'}" style="color:${meta(o.s).css}">${esc(meta(o.s).name)}${hot?(HOT.includes(o.s)?' · '+pname(o.s):''):(o.s===me?' (you)':'')}</span><b>${o.v}</b>`).join('');
+    .map(o=>`<span class="${alive[o.s]?'':'out'}" style="color:${meta(o.s).css}">${NET.on&&NET.ranks[o.s]?rankBadge(NET.ranks[o.s].rk||1,true)+' ':''}${esc(meta(o.s).name)}${hot?(HOT.includes(o.s)?' · '+pname(o.s):''):(o.s===me?' (you)':'')}</span><b>${o.v}</b>`).join('');
   return (solo?`<div class="ovStars">${'★'.repeat(stars)}<i>${'★'.repeat(3-stars)}</i></div>`:'')+
     `<div class="ovBig">${total} points</div>`+
     (note&&solo?`<div class="ovNote">${note}</div>`:'')+
@@ -1753,7 +1767,7 @@ function build(s,x,y,k){
   const popGain=b.pop;
   if(c&&b.pop&&c.level<MAX_LEVEL) grew=addPop(c,popGain).length;
   addBuildingDecor(x,y);
-  if(visXY(x,y)){ fx.popup(x,y,b.name.toUpperCase(),'#8fd89a'); fx.shock(x,y,0x8fd89a); }
+  fx.popup(x,y,b.name.toUpperCase(),'#8fd89a'); fx.shock(x,y,0x8fd89a);   // each screen checks its own sight
   if(s===MYSIDE) sfx.harvest();
   const who=NET.on?meta(s).name+' builds':(s===MYSIDE?'You build':'Enemy builds');
   if(s===MYSIDE||NET.on) log(s, `${who} a ${b.name}${b.pop?': +'+popGain+' pop':''}${grew?', and the '+(c.capital?'HQ':'city')+' grew to level '+c.level:''}.`);
@@ -1993,16 +2007,12 @@ function startTurn(s, first){
   }
   dipTurn(s, s===turnOrder.find(x=>alive[x])&&!first);
   undoStack.length=0;   // undo never reaches back past the start of a turn
-  if(NET.host&&NET.inGame) NET.turnEnds=(NET.timer&&(s===P||NET.humans[s]))?Date.now()+NET.timer*1000:0;
-  if(NET.host&&NET.inGame&&NET.humans[s]&&!NET.humans[s].conn&&alive[s]){
-    clearTimeout(NET._takeT);
-    NET._takeT=setTimeout(()=>{ if(NET.humans[s]&&!NET.humans[s].conn&&side===s) NET.aiTakeover(s); }, 30000);
-  }
+  if(NET.host&&NET.inGame) NET.turnStart(s);
   if(s===MYSIDE && !first && !gameOver){ if(curtainUp) noticesDue=true; else myTurnNotices(); }
   sel=null;
   refresh();
   if(!gameOver){
-    if(NET.host) NET.flushSoon(true);
+    if(NET.host){ NET.flushSoon(true); NET.hostSave(); }
     if(NET.isRemoteHuman(s)){ if(NET.host) log('sys','Awaiting orders from '+meta(s).name+'\u2026'); }
     else if(isAI(s)){ const g0=gen; setTimeout(()=>{ if(gen===g0) aiTurn(s); }, aiDelay(480)); }
   }
@@ -2494,6 +2504,7 @@ function eliminate(s, by, surrendered){
 const dipName=s=>(hotOn()&&HOT.includes(s))?pname(s)+' ('+meta(s).name+')':meta(s).name;
 function dipNote(msg, who){   // log it; toast it when it concerns the player on this screen
   log('sys', msg);
+  if(who) NET.evt({t:'note', who, msg});   // guests toast it on their own screens
   if(who&&who.includes(MYSIDE)&&(!hotOn()||side===MYSIDE)) toast(msg, 'var(--amber)');
 }
 function setRel(a,b,st){
@@ -5321,8 +5332,7 @@ function swapSaveSides(d, me){
   d.sides=swKeys(d.sides); d.alive=swKeys(d.alive); d.stars=swKeys(d.stars); d.tech=swKeys(d.tech);
   d.names=swKeys(d.names); d.tc=swKeys(d.tc); d.ln=swKeys(d.ln); d.tl=swKeys(d.tl);
   if(d.pw) for(const k of ['used','rage','ghost','shield']) d.pw[k]=swKeys(d.pw[k]);
-  d.enemySides=d.enemySides.map(sw);
-  d.units.forEach(u=>u.owner=sw(u.owner));
+  d.units.forEach(u=>{ u.owner=sw(u.owner); if(u.cargo) u.cargo.owner=sw(u.cargo.owner); });   // the seats stay the same, only their labels trade
   d.map.forEach(row=>row.forEach(t=>{ if(t.c&&t.c.o) t.c.o=sw(t.c.o); }));
   if(d.rv) d.rv.forEach(r=>r.s=sw(r.s));
   if(d.ak) d.ak=swKeys(d.ak);
@@ -5337,10 +5347,25 @@ function swapSaveSides(d, me){
   d.me=P;
   return d;
 }
+/* check a save before anything on screen changes */
+function saveValid(d){
+  if(!d||typeof d!=='object'||!d.sides||!d.alive||!d.stars||!d.tech||!Array.isArray(d.enemySides)||!Array.isArray(d.units)||!Array.isArray(d.map)) return false;
+  const n=+d.W, seats=[P,...d.enemySides];
+  if(!(n>=5&&n<=40)||d.map.length!==n||d.map.some(r=>!Array.isArray(r)||r.length!==n)) return false;
+  if(new Set(seats).size!==seats.length||seats.some(s=>!FACTIONS[d.sides[s]])) return false;
+  const ok=o=>seats.includes(o);
+  if(d.units.some(u=>!u||!UNIT_TYPES[u.type]||!ok(u.owner)||!(u.x>=0&&u.x<n&&u.y>=0&&u.y<n)||(u.cargo&&(!UNIT_TYPES[u.cargo.type]||!ok(u.cargo.owner))))) return false;
+  return d.map.every(r=>r.every(t=>t&&(!t.c||!t.c.o||ok(t.c.o))));
+}
+function loadFail(m){   // the menu covers the toasts, so say it on the menu as well
+  toast(m,'var(--red)');
+  document.querySelectorAll('.loadMsg').forEach(el=>{ el.textContent=m; el.hidden=false; clearTimeout(el._t); el._t=setTimeout(()=>{ el.hidden=true; },6000); });
+}
 function restoreGame(data, net){
+  if(!net&&data&&data.me){ try{ data=swapSaveSides(data, data.me); }catch(e){ data=null; } }
+  if(!saveValid(data)){ loadFail('Save file could not be loaded.'); return false; }
   document.body.classList.remove('nogame');
   keepAwake(true);
-  if(!net&&data&&data.me) data=swapSaveSides(data, data.me);
   if(net) tutStop();
   try{
     gen++;
@@ -5411,13 +5436,14 @@ function restoreGame(data, net){
     return true;
   }catch(e){
     console.error('restore failed',e);
-    log('sys','Save file could not be loaded.');
+    loadFail('Save file could not be loaded.');
     return false;
   }
 }
 function exportSave(){
   let json=null;
-  if(map&&!gameOver&&(side===MYSIDE||NET.on)) json=serializeGame();
+  if(NET.client&&NET.fs&&!gameOver){ const d=JSON.parse(NET.fs); d.stats={...stats}; json=JSON.stringify(d); }   // the guest's own copy lacks the units it can't see
+  else if(map&&!gameOver&&(side===MYSIDE||NET.on)) json=serializeGame();
   else if(hasSave()) json=localStorage.getItem(SAVE_KEY);
   if(!json){ sfx.denied(); return; }
   const a=document.createElement('a');
@@ -5432,7 +5458,7 @@ function importSave(file){
     try{
       const data=JSON.parse(r.result);
       if(restoreGame(data)&&CAN_STORE){ try{ localStorage.setItem(SAVE_KEY, r.result); }catch(e){} }
-    }catch(e){ log('sys','Save file could not be read.'); }
+    }catch(e){ loadFail('Save file could not be read.'); }
   };
   r.readAsText(file);
 }
@@ -6312,6 +6338,7 @@ const RES_ICON={CROP:'crop', ORE:'ore', OIL:'oil'};
 Object.assign(ICON,{
   house:'<path d="M4 11.5 12 5l8 6.5"/><path d="M6.5 10v9.5h11V10"/><path d="M10.5 19.5v-5h3v5"/>',
   flag:'<path d="M5 21V4"/><path d="M5 4h12l-2.5 4L17 12H5"/>',
+  chat:'<path d="M5 5h14v10H10l-4 4v-4H5z"/>',
   star:'<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>',
   gear:'<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
   eye:'<path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
@@ -6777,8 +6804,9 @@ function renderDip(){
     const f=meta(s).faction, r=relOf(s,MYSIDE), rr=relRec(s,MYSIDE), out=!alive[s];
     const c=document.createElement('div'); c.className='dpCard'+(out?' out':'');
     const chip=out?['out','Eliminated']:r==='ally'?['ally','Alliance']:r==='peace'?['peace','Peace \u00b7 '+Math.max(0,rr.until-turn)+' turns']:['war','War'];
-    const who=(NET.on&&!isAI(s))||(hotOn()&&HOT.includes(s))?'Player'+(hotOn()?' \u00b7 '+esc(pname(s)):''):'Computer';
-    c.innerHTML=`<div class="dpHead"><i class="dpDot" style="background:${meta(s).css}"></i><div class="dpName">${esc(meta(s).name)}<span>${who} \u00b7 ${esc((FACTION_STYLE[f.key]||{}).style||f.perk||'')}</span></div><span class="dpChip ${chip[0]}">${chip[1]}</span></div>`;
+    const rk=NET.on&&!isAI(s)&&NET.ranks[s];
+    const who=(NET.on&&!isAI(s))||(hotOn()&&HOT.includes(s))?'Player'+(hotOn()?' \u00b7 '+esc(pname(s)):'')+(rk?' \u00b7 '+RANKS[(rk.rk||1)-1]:''):'Computer';
+    c.innerHTML=`<div class="dpHead"><i class="dpDot" style="background:${meta(s).css}"></i><div class="dpName">${rk?`<img class="flg" alt="" src="${flagImg(meta(s).flag, rk.em)}">`:''}${esc(meta(s).name)}<span>${who} \u00b7 ${esc((FACTION_STYLE[f.key]||{}).style||f.perk||'')}</span></div><span class="dpChip ${chip[0]}">${chip[1]}</span></div>`;
     if(!out){
       const nUnits=units.filter(u=>u.owner===s&&u.type!=='NUKE').length;
       const rel=k=>turnOrder.filter(o=>o!==s&&alive[o]&&relOf(s,o)===k).map(o=>o===MYSIDE?'you':esc(meta(o).name));
@@ -7028,7 +7056,7 @@ function endGame(winner){
   $('handoff').hidden=true; curtainUp=false; noticesDue=false;
   const firstTime=!gameOver;
   gameOver=true;
-  if(NET.host) NET.winner=winner;
+  if(NET.host){ NET.winner=winner; hostResume(null); }
   if(!NET.on) clearSave();
   $('turnBanner').classList.remove('show');
   $('speedBtn').hidden=true;
@@ -7172,7 +7200,7 @@ function act(a){
   if(a.uid!=null&&(a.t==='move'||a.t==='atk'||a.t==='capture'||a.t==='board'||a.t==='unload'||a.t==='nuke')) sentry.delete(a.uid);
   coachNote(a);
   if(NET.client){
-    if(side!==MYSIDE) return;
+    if(side!==MYSIDE||!NET.isHuman(MYSIDE)) return;
     NET.sendAction(a);
     const s={move:'move',harvest:'harvest',research:'research',hold:'select',train:'deploy',nukebuild:'deploy',promote:'level',reward:'level',capture:'capture',develop:'harvest',power:'level'}[a.t];
     if(s) sfx[s]();      // optimistic feedback; combat sounds arrive with the effect stream
@@ -7180,6 +7208,7 @@ function act(a){
   }
   if(!NET.on){ undoableAct(a); return; }
   doAction(MYSIDE, a);
+  NET.flushSoon(false);
 }
 /* Undo for single player. Steps back through this turn's moves, training, harvests and holds.
    Attacks, captures, research, launches and ending the turn are final and clear the history. */
@@ -7227,7 +7256,7 @@ function doAction(s, a){
   if(gameOver||!a||side!==s||!alive[s]) return;
   for(const f of ['x','y','uid','tid','pick','id','n']) if(a[f]!==undefined&&!Number.isInteger(a[f])) return;   // malformed (or tampered) action
   const T=a.t;
-  if(NET.on&&s!==MYSIDE&&!isAI(s)) markSeen(s);
+  if(NET.host&&NET.humans[s]) markSeen(s);
   if(T==='endturn'){ if(NET.on) log('sys', meta(s).name+' ends the turn.'); startTurn(nextAlive(s)); return; }
   if(T==='research'){ if(research(s,a.k)) refresh(); return; }
   if(T==='harvest'){ if(harvest(a.x,a.y,s)) refresh(); return; }
@@ -7301,14 +7330,16 @@ function doAction(s, a){
 const NET={
   on:false, host:false, client:false, inGame:false,
   peer:null, hconn:null, mySlot:null,
-  humans:{},              // host: side -> {name, conn|null}
+  humans:{},              // host: side -> {name, conn|null, tok, bot}; bot: the AI plays the seat until its player rejoins
   slots:null, size:11, opts:{map:'classic', mods:[]},    // lobby
   timer:0, turnEnds:0,    // optional per-turn limit in seconds; turnEnds is a local clock deadline
   code:'', myName:'', setup:null,
   evts:[], winner:null, humansList:[],
   _syncTimer:null, _lastSide:null, _yourTurnT:null, _retry:0, _takeT:null, _idTry:0,
+  tok:null, fs:null, GRACE:75, ranks:{}, _emoT:{},   // ranks: side -> {rk, em}, each player's commander rank and flag emblem
 
-  isRemoteHuman(s){ return this.host && s!==P && !!this.humans[s]; },
+  isRemoteHuman(s){ return this.host && s!==P && this.isHuman(s); },
+  isHuman(s){ return this.client?this.humansList.includes(s):!!(this.humans[s]&&!this.humans[s].bot); },   // guests only get the list of human seats
   evt(e){ if(this.host&&this.inGame){ this.evts.push(e); if(this.evts.length>240) this.evts.shift(); } },
 
   leave(){
@@ -7319,6 +7350,8 @@ const NET={
     this.on=false; this.host=false; this.client=false; this.inGame=false;
     this.timer=0; this.turnEnds=0;
     this.evts.length=0; this.winner=null; this.humansList=[]; this._retry=0; this._lastSide=null; this.rejoining=false;
+    this.tok=null; this.fs=null; this._fsDue=null; this._ask=null; this.ranks={}; this._emoT={};
+    $('emoteBtn').hidden=true; $('emoteBar').hidden=true;
     clearTimeout(this._syncTimer); this._syncTimer=null;
     clearTimeout(this._takeT); this._takeT=null;
     clearTimeout(this._yourTurnT); this._yourTurnT=null;
@@ -7333,26 +7366,31 @@ const NET={
     this.leave();
     this.myName=mpGetName();
     this.host=true; this.on=true; this._idTry=0;
+    hostResume(null);
     this.slots=[
-      {s:P,   kind:'host', name:this.myName, fac:cfg.faction},
+      {s:P,   kind:'host', name:this.myName, fac:cfg.faction, rk:rankOf(loadProg().xp).n, em:cosmetics().emblem},
       {s:'A1',kind:'open', name:null, fac:null},
       {s:'A2',kind:'off',  name:null, fac:null},
       {s:'A3',kind:'off',  name:null, fac:null},
     ];
     this.openPeer();
   },
-  openPeer(){
-    this.code=makeCode();
+  openPeer(code){
+    this.code=code||makeCode();
     mpMsg('Opening channel\u2026');
     let peer;
     try{ peer=new Peer('ofh-'+this.code.toLowerCase()); }
     catch(e){ this.leave(); mpMsg('Could not start P2P: '+e.message); return; }
     this.peer=peer;
-    peer.on('open', ()=>{ if(!this.host) return; mpShowLobby(); this.renderLobby(); sfx.select(); });
+    peer.on('open', ()=>{ if(!this.host) return;
+      if(this.inGame){ mpMsg('Operation underway \u00b7 room '+this.code); toast('Room '+this.code+' is open again. Players can rejoin.','var(--amber)'); return; }
+      mpShowLobby(); this.renderLobby(); sfx.select(); });
     peer.on('disconnected', ()=>{ try{ if(this.peer===peer&&!peer.destroyed) peer.reconnect(); }catch(e){} });
     peer.on('error', err=>{
       if(!this.host) return;
-      if(err&&err.type==='unavailable-id'&&this._idTry<3){ this._idTry++; try{peer.destroy();}catch(e){} this.openPeer(); return; }
+      if(err&&err.type==='unavailable-id'&&code&&this.inGame&&this._idTry<12){   // a resumed room: the server may still hold the old id for a while
+        this._idTry++; try{peer.destroy();}catch(e){} mpMsg('Reopening room '+code+'\u2026'); setTimeout(()=>{ if(this.host&&this.inGame&&this.peer===peer) this.openPeer(code); }, 5000); return; }
+      if(err&&err.type==='unavailable-id'&&!code&&this._idTry<3){ this._idTry++; try{peer.destroy();}catch(e){} this.openPeer(); return; }
       const em='Connection failed ('+(err&&err.type||'network')+'). Check your internet connection and try again.';
       if(!this.inGame) this.leave();
       mpMsg(em);
@@ -7368,24 +7406,30 @@ const NET={
     if(m.t==='hello'){
       if(conn._side) return;   // one seat per connection
       if(m.v!==1){ try{conn.send({t:'deny',m:'Version mismatch. Both players need the same game file.'});}catch(e){} setTimeout(()=>{try{conn.close();}catch(e){}},400); return; }
-      const nm=String(m.name||'ALLY').slice(0,14).toUpperCase()||'ALLY';
+      let nm=String(m.name||'ALLY').slice(0,14).toUpperCase()||'ALLY';
+      const deny=t=>{ try{conn.send({t:'deny',m:t});}catch(e){} setTimeout(()=>{try{conn.close();}catch(e){}},400); };
       if(this.inGame){
+        // the seat key from the start message proves who it is; a guest who reloaded can return before the old connection times out
         let slot=null;
-        for(const s in this.humans){ if(!this.humans[s].conn && this.humans[s].name===nm){ slot=s; break; } }
-        // a guest who reloaded can return before the old connection times out, so the newer connection takes the seat
-        if(!slot&&m.rejoin) for(const s in this.humans){ if(this.humans[s].name===nm){ slot=s; break; } }
-        if(!slot){ try{conn.send({t:'deny',m:'Operation already underway.'});}catch(e){} setTimeout(()=>{try{conn.close();}catch(e){}},400); return; }
-        const old=this.humans[slot].conn;
-        if(old&&old!==conn){ old._side=null; try{ old.close(); }catch(e){} }
-        this.humans[slot].conn=conn; conn._side=slot;
-        clearTimeout(this._takeT); this._takeT=null; netBar(null);
-        log('sys', nm+' reconnected.');
-        try{ conn.send({t:'start', you:slot, d:this.stateFor(slot,this.state()), e:[]}); }catch(e){}
+        if(m.tok) for(const s in this.humans){ if(this.humans[s].tok===m.tok){ slot=s; break; } }
+        if(slot){ this.seat(conn,slot); return; }
+        const s=Object.keys(this.humans).find(k=>this.humans[k].name===nm);
+        if(!s) return deny('Operation already underway.');
+        const h=this.humans[s];
+        if(h.conn&&h.conn.open) return deny('That seat is in use. Use Rejoin on the device that played it.');
+        // no key (new device or cleared storage): the host decides
+        try{ conn.send({t:'wait', m:'Waiting for the host to let you back in\u2026'}); }catch(e){}
+        this._ask=conn;
+        netBar(nm+' wants to rejoin from a new device.', 'Let in', ()=>{ if(this._ask===conn&&conn.open&&!(h.conn&&h.conn.open)) this.seat(conn,s); this._ask=null; netBar(null); },
+          'Refuse', ()=>{ if(this._ask===conn) deny('The host did not let you in.'); this._ask=null; netBar(null); });
         return;
       }
       let sl=this.slots.find(x=>x.kind==='open');
-      if(!sl){ try{conn.send({t:'deny',m:'Lobby is full. Ask the host to open a slot.'});}catch(e){} setTimeout(()=>{try{conn.close();}catch(e){}},400); return; }
-      sl.kind='human'; sl.name=nm;
+      if(!sl) return deny('Lobby is full. Ask the host to open a slot.');
+      const used=this.slots.map(x=>x.name).filter(Boolean);
+      const base=nm.slice(0,12);
+      for(let k=2;used.includes(nm);k++) nm=base+'-'+k;   // callsigns stay unique
+      sl.kind='human'; sl.name=nm; sl.rk=Math.max(1,Math.min(RANKS.length,m.rk|0)); sl.em=EMBLEMS[m.em]?m.em:'none';
       this.humans[sl.s]={name:nm, conn};
       conn._side=sl.s;
       sfx.select();
@@ -7402,14 +7446,16 @@ const NET={
       this.lobbySync();
       return;
     }
+    if(m.t==='emote'&&this.inGame){ this.emote(s, m.k); return; }
     if(m.t==='act'&&this.inGame){
       if(gameOver) return;
-      if(side!==s){ try{ conn.send({t:'st', d:this.state(), e:[]}); }catch(e){} return; }
+      if(side!==s||!this.isHuman(s)){ try{ conn.send({t:'st', d:this.stateFor(s,this.state()), e:[]}); }catch(e){} return; }
       doAction(s, m.a);
       this.flushSoon(m.a&&m.a.t==='endturn');
     }
   },
   hostDrop(conn){
+    if(this._ask===conn){ this._ask=null; netBar(null); }
     const s=conn._side;
     if(!s||!this.host) return;
     if(!this.inGame){
@@ -7423,18 +7469,53 @@ const NET={
     if(!h||h.conn!==conn) return;
     h.conn=null;
     log('sys',h.name+' lost connection.');
-    const takeover=()=>{ if(NET.humans[s]&&!NET.humans[s].conn) NET.aiTakeover(s); };
-    netBar(h.name+' disconnected. They can rejoin with the room code.', 'Replace with AI', takeover);
-    if(side===s&&alive[s]&&!gameOver){ clearTimeout(this._takeT); this._takeT=setTimeout(takeover, 30000); }
+    if(h.bot) return;
+    if(side===s&&alive[s]&&!gameOver) this.holdSeat(s);
+    else netBar(h.name+' disconnected. They can rejoin with the room code.');
+  },
+  /* a returning player gets their seat, fog memory included */
+  seat(conn,slot){
+    const h=this.humans[slot], old=h.conn;
+    if(old&&old!==conn){ old._side=null; try{ old.close(); }catch(e){} }
+    h.conn=conn; conn._side=slot;
+    if(h.bot&&side!==slot) delete h.bot;   // mid-turn, the AI finishes the turn first (see turnStart)
+    if(side===slot){ clearTimeout(this._takeT); this._takeT=null; this._held=null; }
+    netBar(null);
+    log('sys', h.name+' reconnected.');
+    const d=this.stateFor(slot,this.state()); d.explored=markSeen(slot);
+    try{ conn.send({t:'start', you:slot, tok:h.tok, d, e:[]}); }catch(e){}
+    this.flushSoon(false);
+  },
+  /* the player whose turn it is has dropped: hold the seat for a while, then the AI stands in */
+  holdSeat(s){
+    const h=this.humans[s]; if(!h||h.conn||h.bot) return;
+    clearTimeout(this._takeT);
+    const g0=gen, take=()=>{ if(gen===g0&&this.humans[s]&&!this.humans[s].conn&&side===s) this.aiTakeover(s); };
+    const ms=this.turnEnds?Math.max(0,Math.min(this.GRACE*1000, this.turnEnds-Date.now()-1500)):this.GRACE*1000;   // the AI steps in before a short turn timer runs out
+    this._takeT=setTimeout(take, ms); this._held=s;
+    netBar(h.name+' disconnected. Their seat is held for '+Math.round(ms/1000)+' s.', 'AI plays', take,
+      'Wait', ()=>{ clearTimeout(this._takeT); this._takeT=null; netBar('Waiting for '+h.name+' to rejoin.', 'AI plays', take); });
+  },
+  turnStart(s){
+    for(const k in this.humans){ const h=this.humans[k];
+      if(h.bot&&h.conn&&h.conn.open){ delete h.bot; log('sys', h.name+' takes back command.'); }
+      markSeen(k); }
+    this.turnEnds=(this.timer&&(s===P||this.isHuman(s))&&alive[s])?Date.now()+this.timer*1000:0;
+    clearTimeout(this._takeT); this._takeT=null;
+    if(this._held){ this._held=null; if(!this._ask) netBar(null); }   // last turn's held-seat bar
+    const h=this.humans[s];
+    if(h&&!h.conn&&!h.bot&&alive[s]) this.holdSeat(s);
+    if(h&&h.conn&&!h.bot) this._fsDue=s;   // the guest keeps a full save in case the host vanishes
   },
   /* back to the lobby with the same players, factions and settings */
   rematch(){
     if(!this.host||!this.on||!gameOver) return;
-    const slots=[{s:P, kind:'host', name:this.myName, fac:meta(P).faction.key}];
+    const rk=s=>this.ranks[s]||{};
+    const slots=[{s:P, kind:'host', name:this.myName, fac:meta(P).faction.key, rk:rankOf(loadProg().xp).n, em:cosmetics().emblem}];
     for(const s of ['A1','A2','A3']){
       if(!enemySides.includes(s)){ slots.push({s, kind:'off', name:null, fac:null}); continue; }
       const h=this.humans[s], fac=meta(s).faction.key;
-      if(h&&h.conn&&h.conn.open) slots.push({s, kind:'human', name:h.name, fac});
+      if(h&&h.conn&&h.conn.open) slots.push({s, kind:'human', name:h.name, fac, rk:rk(s).rk, em:rk(s).em});
       else { if(h) delete this.humans[s]; slots.push({s, kind:'ai', name:null, fac}); }   // dropped players' seats go to the AI; the host can reopen them
     }
     this.slots=slots; this.inGame=false; this.winner=null; this.evts.length=0;
@@ -7444,18 +7525,19 @@ const NET={
     sfx.select();
   },
   aiTakeover(s){
-    if(!this.host||!this.humans[s]) return;
+    if(!this.host||!this.humans[s]||this.humans[s].bot) return;
     const nm=this.humans[s].name;
-    delete this.humans[s];
+    this.humans[s].bot=true;
     clearTimeout(this._takeT); this._takeT=null;
-    netBar(null);
-    log('sys', nm+"'s forces now follow AI command.");
+    if(side===s) this.turnEnds=0;
+    if(!this._ask) netBar(null);
+    log('sys', nm+"'s forces follow AI command until they rejoin.");
     this.flushSoon(true);
     if(side===s&&!gameOver&&alive[s]){ const g0=gen; setTimeout(()=>{ if(gen===g0&&!gameOver) aiTurn(s); }, 400); }
   },
   lobbySync(){
     if(!this.host||this.inGame||!this.slots) return;
-    const slots=this.slots.map(x=>({s:x.s,kind:x.kind,name:x.name,fac:x.fac}));
+    const slots=this.slots.map(x=>({s:x.s,kind:x.kind,name:x.name,fac:x.fac,rk:x.rk,em:x.em}));
     for(const s in this.humans){
       const c=this.humans[s].conn;
       if(c&&c.open){ try{ c.send({t:'lobby', slots, size:this.size, timer:this.timer, opts:this.opts, you:s}); }catch(e){} }
@@ -7477,8 +7559,8 @@ const NET={
     for(const sl of [this.slots[0],...opp]) if(!sl.fac) sl.fac=pool.shift();
     cfg.size=this.size; cfg.enemies=opp.length; cfg.faction=this.slots[0].fac; cfg.map=this.opts.map; cfg.mods=[...this.opts.mods];
     this.setup={
-      host:{fac:this.slots[0].fac, name:this.slots[0].name},
-      opp:opp.map(x=>({fac:x.fac, name:x.name, human:x.kind==='human'})),
+      host:{fac:this.slots[0].fac, name:this.slots[0].name, rk:this.slots[0].rk, em:this.slots[0].em},
+      opp:opp.map(x=>({fac:x.fac, name:x.name, human:x.kind==='human', rk:x.rk, em:x.em})),
       conns:opp.map(x=>x.kind==='human'?this.humans[x.s].conn:null),
     };
     this.humans={};
@@ -7492,12 +7574,14 @@ const NET={
     const st=this.setup; if(!st) return;
     playerMeta[P]=mkMeta(FACTIONS[st.host.fac]);
     playerMeta[P].name=st.host.name||'HOST';
+    this.ranks={[P]:{rk:st.host.rk||1, em:st.host.em||'none'}};
     st.opp.forEach((o,i)=>{
       const s='A'+(i+1);
       playerMeta[s]=mkMeta(FACTIONS[o.fac]);
       if(o.human){
         playerMeta[s].name=o.name;
-        this.humans[s]={name:o.name, conn:st.conns[i]};
+        this.humans[s]={name:o.name, conn:st.conns[i], tok:netTok()};
+        this.ranks[s]={rk:o.rk||1, em:o.em||'none'};
         if(st.conns[i]) st.conns[i]._side=s;
       }
     });
@@ -7509,7 +7593,7 @@ const NET={
     const d=this.state();
     for(const s in this.humans){
       const c=this.humans[s].conn;
-      if(c&&c.open){ try{ c.send({t:'start', you:s, d, e:[]}); }catch(e){} }
+      if(c&&c.open){ try{ c.send({t:'start', you:s, tok:this.humans[s].tok, d:this.stateFor(s,d), e:[]}); }catch(e){} }
     }
   },
   state(){
@@ -7517,12 +7601,12 @@ const NET={
       v:1, cfg:{...cfg}, W,
       sides:Object.fromEntries(turnOrder.map(s=>[s,meta(s).faction.key])),
       names:Object.fromEntries(turnOrder.map(s=>[s,meta(s).name])),
-      humans:Object.keys(this.humans),
+      humans:Object.keys(this.humans).filter(k=>!this.humans[k].bot),
       enemySides:[...enemySides],
       alive:{...alive}, stars:{...stars},
       tech:Object.fromEntries(turnOrder.map(s=>[s,[...tech[s]]])),
       turn, uid, side, over:gameOver, winner:this.winner, stats:{...stats},
-      tm:this.timer, tl:this.turnEnds?Math.max(0,this.turnEnds-Date.now()):0, tc:{...turnCities}, rv:mapReveals, ln:{...lastNuke}, tl:tally, pw, dip,
+      rk:this.ranks, tm:this.timer, te:this.turnEnds?Math.max(0,this.turnEnds-Date.now()):0, tc:{...turnCities}, rv:mapReveals, ln:{...lastNuke}, tl:tally, pw, dip,
       units:units.map(u=>({...u})),
       explored:null,
       map:map.map(row=>row.map(t=>({t:t.terrain, c:packCity(t.city), r:t.resource||0, ru:t.ruin?1:0, b:t.b||0})))
@@ -7536,11 +7620,53 @@ const NET={
   },
   flush(){
     if(!this.host||!this.inGame) return;
-    const d=this.state(), e=this.evts.splice(0);
+    const d=this.state(), e=this.evts.splice(0), ms=JSON.stringify(d.map), fs=this._fsDue;
+    this._fsDue=null;
+    let sent=false;
     for(const s in this.humans){
       const c=this.humans[s].conn;
-      if(c&&c.open){ try{ c.send({t:'st', d:this.stateFor(s,d), e}); }catch(err){} }
+      if(!c||!c.open) continue;
+      const v=this.stateFor(s,d), sig=JSON.stringify({...v, te:0, map:0});
+      if(!e.length&&sig===c._sig&&ms===c._ms&&s!==fs) continue;   // nothing new for this player
+      c._sig=sig; sent=true;
+      const m={...v}; if(ms===c._ms) delete m.map; else c._ms=ms;   // the map goes out only when it changed
+      try{ c.send(s===fs?{t:'st', d:m, e, fs:this.saveFor(s)}:{t:'st', d:m, e}); }catch(err){}
     }
+    if(sent&&!isAI(side)) this.hostSave();
+  },
+  // a complete save from this seat's point of view, for a guest to export if the host never comes back
+  saveFor(s){ const d=JSON.parse(serializeGame()); d.me=s; d.hs=s; d.explored=seenBy[s]||null; return JSON.stringify(d); },
+  /* the host keeps the game on this device so a reload or crash can reopen the room */
+  hostSave(){
+    if(!this.host||!this.inGame||gameOver||!map) return;
+    const hu={}; for(const k in this.humans){ const h=this.humans[k]; hu[k]={name:h.name, tok:h.tok, bot:h.bot?1:0}; }
+    hostResume({code:this.code, name:this.myName, size:this.size, timer:this.timer, opts:this.opts, humans:hu, ranks:this.ranks, seen:seenBy, save:serializeGame()});
+  },
+  resumeHost(){
+    const r=hostResume();
+    if(!r) return syncRejoin();
+    if(!window.Peer){ mpMsg('P2P engine missing. Re-download the game file.'); return; }
+    let d=null; try{ d=JSON.parse(r.save); }catch(e){}
+    if(!saveValid(d)){ hostResume(null); syncRejoin(); loadFail('Save file could not be loaded.'); return; }
+    this.leave();
+    this.host=true; this.on=true; this._idTry=0;
+    this.myName=r.name||'HOST'; this.size=r.size||11; this.timer=r.timer||0; this.opts=r.opts||{map:'classic', mods:[]};
+    this.humans={};
+    for(const k in r.humans||{}){ const h=r.humans[k]; this.humans[k]={name:h.name, tok:h.tok, conn:null}; if(h.bot) this.humans[k].bot=true; }
+    this.ranks=r.ranks||{};
+    this.inGame=true; MYSIDE=P;
+    d.side=d.hs; d.over=false;
+    if(!restoreGame(d,true)){ this.leave(); return; }
+    if(d.stats) stats={...d.stats};
+    seenBy=r.seen||{};
+    sfx.capture();
+    this.openPeer(r.code);
+    // carry on with the turn that was under way
+    const s=side;
+    this.turnEnds=(this.timer&&(s===P||this.isHuman(s)))?Date.now()+this.timer*1000:0;
+    if(this.humans[s]&&!this.humans[s].bot) this.holdSeat(s);
+    else if(isAI(s)){ const g0=gen; setTimeout(()=>{ if(gen===g0&&!gameOver&&side===s) aiTurn(s); }, 800); }
+    this.hostSave();
   },
   // each player's copy of the state omits enemy units they have never seen; spectators get the full state
   stateFor(s,d){
@@ -7557,6 +7683,7 @@ const NET={
     this.leave();
     this.myName=mpGetName();
     this.code=code;
+    const r=rejoinInfo(); if(r&&r.code===code&&r.name===this.myName) this.tok=r.tok||null;   // same device: keep the seat key
     this.client=true; this.on=true;
     mpMsg('Contacting host\u2026');
     this.newClientPeer();
@@ -7585,7 +7712,7 @@ const NET={
     catch(e){ this.clientDrop(); return; }
     this.hconn=conn;
     conn.on('open', ()=>{
-      try{ conn.send({t:'hello', name:this.myName, v:1, rejoin:this.inGame||this.rejoining}); }catch(e){}
+      try{ conn.send({t:'hello', name:this.myName, v:1, rejoin:this.inGame||this.rejoining, tok:this.tok, rk:rankOf(loadProg().xp).n, em:cosmetics().emblem}); }catch(e){}
       if(this.inGame) netBar('Reconnecting\u2026');
     });
     conn.on('data', m=>{ try{ this.clientData(m); }catch(e){ console.error('net',e); } });
@@ -7598,19 +7725,22 @@ const NET={
     if(m.t==='deny'){ const dm=m.m||'The host declined the connection.'; this.leave(); mpMsg(dm); return; }
     if(m.t==='lobby'){
       if(this.inGame){   // the host called a rematch: back to the lobby
-        this.inGame=false; netBar(null);
+        this.inGame=false; this.fs=null; netBar(null);
         $('overlay').classList.remove('show'); resetOverlayButton(); $('endBar').hidden=true; $('handoff').hidden=true;
         showSetup();
       }
+      if(m.you&&Array.isArray(m.slots)){ const me=m.slots.find(x=>x.s===m.you); if(me&&me.name) this.myName=me.name; }   // the host may have renamed a duplicate callsign
       this.slots=m.slots; this.size=m.size; this.timer=m.timer||0; this.opts={map:MAP_TYPES[m.opts&&m.opts.map]?m.opts.map:'classic', mods:Array.isArray(m.opts&&m.opts.mods)?m.opts.mods.filter(k=>MODS[k]):[]};
       if(m.you) this.mySlot=m.you;
       mpShowLobby(); this.renderLobby();
       return;
     }
+    if(m.t==='wait'){ if(this.inGame) netBar(m.m); else mpMsg(m.m); return; }
     if(m.t==='start'){
       MYSIDE=m.you;
       this.inGame=true;
-      rejoinInfo({code:this.code, name:this.myName});
+      if(m.tok) this.tok=m.tok;
+      rejoinInfo({code:this.code, name:this.myName, tok:this.tok});
       netBar(null);
       $('mpLobby').style.display='none';
       mpMsg('Operation underway \u00b7 room '+this.code);
@@ -7618,21 +7748,21 @@ const NET={
       netRestore(m.d);
       return;
     }
-    if(m.t==='st'&&this.inGame){ applyNetState(m.d, m.e||[]); return; }
+    if(m.t==='st'&&this.inGame){ if(typeof m.fs==='string') this.fs=m.fs; applyNetState(m.d, m.e||[]); return; }
   },
   clientDrop(){
     if(!this.client) return;
     this.hconn=null;
     if(!this.inGame){ this.leave(); mpMsg('Lost connection to the host.'); return; }
     if(gameOver) return;
-    if(this._retry<6){
+    if(this._retry<40){   // quick tries first, then every 8 s for about 5 minutes while a host reopens the room
       this._retry++;
-      netBar('Lost connection to the host. Reconnecting ('+this._retry+'/6)\u2026');
+      netBar('Lost connection to the host. Reconnecting\u2026');
       setTimeout(()=>{
         if(!this.client||!this.inGame||this.hconn) return;
         if(this.peer&&!this.peer.destroyed) this.dial();
         else this.newClientPeer();
-      }, 2500);
+      }, this._retry<=6?2500:8000);
     } else {
       netBar('Host unreachable. Check your connection, or export the save from the menu.', 'Try again', ()=>{ this._retry=0; netBar(null); this.clientDrop(); });
     }
@@ -7651,15 +7781,27 @@ const NET={
     const el=$('hudTimer'), txt=Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');
     if(el.textContent!==txt) el.textContent=txt;
     el.classList.toggle('low', sec<=15);
-    if(this.host&&left<=0&&(side===P||this.humans[side])&&alive[side]){
+    if(this.host&&left<=0&&(side===P||this.isHuman(side))&&alive[side]){
+      const h=this.humans[side];
+      if(h&&!h.conn&&this._takeT){ this.aiTakeover(side); return; }   // held seat: the AI plays the turn instead
       this.turnEnds=0;
       log('sys', meta(side).name+' ran out of time.');
       doAction(side,{t:'endturn'});
     }
   },
 
+  /* quick messages: a fixed set of phrases, relayed by the host to everyone, at most one per player every 3 s */
+  emote(s,k){
+    if(!this.host||!this.inGame||!emoteOk(k)||!turnOrder.includes(s)) return;
+    if(Date.now()-(this._emoT[s]||0)<3000) return;
+    this._emoT[s]=Date.now();
+    this.showEmote(s,k); this.evt({t:'emote', s, k}); this.flushSoon(false);
+  },
+  showEmote(s,k){ if(emoteOk(k)&&meta(s)) note({icon:'chat', title:meta(s).name, text:EMOTES[k], color:meta(s).css}); },
   // Shared UI
   uiTick(){
+    const eb=$('emoteBtn'), on=this.on&&this.inGame&&!!map;
+    if(eb.hidden===on){ eb.hidden=!on; if(!on) $('emoteBar').hidden=true; }
     if(!this.on) return;
     if(this.host&&this.inGame) this.flushSoon(false);
     this.turnBanner();
@@ -7668,9 +7810,9 @@ const NET={
     if(!this.inGame||!map||gameOver) return;
     const b=$('turnBanner');
     if(this.client){
-      if(side!==MYSIDE){
+      if(side!==MYSIDE||!this.isHuman(MYSIDE)){
         clearTimeout(this._yourTurnT); this._yourTurnT=null;
-        b.textContent=meta(side).name.toUpperCase()+' TURN';
+        b.textContent=side===MYSIDE?'AI FINISHES YOUR TURN':meta(side).name.toUpperCase()+' TURN'+(isAI(side)?' \u00b7 AI':'');
         b.style.borderColor=meta(side).css; b.style.color=meta(side).css;
         b.classList.add('show');
       } else {
@@ -7704,8 +7846,9 @@ const NET={
              :sl.kind==='human'?sl.name
              :sl.kind==='ai'?'AI COMMANDER'
              :sl.kind==='open'?'OPEN: waiting for ally\u2026':'closed';
-      d.innerHTML='<span class="dot" style="background:'+(fac?fac.css:'var(--line)')+'"></span>'+
-                  '<span class="nm">'+nm+'</span>'+
+      const who=sl.kind==='host'||sl.kind==='human';
+      d.innerHTML=(who?'<img class="flg" alt="" src="'+flagImg(fac?fac.color:NEUTRAL_FLAG, sl.em)+'">':'<span class="dot" style="background:'+(fac?fac.css:'var(--line)')+'"></span>')+
+                  '<span class="nm">'+esc(nm)+(who&&sl.rk?rankBadge(sl.rk,true):'')+'</span>'+
                   '<span class="fk">'+(fac?fac.name:'')+'</span>'+
                   (this.host&&i>0&&sl.kind!=='human'?'<span class="tog">\u21bb</span>':'');
       if(this.host&&i>0&&sl.kind!=='human'){
@@ -7760,17 +7903,18 @@ const NET={
 
 /* Guests restore fully on start, then apply each broadcast incrementally */
 function netRestore(d){
-  NET.timer=d.tm||0; NET.turnEnds=d.tl?Date.now()+d.tl:0;
+  NET.humansList=d.humans||[]; NET.ranks=d.rk||{};
+  NET.timer=d.tm||0; NET.turnEnds=Number.isFinite(d.te)&&d.te>0?Date.now()+d.te:0;
   if(restoreGame(d, true)){
     if(!alive[MYSIDE]&&!gameOver) showDefeat();
     if(gameOver) endGame(d.winner);
   }
 }
 function applyNetState(d, evts){
-  if(!map||d.W!==W){ netRestore(d); if(evts&&evts.length) replayEvts(evts); return; }
-  pendingAtk=null;
+  if(!map||d.W!==W){ if(!d.map) return; netRestore(d); if(evts&&evts.length) replayEvts(evts); return; }
+  const pa=pendingAtk, pk=pa&&JSON.stringify([byId(pa.uid),pa.tid!=null?byId(pa.tid):0]);
   let terr=false;
-  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+  if(d.map) for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const t=map[y][x], o=d.map[y][x];
     if(o.t!==t.terrain){ t.terrain=o.t; terr=true; }
     if((o.r||null)!==t.resource){ t.resource=o.r||null; if(!t.resource) removeResourceDecor(x,y); }
@@ -7784,8 +7928,10 @@ function applyNetState(d, evts){
   tech={}; for(const s of turnOrder) tech[s]=new Set(d.tech[s]||[]);
   const wasMine=side===MYSIDE;
   side=d.side;
-  NET.humansList=d.humans||[];
-  NET.timer=d.tm||0; NET.turnEnds=d.tl?Date.now()+d.tl:0;
+  // a touch attack armed with the first tap survives an update that left both units alone
+  pendingAtk=pa&&side===MYSIDE&&byId(pa.uid)&&JSON.stringify([byId(pa.uid),pa.tid!=null?byId(pa.tid):0])===pk?pa:null;
+  NET.humansList=d.humans||[]; NET.ranks=d.rk||{};
+  NET.timer=d.tm||0; NET.turnEnds=Number.isFinite(d.te)&&d.te>0?Date.now()+d.te:0;
   turnCities=d.tc||{}; tally=d.tl||{}; pw=Object.assign(pw0(), d.pw||{}); dip=Object.assign(dip0(), d.dip||{});
   for(const r of d.rv||[]) if(r.s===MYSIDE) revealAround(r.x,r.y,r.r);
   if(terr) buildBoard();
@@ -7804,6 +7950,8 @@ function replayEvts(list){
   for(const e of list){
     try{
       if(e.t==='log'){ log(e.w, e.m); }
+      else if(e.t==='emote') NET.showEmote(e.s, e.k);
+      else if(e.t==='note'){ if(Array.isArray(e.who)&&e.who.includes(MYSIDE)) toast(String(e.msg), 'var(--amber)'); }
       else if(e.t==='kill'){ if(e.b===MYSIDE) stats.kills++; if(e.o===MYSIDE) stats.losses++; }
       else if(e.t==='fx'){
         const a=e.a||[];
@@ -7836,6 +7984,28 @@ function showDefeat(){
   sfx.boom();
 }
 
+const EMOTES=['Good luck','Nice move','Thanks','Oops','Watch out','Good game'];
+const emoteOk=k=>Number.isInteger(k)&&k>=0&&k<EMOTES.length;
+$('emoteBtn').onclick=()=>{
+  const bar=$('emoteBar');
+  if(!bar.hidden){ bar.hidden=true; return; }
+  bar.innerHTML='';
+  EMOTES.forEach((t,k)=>{ const b=document.createElement('button'); b.textContent=t;
+    b.onclick=()=>{ bar.hidden=true; sfx.select();
+      if(NET.host) NET.emote(P,k); else if(NET.hconn&&NET.hconn.open){ try{ NET.hconn.send({t:'emote', k}); }catch(e){} }
+      $('emoteBtn').disabled=true; setTimeout(()=>{ $('emoteBtn').disabled=false; },3000); };
+    bar.appendChild(b); });
+  bar.hidden=false;
+};
+document.addEventListener('pointerdown',e=>{ const bar=$('emoteBar'); if(!bar.hidden&&!bar.contains(e.target)&&!$('emoteBtn').contains(e.target)) bar.hidden=true; },true);
+/* a small flag in the faction colour with the player's emblem */
+const flagCache={};
+function flagImg(col, em){
+  const k=col+'|'+em; if(flagCache[k]) return flagCache[k];
+  const c=document.createElement('canvas'); c.width=66; c.height=39;
+  drawFlag(c.getContext('2d'), col, EMBLEMS[em]?em:'none', 66, 39);
+  return flagCache[k]=c.toDataURL();
+}
 /* Status line, lobby toggles, connection bar */
 function mpMsg(m){ const el=$('mpStatus'); if(el) el.textContent=m||''; }
 /* An invite link (<game url>#join=CODE) opens the Online screen with the code filled in */
@@ -7886,15 +8056,16 @@ function mpGetName(){
   if(CAN_STORE){ try{ localStorage.setItem('foothold-callsign', n); }catch(e){} }
   return n;
 }
-function netBar(msg, btnLabel, btnFn){
+function netBar(msg, btnLabel, btnFn, btn2Label, btn2Fn){
   const b=$('netBar');
   if(!b) return;
   if(!msg){ b.style.display='none'; b.innerHTML=''; return; }
   b.innerHTML='';
   const sp=document.createElement('span'); sp.textContent=msg; b.appendChild(sp);
-  if(btnLabel){
-    const bt=document.createElement('button'); bt.textContent=btnLabel;
-    bt.onclick=()=>{ if(btnFn) btnFn(); };
+  for(const [l,f] of [[btnLabel,btnFn],[btn2Label,btn2Fn]]){
+    if(!l) continue;
+    const bt=document.createElement('button'); bt.textContent=l;
+    bt.onclick=()=>{ if(f) f(); };
     b.appendChild(bt);
   }
   b.style.display='flex';
@@ -7907,17 +8078,33 @@ function rejoinInfo(v){
     if(v) localStorage.setItem('foothold-rejoin', JSON.stringify({...v, t:Date.now()})); else localStorage.removeItem('foothold-rejoin');
   }catch(e){ return null; }
 }
+/* the host's online game, kept so a reload or crash can reopen the same room */
+const HOST_KEY='foothold-host-resume';
+function hostResume(v){
+  if(!CAN_STORE) return null;
+  try{
+    if(v===undefined){ const r=JSON.parse(localStorage.getItem(HOST_KEY)||'null'); return r&&r.code&&r.save&&Date.now()-r.t<6*3600e3?r:null; }
+    if(v) localStorage.setItem(HOST_KEY, JSON.stringify({...v, t:Date.now()})); else localStorage.removeItem(HOST_KEY);
+  }catch(e){ return null; }
+}
+const netTok=()=>{ try{ return [...crypto.getRandomValues(new Uint8Array(12))].map(b=>b.toString(16).padStart(2,'0')).join(''); }catch(e){ return Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2); } };
 function syncRejoin(){
   const b=$('rejoinBtn'); if(!b) return;
   const r=!NET.on&&rejoinInfo();
   b.style.display=r?'':'none';
   if(r) $('rejoinInfo').textContent='room '+r.code+' \u00b7 as '+r.name;
+  const h=!NET.on&&hostResume(), hb=$('hostResumeBtn');
+  hb.style.display=h?'':'none';
+  if(h){ let t=''; try{ t='turn '+JSON.parse(h.save).turn; }catch(e){}
+    hb.firstChild.textContent='Resume room '+h.code;
+    $('hostResumeInfo').textContent=[t, Object.values(h.humans||{}).map(x=>x.name).join(', ')].filter(Boolean).join(' \u00b7 '); }
 }
 $('rejoinBtn').onclick=()=>{
   const r=rejoinInfo(); if(!r) return syncRejoin();
   $('mpCode').value=r.code; $('mpName').value=r.name;
-  setupView('mp'); NET.join(); NET.rejoining=true;
+  setupView('mp'); NET.join(); NET.rejoining=true; NET.tok=r.tok||null;
 };
+$('hostResumeBtn').onclick=()=>{ if(confirmAbandon($('hostResumeBtn'))) NET.resumeHost(); };
 $('mpHostBtn').onclick=()=>NET.startHost();
 $('mpJoinBtn').onclick=()=>NET.join();
 $('mpCode').addEventListener('keydown',e=>{ if(e.key==='Enter') NET.join(); });
