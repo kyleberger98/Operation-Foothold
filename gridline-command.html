@@ -2833,14 +2833,17 @@ async function aiTurn(me){
     for(const o of own) if(!saving&&stars[me]>=developCost(o.c)+D.reserve) develop(me,o.x,o.y);
     aiRewards(me);
   }
-  // objectives: every rival's cities and units
-  const objs=[], tgo=peaceWith(me).length?terrGrid():null, closed=(x,y)=>tgo&&tgo[y][x]&&relOf(me,tgo[y][x])==='peace';
+  // objectives: the rival cities and units it knows of, and ground it has not explored yet.
+  // A partner it plans to attack counts as a rival, so its troops gather on that border.
+  const seen=aiLook(me), kn=aiKnow[me].e, foes=aiFoes(me,seen);
+  const objs=[], tgo=peaceWith(me).length?terrGrid():null, closed=(x,y)=>tgo&&tgo[y][x]&&relOf(me,tgo[y][x])==='peace'&&dip.warn[me+'>'+tgo[y][x]]==null;
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-    const c=tileAt(x,y).city;
-    if(c&&c.owner!==me&&(!c.owner||hostile(c.owner,me))&&!closed(x,y)) objs.push({x,y,w:c.capital?0:1});
+    const t=tileAt(x,y), c=t.city;
+    if(!kn[y][x]){ if(t.terrain!=='water') objs.push({x,y,w:5}); continue; }
+    if(c&&c.owner!==me&&(!c.owner||hostile(c.owner,me)||dip.warn[me+'>'+c.owner]!=null)&&!closed(x,y)) objs.push({x,y,w:c.capital?0:1});
+    if(t.ruin) objs.push({x,y,w:0.5});
   }
-  units.filter(u=>hostile(u.owner,me)).forEach(u=>objs.push({x:u.x,y:u.y,w:2}));
-  for(let y=0;y<H;y++)for(let x=0;x<W;x++) if(tileAt(x,y).ruin) objs.push({x,y,w:0.5});
+  foes.forEach(f=>objs.push({x:f.x,y:f.y,w:2}));
 
   const aiPromote=()=>units.filter(q=>q.owner===me&&canPromote(q)&&q.hp<=q.maxHp-3).forEach(promote);
   aiPromote();
@@ -2873,11 +2876,11 @@ async function aiTurn(me){
     if(!units.includes(u)) continue; // killed earlier this turn
     // nuke logic: find the tile within range whose blast catches the most enemies
     if(u.type==='NUKE'){
-      const R=blastR(u), rg=uRange(u);
+      const R=blastR(u), rg=uRange(u), g=aiLook(me);   // only units it can see right now
       let bestT=null, bestN=0;
       for(let y=0;y<H;y++)for(let x=0;x<W;x++){
         if(cheb({x,y},u)>rg) continue;
-        const n=units.filter(e=>hostile(e.owner,me) && Math.max(Math.abs(e.x-x),Math.abs(e.y-y))<=R)
+        const n=units.filter(e=>hostile(e.owner,me) && g[e.y][e.x] && Math.max(Math.abs(e.x-x),Math.abs(e.y-y))<=R)
                      .reduce((m,e)=>m+(hasTech(e.owner,'CIVDEF')?0.35:1),0);
         if(n>bestN){ bestN=n; bestT={x,y}; }
       }
@@ -2933,8 +2936,8 @@ async function aiTurn(me){
       attack(u,tg);
       acted=visXY(u.x,u.y);
     } else if(D.sharp&&!guarding&&u.hp<=u.maxHp*0.6&&!(hqThreat&&hq&&!unitAt(hq.x,hq.y))&&
-              (hasTech(me,'MEDIC')||(hasTech(me,'HOSP')&&tileAt(u.x,u.y).city))&&!units.some(e=>hostile(e.owner,me)&&cheb(e,u)<=uMove(e)+uRange(e))){
-      // wounded and out of reach of every enemy: rest a turn to heal
+              (hasTech(me,'MEDIC')||(hasTech(me,'HOSP')&&tileAt(u.x,u.y).city))&&!foes.some(f=>cheb(f,u)<=uMove(f.u)+uRange(f.u))){
+      // wounded and out of reach of every enemy it knows of: rest a turn to heal
     } else if(!guarding && (Math.random()<D.press || (hqThreat&&hq&&!unitAt(hq.x,hq.y)))){
       const r=reachable(u);
       if(r.size){
@@ -3578,6 +3581,29 @@ function markSeen(s){
     if(hasTech(s,'RADIO')&&(t.city||t.ruin)) g[y][x]=true; }
   for(const r of mapReveals) if(r.s===s) rev(r.x,r.y,r.r);
   return g;
+}
+/* what each computer side knows: the ground it has explored and hostile units seen in the last 2 turns */
+let aiKnow={};
+function aiLook(me){
+  const k=aiKnow[me]||(aiKnow[me]={e:seenBy[me]?seenBy[me].map(r=>[...r]):Array.from({length:H},()=>Array(W).fill(false)), u:{}});
+  const g=sightOf(me), radio=hasTech(me,'RADIO');
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const t=tileAt(x,y); if(g[y][x]||(radio&&(t.city||t.ruin))) k.e[y][x]=true; }
+  for(const r of mapReveals) if(r.s===me) for(let dy=-r.r;dy<=r.r;dy++)for(let dx=-r.r;dx<=r.r;dx++) if(inb(r.x+dx,r.y+dy)) k.e[r.y+dy][r.x+dx]=true;
+  for(const u of units) if(hostile(u.owner,me)&&g[u.y][u.x]) k.u[u.id]={x:u.x,y:u.y,t:turn};
+  for(const id in k.u){ const q=k.u[id]; if(turn-q.t>2||(g[q.y][q.x]&&!units.some(v=>v.id==id&&v.x===q.x&&v.y===q.y))) delete k.u[id]; }
+  return g;
+}
+/* hostile units side me can see now, plus where it last saw the others */
+function aiFoes(me, g){
+  const k=aiKnow[me], seen=units.filter(u=>hostile(u.owner,me)&&g[u.y][u.x]), out=seen.map(u=>({x:u.x,y:u.y,u}));
+  if(k) for(const id in k.u){ const u=units.find(v=>v.id==id); if(u&&hostile(u.owner,me)&&!seen.includes(u)) out.push({x:k.u[id].x,y:k.u[id].y,u}); }
+  return out;
+}
+const packKnow=()=>Object.fromEntries(Object.entries(aiKnow).map(([s,k])=>[s,{e:k.e.map(r=>r.map(v=>v?1:0).join('')).join(''), u:k.u}]));
+function unpackKnow(d){
+  aiKnow={};
+  if(!d){ for(const s of turnOrder) if(s!==P) aiKnow[s]={e:Array.from({length:H},()=>Array(W).fill(true)), u:{}}; return; }   // older saves: the computer keeps its full view
+  for(const s in d){ const e=String(d[s].e||''); aiKnow[s]={e:Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>e[y*W+x]==='1')), u:d[s].u||{}}; }
 }
 function computeVision(){
   if(!map||!H) return;
@@ -4919,7 +4945,7 @@ function serializeGame(){
     stars:{...stars},
     tech:Object.fromEntries(turnOrder.map(s=>[s,[...tech[s]]])),
     turn, uid, stats:{...stats},
-    tc:{...turnCities}, ln:{...lastNuke}, rv:mapReveals, me:hotOn()?P:MYSIDE, tl:tally, pw, dip,
+    tc:{...turnCities}, ln:{...lastNuke}, rv:mapReveals, me:hotOn()?P:MYSIDE, tl:tally, pw, dip, ak:packKnow(),
     hot:hotOn()?[...HOT]:0, hs:side, ex:hotOn()?{...exploredBy,[MYSIDE]:explored}:0,
     names:Object.fromEntries(turnOrder.map(s=>[s,meta(s).name])),
     units:units.map(u=>({...u})),
@@ -4951,6 +4977,7 @@ function swapSaveSides(d, me){
   d.units.forEach(u=>u.owner=sw(u.owner));
   d.map.forEach(row=>row.forEach(t=>{ if(t.c&&t.c.o) t.c.o=sw(t.c.o); }));
   if(d.rv) d.rv.forEach(r=>r.s=sw(r.s));
+  if(d.ak) d.ak=swKeys(d.ak);
   if(d.dip){   // treaties, offers and memories follow the swapped seats
     const swPair=(k,sep)=>k.split(sep).map(x=>x.endsWith('$')?sw(x.slice(0,-1))+'$':sw(x)).join(sep);
     const rel={}; for(const k in d.dip.rel||{}){ const [a,b]=k.split('|').map(sw); rel[relKey(a,b)]=d.dip.rel[k]; } d.dip.rel=rel;
@@ -5003,6 +5030,7 @@ function restoreGame(data, net){
     })));
     explored=data.explored?data.explored.map(r=>[...r]):Array.from({length:H},()=>Array(W).fill(false));
     if(hotOn()&&exploredBy[MYSIDE]) explored=exploredBy[MYSIDE];
+    unpackKnow(data.ak);
     if(net){ for(const r of data.rv||[]) if(r.s===MYSIDE) revealAround(r.x,r.y,r.r); computeVision(); }
     for(const [,g] of unitMeshes){ unitGroup.remove(g); freeUnitMesh(g); }
     dyingUnits.forEach(d=>{ unitGroup.remove(d.g); freeUnitMesh(d.g); }); dyingUnits.length=0;
@@ -7534,7 +7562,7 @@ function newGame(){
   fitSaved=null; camDistGoal=null; camPhiGoal=null; cam.phi=0.96; $('fitBtn').classList.remove('on');
   $('turnBanner').classList.remove('show');
   pw=pw0();
-  gcfg={...cfg}; blockedHint=false; lastNuke={}; nukeWarned={}; mapReveals=[]; seenBy={}; sentry.clear();
+  gcfg={...cfg}; blockedHint=false; lastNuke={}; nukeWarned={}; mapReveals=[]; seenBy={}; aiKnow={}; sentry.clear();
   for(const k in aiSupportT) delete aiSupportT[k];
   for(const k in aiShipT) delete aiShipT[k];
   undoStack.length=0;
