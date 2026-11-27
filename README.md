@@ -54,3 +54,37 @@ Everyone plays live, and the host's device runs the match, so the host keeps the
 | `index.html` | Forwards the short address (and invite links) to the game |
 | `manifest.webmanifest`, `sw.js`, `icons/` | Make the game installable on phones and playable offline. Bump `VERSION` in `sw.js` with each release so the icons and manifest refresh |
 | `art/units/`, `art/env/` | Blender sources for the unit models and the terrain, resource and building models; see their READMEs |
+| `tests/`, `package.json`, `.github/workflows/test.yml` | Automated tests and the balance simulator (not part of the published site) |
+
+## Development / tests
+
+The tests drive the real game file in headless Chromium with [Playwright](https://playwright.dev). You need Node.js 20 or newer.
+
+```sh
+npm install
+npx playwright install chromium   # once; add --with-deps on a fresh Linux machine
+npm test
+```
+
+`npm test` runs the whole suite in about two to three minutes and exits non-zero if anything fails. Run one file with `npm test -- rules`, or test another copy of the game with `GAME=/path/to/gridline-command.html npm test`. Traces and screenshots of failed tests go to `test-results/`.
+
+| File | What it covers |
+|---|---|
+| `tests/smoke.spec.js` | Every board theme, a few AI turns, save and restore, Quick play, Low graphics, no page errors |
+| `tests/saves.spec.js` | Loading a save from the current game and two older formats, Import Save, broken saves, guest saves |
+| `tests/rules.spec.js` | Combat forecasts and counters, the Titan cap, the tribute cooldown, missile confirm, undo, treaty borders, movement |
+| `tests/multiplayer.spec.js` | Online play through a mock PeerJS relay: joining, moves syncing, the turn timer, quick messages, rejoining with a seat key |
+| `tests/onboarding.spec.js` | The guided tutorial and the Field Manual |
+| `tests/campaign.spec.js` | Campaign map generator invariants and starting a campaign battle |
+| `tests/layout.spec.js` | Phone layout at 360x740: no overlapping controls or clipped text |
+
+The tests check rules rather than tuned numbers, so balance changes should not break them. When the save format changes on purpose, regenerate the current save fixture with `node tests/tools/make-save.js gridline-command.html tests/fixtures/save-current.json`, and keep the older fixtures.
+
+GitHub Actions runs `npm test` on every pull request and every push to `main`.
+
+The balance simulator is separate and slow (a few minutes). It plays every faction against every other with the computer on both sides and prints each faction's win rate:
+
+```sh
+npm run sim -- 42          # 42 is the random seed
+npm run sim -- 42 --games 6   # a quick partial run
+```
