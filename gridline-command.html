@@ -781,7 +781,7 @@ body.tsz #techTree .tn-cost{font-size:12px}
       </div>
       <div class="saveNote">Your campaign auto-saves every move on this device.</div>
       <div class="saveNote" id="progLine" hidden></div>
-      <div class="setRow"><button id="speedMenuBtn" class="speedMenu"></button><button id="soundMenuBtn" class="speedMenu"></button><button id="musicMenuBtn" class="speedMenu"></button><button id="gfxMenuBtn" class="speedMenu"></button><button id="followMenuBtn" class="speedMenu"></button><button id="textMenuBtn" class="speedMenu"></button><button id="installBtn" class="speedMenu install" hidden></button></div>
+      <div class="setRow"><button id="speedMenuBtn" class="speedMenu"></button><button id="soundMenuBtn" class="speedMenu"></button><button id="musicMenuBtn" class="speedMenu"></button><button id="sfxMenuBtn" class="speedMenu"></button><button id="gfxMenuBtn" class="speedMenu"></button><button id="followMenuBtn" class="speedMenu"></button><button id="textMenuBtn" class="speedMenu"></button><button id="installBtn" class="speedMenu install" hidden></button></div>
       <div id="installTip" hidden>On iPhone or iPad, tap the <b>Share</b> button, then <b>Add to Home Screen</b>. Gridline Command opens full-screen from its icon and plays offline.</div>
     </div>
     <div id="soloPane" style="display:none">
@@ -1447,6 +1447,7 @@ function unlocksAt(n){
   for(const [k,t] of Object.entries(EMBLEMS)) if(t.rank===n) out.push(t.name+' flag emblem');
   return out;
 }
+let xpDone=false;   // this game's XP is paid (a player knocked out early is paid at once)
 function awardXP(won){
   const p=loadProg(), before=rankOf(p.xp), g=gameXP(won);
   p.xp=(p.xp||0)+g; p.played=(p.played||0)+1;
@@ -1845,7 +1846,7 @@ function unloadSpots(c){
   const out=[];
   for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
     const x=c.x+dx, y=c.y+dy;
-    if((dx||dy)&&inb(x,y)&&!unitAt(x,y)&&passable(c.cargo,x,y)) out.push({x,y});
+    if((dx||dy)&&inb(x,y)&&!unitAt(x,y)&&passable(c.cargo,x,y)&&!treatyLand(c.owner,x,y)) out.push({x,y});
   }
   return out;
 }
@@ -2008,10 +2009,13 @@ function startTurn(s, first){
 }
 
 /* Sound, synthesized in the browser with no audio files */
-let muted=false, actx=null;
+/* muted silences everything (the speaker button, M); effects also have their own level. Both are saved per device. */
+let muted=false, actx=null, sfxLevel='on';
+try{ muted=localStorage.getItem('foothold-sound')==='off'; const v=localStorage.getItem('foothold-sfx'); if(v==='low'||v==='off') sfxLevel=v; }catch(e){}
+const sfxVol=()=>muted||sfxLevel==='off'?0:sfxLevel==='low'?0.4:1;
 function ac(){ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); return actx; }
 function tone(f,dur,type='sine',vol=0.13,slide=0){
-  if(muted) return;
+  vol*=sfxVol(); if(!vol) return;
   try{
     const a=ac(), o=a.createOscillator(), g=a.createGain();
     o.type=type; o.frequency.value=f;
@@ -2022,7 +2026,7 @@ function tone(f,dur,type='sine',vol=0.13,slide=0){
   }catch(e){}
 }
 function noiseHit(dur,vol){
-  if(muted) return;
+  vol*=sfxVol(); if(!vol) return;
   try{
     const a=ac(), b=a.createBuffer(1,a.sampleRate*dur,a.sampleRate), d=b.getChannelData(0);
     for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length);
@@ -2111,6 +2115,8 @@ function promote(u){
   if(u.owner===MYSIDE) sfx.level();
   return true;
 }
+/* a sunk Landing Craft takes its passenger with it: count the loss and name it in the log */
+function cargoLost(c,by){ if(!c.cargo) return ''; recKill(c.cargo.owner,by); return ', with the '+UNIT_TYPES[c.cargo.type].name+' aboard'; }
 function recKill(victim, by){
   if(by===MYSIDE) stats.kills++;
   if(victim===MYSIDE) stats.losses++;
@@ -2174,7 +2180,7 @@ function forecast(u,d){
   const ut=UNIT_TYPES[u.type], dt=UNIT_TYPES[d.type];
   const {dmg, AF, DF}=calcDamage(u,d);
   const kills=dmg>=d.hp;
-  const advances=kills && uRange(u)===1 && !ut.siege && passable(u,d.x,d.y);
+  const advances=kills && uRange(u)===1 && !ut.siege && passable(u,d.x,d.y) && !treatyLand(u.owner,d.x,d.y,u);
   let rdmg=0, dies=false;
   if(!kills && uRange(d)>=cheb(u,d) && !dt.siege && canHit(d,u) && pw.ghost[u.owner]!==turn){
     rdmg=retDmg(u,d,AF,DF);
@@ -2195,6 +2201,12 @@ function passable(u,x,y){
   if(UNIT_TYPES[u.type].naval) return t==='water';
   if(UNIT_TYPES[u.type].hover) return t!=='mountain';
   return t!=='water'&&t!=='mountain';
+}
+/* is (x,y) in the land of a side at peace with s? With a start tile f, a unit already inside that land may stay in it */
+function treatyLand(s,x,y,f){
+  const pp=peaceWith(s); if(!pp.length) return false;
+  const tg=terrGrid(), o=tg[y][x];
+  return !!o&&pp.includes(o)&&!(f&&tg[f.y][f.x]===o);
 }
 function reachable(u){
   if(u.moved||u.attacked) return new Map();
@@ -2267,7 +2279,7 @@ function nukeStrike(u,tx,ty){
     if(direct.hp<=0){
       units=units.filter(q=>q!==direct);
       recKill(direct.owner,u.owner);
-      log(u.owner, `${dt.name} vaporized.`);
+      log(u.owner, `${dt.name} vaporized${cargoLost(direct,u.owner)}.`);
     }
   }
   // area damage to the rest of the blast
@@ -2303,6 +2315,22 @@ function defBonus(d){
 }
 function blastR(u){ return UNIT_TYPES[u.type].nuke || 1; }
 const splashFrac=u=>(UNIT_TYPES[u.type].splash||0)+(u.type==='ART'&&hasTech(u.owner,'SIEGE')?0.25:0);   // Siege Doctrine
+/* buildings a blast at (x,y) flattens: side s's own and its allies' (g = terrGrid()) */
+function blastBuildings(s,x,y,R,g){
+  let own=0, ally=0;
+  for(let dy=-R;dy<=R;dy++)for(let dx=-R;dx<=R;dx++){
+    const nx=x+dx, ny=y+dy; if(!inb(nx,ny)||!tileAt(nx,ny).b) continue;
+    const o=g[ny][nx]; if(o===s) own++; else if(o&&friendly(o,s)) ally++;
+  }
+  return {own, ally};
+}
+function nukeFc(u,x,y){
+  const R=blastR(u), n=units.filter(e=>hostile(e.owner,u.owner)&&visXY(e.x,e.y)&&cheb(e,{x,y})<=R).length;
+  const b=blastBuildings(u.owner,x,y,R,terrGrid()), pl=k=>k+' building'+(k===1?'':'s');
+  return 'Missile strike here hits <b>'+n+'</b> enemy unit'+(n===1?'':'s')+
+    (b.own?'<br><b style="color:var(--red)">'+b.own+' of your buildings will be destroyed</b>':'')+
+    (b.ally?'<br><b style="color:var(--red)">'+pl(b.ally)+' of your allies will be destroyed</b>':'');
+}
 function splashDamage(u,cx,cy){
   const frac=splashFrac(u);
   if(!frac) return;
@@ -2326,7 +2354,7 @@ function splashDamage(u,cx,cy){
       if(visXY(e.x,e.y)) sfx.boom();
       recKill(e.owner,u.owner);
       creditKill(u);
-      log(u.owner, `${et.name} caught in the blast.`);
+      log(u.owner, `${et.name} caught in the blast${cargoLost(e,u.owner)}.`);
     } else {
       log(u.owner, `Blast hits ${et.name} for ${dmg}.`);
     }
@@ -2352,9 +2380,9 @@ function attack(u,d){
     units=units.filter(x=>x!==d);
     recKill(d.owner,u.owner);
     creditKill(u);
-    log(u.owner, `${dt.name} destroyed.`);
-    // melee units advance into the conquered tile (a city there can be captured next turn)
-    if(uRange(u)===1 && !ut.siege && passable(u,d.x,d.y) && !unitAt(d.x,d.y)){
+    log(u.owner, `${dt.name} destroyed${cargoLost(d,u.owner)}.`);
+    // melee units advance into the conquered tile (a city there can be captured next turn), but not into a treaty partner's land
+    if(uRange(u)===1 && !ut.siege && passable(u,d.x,d.y) && !unitAt(d.x,d.y) && !treatyLand(u.owner,d.x,d.y,u)){
       moveUnit(u,d.x,d.y);
     }
   } else if(uRange(d)>=dist && !dt.siege && canHit(d,u) && pw.ghost[u.owner]!==turn){
@@ -2432,18 +2460,20 @@ function sidePower(s){
   map.flat().forEach(t=>{ if(t.city&&t.city.owner===s) p+=6*(t.city.level+1); });
   return p;
 }
-/* an AI down to its HQ and under a quarter of the strongest rival's strength gives up (from turn 12) */
+/* an AI down to its HQ and under a quarter of the strongest rival's strength gives up (from turn 12).
+   It only surrenders to a side it is at war with, and never while it has a living ally. */
 function aiSurrenders(s){
   if(turn<12||cityCount(s)>1) return null;
+  if(turnOrder.some(o=>o!==s&&alive[o]&&relOf(s,o)==='ally')) return null;
   let top=null, tp=0;
-  for(const o of turnOrder) if(o!==s&&alive[o]){ const p=sidePower(o); if(p>tp){ tp=p; top=o; } }
+  for(const o of turnOrder) if(o!==s&&alive[o]&&hostile(o,s)){ const p=sidePower(o); if(p>tp){ tp=p; top=o; } }
   return top&&sidePower(s)*4<tp ? top : null;
 }
 function eliminate(s, by, surrendered){
   alive[s]=false;
   units=units.filter(q=>{
     if(q.owner!==s) return true;
-    if(!surrendered){ recKill(q.owner,by); if(visXY(q.x,q.y)) fx.boom(q.x,q.y); }
+    if(!surrendered){ recKill(q.owner,by); if(q.cargo) recKill(q.owner,by); if(visXY(q.x,q.y)) fx.boom(q.x,q.y); }
     return false;
   });
   map.flat().forEach(t=>{ if(t.city&&t.city.owner===s){ t.city.owner=null; t.city.rw=[]; t.city.capital=false; } });
@@ -2528,7 +2558,14 @@ function aiMood(me, x, kind){
 }
 const AI_NEED={peace:1, ally:2};
 function aiAccepts(me, x, kind){ const m=aiMood(me,x,kind); return {ok:m.score>=AI_NEED[kind], why:m.why}; }
-function aiPaysTribute(me, x, n){ return strength(x)/strength(me)>=1.8&&stars[me]>=n&&relOf(me,x)!=='ally'; }
+/* the computer pays only a much stronger side, never more than half its stars, and at war only with troops near its cities */
+function aiPaysTribute(me, x, n){ const r=relOf(me,x); return strength(x)/strength(me)>=1.8&&stars[me]>=2*n&&r!=='ally'&&(r!=='war'||unitsNearCities(x,me,3)); }
+function unitsNearCities(a,b,r){
+  const cs=[]; for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.owner===b) cs.push({x,y}); }
+  return units.some(u=>u.owner===a&&u.type!=='NUKE'&&cs.some(c=>cheb(u,c)<=r));
+}
+const DEMAND_CD=6;   // turns between demands on the same side, as the computer does
+const demandWait=(s,to)=>Math.max(0,DEMAND_CD-(turn-(dip.last[s+'>'+to+'$']??-99)));
 function signDeal(a,b,kind){
   if(kind==='peace'){ const renew=relOf(a,b)==='peace'; setRel(a,b,'peace');
     dipNote((renew?'Peace renewed: ':'Peace: ')+dipName(a)+' and '+dipName(b)+' stop fighting for '+PEACE_TURNS+' turns.', [a,b]); }
@@ -2582,7 +2619,7 @@ function dipAction(s, a){
     return true;
   }
   if(a.op==='demand'){
-    const n=a.n|0; if(n<1||n>50) return false;
+    const n=a.n|0; if(n<1||n>50||demandWait(s,to)) return false;
     if(isAI(to)){
       dip.last[s+'>'+to+'$']=turn;
       if(aiPaysTribute(to,s,n)){ stars[to]-=n; stars[s]+=n; dipNote(dipName(to)+' pays '+n+'★ tribute to '+dipName(s)+'.', [s,to]); }
@@ -2590,6 +2627,7 @@ function dipAction(s, a){
       return true;
     }
     if(dip.offers.some(o=>o.from===s&&o.to===to&&o.kind==='tribute')) return false;
+    dip.last[s+'>'+to+'$']=turn;
     dip.offers.push({id:dip.oid++, from:s, to, kind:'tribute', n, turn});
     dipNote(dipName(s)+' demands '+n+'★ tribute from '+dipName(to)+'.', [s,to]);
     return true;
@@ -2940,12 +2978,13 @@ async function aiTurn(me){
     if(!units.includes(u)) continue; // killed earlier this turn
     // nuke logic: find the tile within range whose blast catches the most enemies
     if(u.type==='NUKE'){
-      const R=blastR(u), rg=uRange(u), g=aiLook(me);   // only units it can see right now
+      const R=blastR(u), rg=uRange(u), tg=terrGrid(), g=aiLook(me);   // only units it can see right now
       let bestT=null, bestN=0;
       for(let y=0;y<H;y++)for(let x=0;x<W;x++){
         if(cheb({x,y},u)>rg) continue;
+        const bb=blastBuildings(me,x,y,R,tg);   // its own and allied buildings in the blast count against the strike
         const n=units.filter(e=>hostile(e.owner,me) && g[e.y][e.x] && Math.max(Math.abs(e.x-x),Math.abs(e.y-y))<=R)
-                     .reduce((m,e)=>m+(hasTech(e.owner,'CIVDEF')?0.35:1),0);
+                     .reduce((m,e)=>m+(hasTech(e.owner,'CIVDEF')?0.35:1),0)-0.5*(bb.own+bb.ally);
         if(n>bestN){ bestN=n; bestT={x,y}; }
       }
       if(bestT && (bestN>=2||(bestN>=1&&flush()))){   // a rich side doesn't leave a missile parked on a city
@@ -3325,7 +3364,11 @@ function setHover(h){
   if(sel&&sel.kind==='unit'&&side===MYSIDE&&!gameOver){
     const su=units.find(q=>q.id===sel.id);
     let tu=unitAt(h.x,h.y); if(tu&&tu.owner!==MYSIDE&&!visXY(h.x,h.y)) tu=null;
-    if(su&&su.owner===MYSIDE&&tu&&hostile(tu.owner,MYSIDE)&&attackTargets(su).includes(tu)){
+    if(su&&su.owner===MYSIDE&&su.type==='NUKE'&&!su.attacked&&cheb(su,h)<=uRange(su)&&!(tu&&tu.owner===MYSIDE)){
+      const armed=pendingAtk&&pendingAtk.uid===su.id&&pendingAtk.tx===h.x&&pendingAtk.ty===h.y;
+      txt=nukeFc(su,h.x,h.y)+(armed?'<br><b style="color:var(--red)">'+(COARSE?'Tap':'Click')+' again to launch</b>':COARSE?'':'<br><span style="color:var(--dim)">Click to aim</span>');
+      cvs.style.cursor='crosshair';
+    } else if(su&&su.owner===MYSIDE&&tu&&hostile(tu.owner,MYSIDE)&&attackTargets(su).includes(tu)){
       txt=fcText(forecast(su,tu),tu)+(COARSE?'':' <span style="color:var(--dim)">\u00b7 click to fire</span>');
       cvs.style.cursor='crosshair';
     } else if(su&&!tu&&reachable(su).has(key(h.x,h.y))){
@@ -4468,6 +4511,7 @@ const hlMatSel=new THREE.MeshBasicMaterial({color:0xf0b35c, transparent:true, op
 const hlMatCap=new THREE.MeshBasicMaterial({color:0xf0b35c, transparent:true, opacity:0.4, side:THREE.DoubleSide});
 const hlMatTerr=new THREE.MeshBasicMaterial({color:0xf0b35c, transparent:true, opacity:0.14, side:THREE.DoubleSide});
 const hlMatNuke=new THREE.MeshBasicMaterial({color:0xe8625a, transparent:true, opacity:0.14, side:THREE.DoubleSide});
+const hlMatBlast=new THREE.MeshBasicMaterial({color:0xff4a3d, transparent:true, opacity:0.5, side:THREE.DoubleSide});
 const hlMatDanger=new THREE.MeshBasicMaterial({color:0xe8625a, transparent:true, opacity:0.16, side:THREE.DoubleSide});
 let dangerOn=false;
 const hlMatAllDanger=new THREE.MeshBasicMaterial({color:0xff4a3d, transparent:true, opacity:0.3, side:THREE.DoubleSide});
@@ -4564,6 +4608,16 @@ function syncHighlights(){
       const m=new THREE.Mesh(hlGeoPlane,hlMatNuke);
       m.rotation.x=-Math.PI/2; m.position.set(wx(x),yy,wz(y));
       hlGroup.add(m);
+    }
+    const pa=pendingAtk;
+    if(pa&&pa.uid===u.id&&pa.tx!=null){   // aimed: show the blast area
+      const R=blastR(u);
+      for(let y=pa.ty-R;y<=pa.ty+R;y++)for(let x=pa.tx-R;x<=pa.tx+R;x++){
+        if(!inb(x,y)) continue;
+        const m=new THREE.Mesh(hlGeoPlane,hlMatBlast);
+        m.rotation.x=-Math.PI/2; m.position.set(wx(x),(tileAt(x,y).terrain==='water'?TOP-0.14:TOP)+0.025,wz(y));
+        hlGroup.add(m);
+      }
     }
     return;
   }
@@ -5003,12 +5057,12 @@ function tileFromEvent(e){ return pickXY(e.clientX,e.clientY); }
 function quickOrder(x,y){
   const su=sel&&sel.kind==='unit'?byId(sel.id):null;
   if(!su||su.owner!==MYSIDE||!explored[y][x]){ sel=null; refresh(); return; }
-  pendingAtk=null;
   const u=unitAt(x,y);
-  if(su.type==='NUKE'){
-    if(!su.attacked&&cheb(su,{x,y})<=uRange(su)){ act({t:'nuke',uid:su.id,x,y}); sel=null; refresh(); } else sfx.denied();
+  if(su.type==='NUKE'){   // missiles always take the confirm click
+    if(!su.attacked&&cheb(su,{x,y})<=uRange(su)&&!(u&&u.owner===MYSIDE)) onTileClick(x,y); else sfx.denied();
     return;
   }
+  pendingAtk=null;
   if(u&&u.owner!==MYSIDE&&attackTargets(su).includes(u)){ act({t:'atk',uid:su.id,tid:u.id}); sel=null; refresh(); return; }
   if(!u&&reachable(su).has(key(x,y))){ act({t:'move',uid:su.id,x,y}); sel=su.attacked?null:{kind:'unit',id:su.id}; refresh(); return; }
   sfx.denied();
@@ -5029,14 +5083,13 @@ function onTileClick(x,y){
   if(sel&&sel.kind==='unit'){
     const su=units.find(q=>q.id===sel.id);
     if(su&&su.owner===MYSIDE){
-      // a nuke can launch at any explored tile in range, not only at a unit
-      if(su.type==='NUKE' && !su.attacked && cheb(su,{x,y})<=uRange(su) && explored[y][x]){
-        if(COARSE && !(pa&&pa.uid===su.id&&pa.tx===x&&pa.ty===y)){
+      // a nuke can launch at any explored tile in range, not only at a unit. The first tap aims and shows the blast,
+      // a second tap on the same tile launches. Tapping your own unit selects it instead.
+      if(su.type==='NUKE' && !su.attacked && cheb(su,{x,y})<=uRange(su) && explored[y][x] && !(u&&u.owner===MYSIDE)){
+        if(!(pa&&pa.uid===su.id&&pa.tx===x&&pa.ty===y)){
           pendingAtk={uid:su.id,tx:x,ty:y};
-          const n=units.filter(e=>hostile(e.owner,MYSIDE) && Math.max(Math.abs(e.x-x),Math.abs(e.y-y))<=blastR(su)).length;
           refresh();
-          $('forecast').innerHTML=
-            'A nuclear strike here hits <b>'+n+'</b> in the blast<br><b style="color:var(--red)">Tap again to confirm launch</b>';
+          $('forecast').innerHTML=nukeFc(su,x,y)+'<br><b style="color:var(--red)">'+(COARSE?'Tap':'Click')+' again to launch</b>';
           sfx.select();
           return;
         }
@@ -5087,7 +5140,8 @@ const hasWork=u=>u.owner===MYSIDE && !sentry.has(u.id) && ((!u.attacked && (!u.m
 function wakeSentries(){
   for(const id of [...sentry]){
     const u=units.find(q=>q.id===id);
-    if(!u||u.owner!==MYSIDE){ sentry.delete(id); continue; }
+    if(!u){ sentry.delete(id); continue; }
+    if(u.owner!==MYSIDE) continue;   // another player on this screen keeps their orders
     const e=units.find(q=>hostile(q.owner,MYSIDE)&&visXY(q.x,q.y)&&cheb(q,u)<=3);
     if(e){ sentry.delete(id); toast(UNIT_TYPES[u.type].name+' on watch spots enemy '+UNIT_TYPES[e.type].name+'.','var(--amber)',()=>{ sel={kind:'unit',id:u.id}; panTo(u.x,u.y); refresh(); }); }
   }
@@ -5292,7 +5346,7 @@ function restoreGame(data, net){
     gen++;
     undoStack.length=0;
     turnCities={...(data.tc||{})}; lastNuke={...(data.ln||{})}; mapReveals=data.rv?data.rv.map(r=>({...r})):[];
-    nukeWarned={}; blockedHint=false; seenBy={};
+    nukeWarned={}; blockedHint=false; seenBy={}; sentry.clear();
     tally=data.tl?JSON.parse(JSON.stringify(data.tl)):{};
     pw=Object.assign(pw0(), data.pw?JSON.parse(JSON.stringify(data.pw)):{});
     dip=Object.assign(dip0(), data.dip?JSON.parse(JSON.stringify(data.dip)):{});
@@ -5314,7 +5368,7 @@ function restoreGame(data, net){
     stars={...data.stars};
     tech={};
     for(const s of turnOrder) tech[s]=new Set(data.tech[s]||[]);
-    turn=data.turn; uid=data.uid; side=net?data.side:(hotOn()?MYSIDE:P); sel=null; gameOver=net?!!data.over:false;
+    turn=data.turn; uid=data.uid; side=net?data.side:(hotOn()?MYSIDE:P); sel=null; gameOver=net?!!data.over:false; xpDone=false;
     if(!net||!stats) stats=data.stats?{...data.stats}:{kills:0,losses:0};   // online, your own tally stays yours
     units=data.units.map(u=>({...u}));
     map=data.map.map(row=>row.map(o=>({
@@ -6451,7 +6505,7 @@ function renderInfoBody(){
       por.style.setProperty('--fc', meta(u.owner).css);
       title.textContent=t.name;
       sub.textContent=!mine?ownerName(u.owner)
-        :u.type==='NUKE'?(u.attacked?'Launched':'Armed: tap any tile in range to launch')
+        :u.type==='NUKE'?(u.attacked?'Launched':'Armed: tap a tile in range to aim')
         :u.attacked?'Done for this turn'
         :u.moved?(siegeLocked(u)?'Moved: artillery cannot fire after moving':attackTargets(u).length?'Moved: can still attack':'Moved: nothing in range')
         :'Ready: blue tiles move, red rings attack';
@@ -6748,7 +6802,8 @@ function renderDip(){
       }
       if(r==='ally') btn(bx,'Leave alliance','warn',false,()=>send({op:'leave',to:s}));
       btn(bx,'Gift 5\u2605','',stars[MYSIDE]<5?'Not enough stars':false,()=>send({op:'gift',to:s,n:5}));
-      if(r!=='ally') btn(bx,'Demand 5\u2605','',waiting('tribute'),()=>send({op:'demand',to:s,n:5}));
+      const dw=demandWait(MYSIDE,s);
+      if(r!=='ally') btn(bx,dw?'Asked recently':'Demand 5\u2605','',dw?'You can demand again in '+dw+' turn'+(dw>1?'s':''):waiting('tribute'),()=>send({op:'demand',to:s,n:5}));
       const why=r==='peace'?dipBlock(MYSIDE,s,'ally'):r==='war'?dipBlock(MYSIDE,s,'peace'):'';
       if(why&&myTurn){ const n=document.createElement('div'); n.className='dpNote'; n.textContent=(r==='peace'?'Alliance: ':'Peace: ')+why+'.'; c.appendChild(n); }
     }
@@ -6799,10 +6854,14 @@ function syncMute(){
 }
 $('muteBtn').onclick=()=>{
   muted=!muted;
+  try{ localStorage.setItem('foothold-sound', muted?'off':'on'); }catch(e){}
   syncMute(); MUSIC.apply();
   if(!muted) sfx.select();
 };
 $('soundMenuBtn').onclick=()=>$('muteBtn').click();
+function syncSfx(){ const b=$('sfxMenuBtn'); b.innerHTML='Effects: <b>'+({on:'On',low:'Low',off:'Off'})[sfxLevel]+'</b>'; b.title='Sound effects. The speaker button (M) mutes music and effects together.'; }
+$('sfxMenuBtn').onclick=()=>{ sfxLevel={on:'low',low:'off',off:'on'}[sfxLevel]; try{ localStorage.setItem('foothold-sfx',sfxLevel); }catch(e){} syncSfx(); sfx.select(); };
+syncSfx();
 /* Background music, generated live with Web Audio instead of audio files.
    Slow pad chords, a soft bass and a few bell notes. Levels are Off, Low (default) and On. */
 const MUSIC={
@@ -6849,7 +6908,7 @@ const MUSIC={
       }
     }catch(e){}
   },
-  start(){ if(this.started) return; this.started=true; this.apply(); },
+  start(){ if(this.started) return; this.started=true; try{ if(actx&&actx.state==='suspended') actx.resume(); }catch(e){} this.apply(); },
 };
 try{ const m=localStorage.getItem('foothold-music'); if(m==='off'||m==='low'||m==='on') MUSIC.level=m; }catch(e){}
 function syncMusic(){ const b=$('musicMenuBtn'); if(b){ b.innerHTML='Music: <b>'+({off:'Off',low:'Low',on:'On'})[MUSIC.level]+'</b>'; b.title='Tap to change the background music'; } MUSIC.apply(); }
@@ -6894,10 +6953,14 @@ window.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&manualOpen){ closeManual(); return; }
   if(manualOpen&&e.key!=='m'&&e.key!=='M') return;   // the manual is modal
   if((!$('rewardBox').hidden||$('overlay').classList.contains('show'))&&e.key!=='m'&&e.key!=='M') return;   // so are rewards and end screens
-  if(e.key==='Escape'){
+  const dipOpen=!$('dipPanel').hidden, armyOpen=!$('armyPanel').hidden;
+  if(e.key==='Escape'){   // close the top panel first, then clear the selection
     const setupOpen=$('setup').classList.contains('show');
     if(setupOpen){ if(map) $('setup').classList.remove('show'); return; }
-    if(techOpen) $('techPanel').classList.remove('show');
+    const shut=(p,b)=>{ const a=document.activeElement; if(a&&(p.contains(a)||a.id===b)) a.blur(); };   // so Space or Enter doesn't reopen it
+    if(armyOpen){ $('armyPanel').hidden=true; shut($('armyPanel'),'armyBtn'); }
+    else if(dipOpen){ $('dipPanel').hidden=true; shut($('dipPanel'),'dipBtn'); }
+    else if(techOpen){ $('techPanel').classList.remove('show'); shut($('techPanel'),'techBtn'); }
     else { sel=null; refresh(); }
     return;
   }
@@ -6906,7 +6969,6 @@ window.addEventListener('keydown',e=>{
   if(map&&(e.key==='d'||e.key==='D')){ toggleDanger(); return; }
   if(map&&(e.key==='y'||e.key==='Y')){ if($('dipPanel').hidden) openDip(); else $('dipPanel').hidden=true; return; }
   if(map&&(e.key==='o'||e.key==='O')){ if($('armyPanel').hidden) openArmy(); else $('armyPanel').hidden=true; return; }
-  if(e.key==='Escape'&&!$('armyPanel').hidden){ $('armyPanel').hidden=true; return; }
   if(map&&!gameOver&&(e.key==='p'||e.key==='P')){ $('powerBtn').click(); return; }
   if(map&&(e.key==='h'||e.key==='H')){ $('helpBtn').click(); return; }
   if(gameOver) return;
@@ -6920,6 +6982,10 @@ window.addEventListener('keydown',e=>{
   if(e.key==='v'||e.key==='V'){ toggleFit(); return; }
   if(e.key==='f'||e.key==='F'){ cycleSpeed(); return; }
   if(side!==MYSIDE) return;
+  // an open panel, or a control reached with the keyboard, keeps Enter, Space and Tab for itself
+  let kbd=false; try{ kbd=!!(tg&&tg!==document.body&&tg.matches(':focus-visible')&&tg.closest('button,a,select,[tabindex]')); }catch(err){}
+  const busy=techOpen||dipOpen||armyOpen||kbd;
+  if(busy&&(e.key===' '||e.key==='Enter'||e.key==='Tab')) return;
   if(e.key===' '||e.key==='Enter'){ e.preventDefault(); $('endTurn').click(); return; }
   if(e.key==='u'||e.key==='U'||((e.key==='z'||e.key==='Z')&&(e.ctrlKey||e.metaKey))){ e.preventDefault(); undo(); return; }
   if(e.key==='Tab'||e.key==='n'||e.key==='N'){ e.preventDefault(); nextUnit(); return; }
@@ -6990,7 +7056,7 @@ function endGame(winner){
   else if(hotOn()){ t.textContent=pname(winner)+' wins'; t.className='win';
     b.textContent=meta(winner).name+(timeUp?' finished with the highest score.':' holds the region.')+' Turn '+turn+'.'; }
   { const d=document.createElement('div'); d.className='ovScore'; d.innerHTML=resultHtml(winner, firstTime); b.appendChild(d); }
-  if(firstTime&&!hotOn()){ const d=document.createElement('div'); d.innerHTML=xpHtml(awardXP(winner===MYSIDE&&(minorAlly(MYSIDE)?0.3:1))); b.appendChild(d.firstChild); renderRankBtn(); }
+  if(firstTime&&!hotOn()&&!xpDone){ xpDone=true; const d=document.createElement('div'); d.innerHTML=xpHtml(awardXP(winner===MYSIDE&&(minorAlly(MYSIDE)?0.3:1))); b.appendChild(d.firstChild); renderRankBtn(); }
   const camp=(gcfg||{}).campaign;
   if(camp&&!NET.on&&!hotOn()){
     const line=firstTime?campaignResult(camp, winner===MYSIDE):null;
@@ -7123,12 +7189,12 @@ function undoSnap(){
   return JSON.stringify({units, stars, uid, explored, map:map.map(row=>row.map(t=>[t.city, t.resource, t.b||null]))});
 }
 function undoableAct(a){
-  const u=a.t==='move'?byId(a.uid):null;
-  const can=UNDOABLE[a.t] && !(u&&inb(a.x,a.y)&&tileAt(a.x,a.y).ruin);   // supply drops are final
+  const drop=(a.t==='move'||a.t==='unload')&&byId(a.uid)&&inb(a.x,a.y)&&tileAt(a.x,a.y).ruin;
+  const can=UNDOABLE[a.t] && !drop;   // supply drops are final
   const before=can?undoSnap():null;
-  const seen0=a.t==='move'?explored.reduce((n,r)=>n+r.filter(Boolean).length,0):0;
+  const seen=()=>explored.reduce((n,r)=>n+r.filter(Boolean).length,0), seen0=can?seen():0;
   doAction(MYSIDE, a);
-  if(a.t==='move'&&explored.reduce((n,r)=>n+r.filter(Boolean).length,0)>seen0){ undoStack.length=0; syncUndo(); return; }   // new ground revealed: final
+  if(can&&seen()>seen0){ undoStack.length=0; syncUndo(); return; }   // new ground revealed: final
   if(!can) undoStack.length=0;
   else if(undoSnap()!==before){ undoStack.push(before); if(undoStack.length>40) undoStack.shift(); }
   syncUndo();
@@ -7759,12 +7825,13 @@ function showDefeat(){
   $('ovTitle').textContent='HQ Lost'; $('ovTitle').className='lose';
   $('ovBody').style.textAlign=''; $('ovBody').style.maxWidth='';
   $('ovBody').textContent='Your headquarters has fallen. The fog is lifted so you can watch the rest of the battle.';
+  if(!hotOn()&&!NET.client&&!xpDone){ xpDone=true; const d=document.createElement('div'); d.innerHTML=xpHtml(awardXP(false)); $('ovBody').appendChild(d.firstChild); renderRankBtn(); }   // a loss, paid now (online guests are paid at the end, so a rejoin can't pay twice)
   const btn=$('restart');
   btn.textContent='Watch the battle';
   btn.onclick=()=>{ $('overlay').classList.remove('show'); resetOverlayButton(); };
   const alt=$('ovAlt');
   alt.hidden=NET.on; alt.textContent='New game';
-  alt.onclick=()=>{ $('overlay').classList.remove('show'); resetOverlayButton(); showSetup(); };
+  alt.onclick=()=>{ gen++; gameOver=true; keepAwake(false); $('overlay').classList.remove('show'); resetOverlayButton(); showSetup(); };   // stop the computers playing on behind the menu
   $('overlay').classList.add('show');
   sfx.boom();
 }
@@ -7905,7 +7972,7 @@ function newGame(){
   exploredBy={}; camBy={}; turnSnaps={}; curtainUp=false; noticesDue=false; $('handoff').hidden=true;
   if(!NET.on) MYSIDE=P;
   if(NET.host&&NET.setup) NET.applySetup();  // online: chosen factions + callsigns take over the slots
-  units=[]; turn=1; side=P; sel=null; gameOver=false; uid=1;
+  units=[]; turn=1; side=P; sel=null; gameOver=false; uid=1; xpDone=false;
   stats={kills:0,losses:0}; tally={};
   stars={}; tech={};
   for(const s of turnOrder){
