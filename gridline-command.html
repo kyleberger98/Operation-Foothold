@@ -3332,6 +3332,7 @@ function applyTheme(k, rebuild=true){
   for(const kk in B.mats){ const m=themeTarget(kk), v=(th.m||{})[kk], base=B.mats[kk];
     const col=v==null?base[0]:Array.isArray(v)?v[0]:v, emi=Array.isArray(v)?v[1]:base[1];
     m.color.setHex(col); if(m.emissive) m.emissive.setHex(emi); }
+  for(const kk in ENV_MATS_I){ ENV_MATS_I[kk].color.copy(ENV_MATS[kk].color); ENV_MATS_I[kk].emissive.copy(ENV_MATS[kk].emissive); }
   WATER_DEEP.setHex(th.deep??B.deep); WATER_SHALLOW.setHex(th.shallow??B.shallow);
   ocean.material.color.setHex(th.ocean??B.ocean);
   if(scene.background!==B.sky&&scene.background) scene.background.dispose();
@@ -3412,41 +3413,69 @@ function tileGeo(h){
   g.userData.keep=true;
   return TILE_GEOS[h]=g;
 }
-/* merge a tile's grass, rocks, mountains, buildings and pines into one mesh per material, so dozens of draw calls become a few.
-   The tile box stays separate because it is the pick target. Pines merge into one group that squashes when a unit stands there. */
-function mergeTileStatics(g, tileBox, x, y){
+/* merge what is left in a tile group (a city's buildings, mostly) into one mesh per material, so dozens of draw calls become a few.
+   The tile box stays separate because it is the pick target. */
+function mergeTileStatics(g, tileBox){
   g.updateMatrixWorld(true);
   const inv=new THREE.Matrix4().copy(g.matrixWorld).invert();
-  const local=o=>new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld);
-  const byMat=new Map(), treeByMat=new Map(), drop=[];
-  const pines=forestTrees[key(x,y)]||[];
-  const add=(map,mat,part)=>{ if(!map.has(mat)) map.set(mat,[]); map.get(mat).push(part); };
+  const byMat=new Map();
   for(const ch of [...g.children]){
-    if(ch===tileBox||ch.isSprite) continue;
-    if(pines.includes(ch)){
-      ch.traverse(m=>{ if(m.isMesh) add(treeByMat, m.material, {geo:m.geometry, m:new THREE.Matrix4().makeTranslation(0,-TOP,0).multiply(local(m)), cast:m.castShadow, src:m}); });
-      drop.push(ch); continue;
-    }
-    if(!ch.isMesh||Array.isArray(ch.material)) continue;
-    add(byMat, ch.material, {geo:ch.geometry, m:local(ch), cast:ch.castShadow, rcv:ch.receiveShadow, src:ch});
+    if(ch===tileBox||ch.isSprite||!ch.isMesh||Array.isArray(ch.material)) continue;
+    if(!byMat.has(ch.material)) byMat.set(ch.material,[]);
+    byMat.get(ch.material).push({geo:ch.geometry, m:new THREE.Matrix4().multiplyMatrices(inv, ch.matrixWorld), cast:ch.castShadow, src:ch});
   }
-  const build=(parts,mat)=>{
-    const geo=mergeParts(parts); geo.userData.keep=false;
-    const mesh=new THREE.Mesh(geo, mat); mesh.castShadow=parts.some(p=>p.cast); mesh.receiveShadow=true;
-    for(const p of parts) if(!p.geo.userData.keep) p.geo.dispose();
-    return mesh;
-  };
   for(const [mat,parts] of byMat){
     if(parts.length<2) continue;
     for(const p of parts) g.remove(p.src);
-    g.add(build(parts,mat));
+    const geo=mergeParts(parts); geo.userData.keep=false;
+    const mesh=new THREE.Mesh(geo, mat); mesh.castShadow=parts.some(p=>p.cast); mesh.receiveShadow=true;
+    for(const p of parts) if(!p.geo.userData.keep) p.geo.dispose();
+    g.add(mesh);
   }
-  if(treeByMat.size){
-    for(const ch of drop) g.remove(ch);
-    const tg=new THREE.Group(); tg.position.y=TOP;
-    for(const [mat,parts] of treeByMat) tg.add(build(parts,mat));
-    g.add(tg);
-    forestTrees[key(x,y)]=[tg];
+}
+/* Scenery drawn as instances. Each model piece and material is one InstancedMesh for the whole board, so the
+   tile boxes, tufts, trees, rocks and shore strips cost a few draw calls. Each tile keeps its copies, to hide them
+   under fog and to squash its trees while a unit stands there. */
+let scat=null;        // pieces gathered while the board is built
+let tileInst={};      // key -> {x, y, on, sq, parts:[[mesh, index, matrix in the tile, squashes]]}
+const ENV_MATS_I={};  // twins of ENV_MATS for instances; one material on both kinds of mesh recompiles every time it switches
+const envMatI=k=>ENV_MATS_I[k]||(ENV_MATS_I[k]=ENV_MATS[k].clone());
+const ZERO_M=new THREE.Matrix4().makeScale(0,0,0), Y_AXIS=new THREE.Vector3(0,1,0);
+const TUFT_GEO=new THREE.ConeGeometry(0.035,0.09,5);
+const SAND_GEO=[new THREE.BoxGeometry(0.976,0.006,0.06), new THREE.BoxGeometry(0.06,0.006,0.976)];
+const FOAM_GEO=[new THREE.PlaneGeometry(0.976,0.06), new THREE.PlaneGeometry(0.06,0.976)];
+for(const g of [TUFT_GEO,...SAND_GEO,...FOAM_GEO]) g.userData.keep=true;
+function scatPut(k, geo, mat, L, cast, tree){
+  const id=geo.uuid+'|'+[].concat(mat).map(m=>m.uuid).join()+'|'+(cast?1:0);
+  (scat[id]=scat[id]||{geo, mat, cast, items:[]}).items.push([k, L, tree]);
+}
+/* like envPlace, for scenery that never changes */
+function envScatter(k, name, x, y, z, rot=0, sc=1, shadow=true, tree=false){
+  const P=new THREE.Matrix4().compose(new THREE.Vector3(x,y,z), new THREE.Quaternion().setFromAxisAngle(Y_AXIS,rot), new THREE.Vector3(sc,sc,sc));
+  for(const piece in ENV_MODELS[name]){
+    const pd=ENV_MODELS[name][piece], L=piece==='main'?P:P.clone().multiply(new THREE.Matrix4().makeTranslation(pd.p[0],pd.p[1],pd.p[2]));
+    for(const mat in pd.m) scatPut(k, envGeo(name,piece,mat), envMatI(mat), L, shadow, tree);
+  }
+}
+function buildScatter(){
+  for(const id in scat){
+    const {geo, mat, cast, items}=scat[id];
+    const im=new THREE.InstancedMesh(geo, mat, items.length);
+    im.castShadow=cast; im.receiveShadow=true;
+    if(mat===foamMat) im.renderOrder=-4;   // under the territory and dim overlays, as before
+    items.forEach(([k,L,tree],i)=>tileInst[k].parts.push([im,i,L,tree]));
+    boardGroup.add(im);
+  }
+  scat=null;
+  for(const k in tileInst){ const t=tileInst[k]; if(t.parts.some(p=>p[3])) forestTrees[k]=t; writeTile(t); }
+}
+const tileM=new THREE.Matrix4(), squashM=new THREE.Matrix4(), instM=new THREE.Matrix4();
+function writeTile(t){
+  tileM.makeTranslation(wx(t.x),0,wz(t.y));
+  if(t.sq!==1) squashM.makeTranslation(wx(t.x),TOP,wz(t.y)).multiply(instM.makeScale(1,t.sq,1)).multiply(instM.makeTranslation(0,-TOP,0));
+  for(const [im,i,L,tree] of t.parts){
+    im.setMatrixAt(i, t.on?instM.multiplyMatrices(tree&&t.sq!==1?squashM:tileM, L):ZERO_M);
+    im.instanceMatrix.needsUpdate=true;
   }
 }
 /* a few prebuilt cloud shapes, each merged into one geometry per material, shared by every fog tile */
@@ -3522,18 +3551,20 @@ function dropFog(fc){
 let decoClouds=[];
 let surf=null;
 function buildSkyClouds(){
-  cloudGroup.clear();
+  freeTree(cloudGroup,false); cloudGroup.clear();
   decoClouds=[];
   const n_clouds=8+Math.round(W/3);
   for(let i=0;i<n_clouds;i++){
-    const g=new THREE.Group();
-    const n=3+rnd(3), big=0.4+Math.random()*0.5;
+    const n=3+rnd(3), big=0.4+Math.random()*0.5, parts=[];
     for(let j=0;j<n;j++){
       const p=cloudPuff(rnd(3), skyCloudMat);
       p.scale.setScalar(big*(0.8+Math.random()*0.7)); p.scale.y*=0.5;
       p.position.set((j-(n-1)/2)*big*0.85, (Math.random()-0.5)*big*0.3, (Math.random()-0.5)*big*0.7);
-      g.add(p);
+      p.updateMatrix(); parts.push({geo:p.geometry, m:p.matrix, z:p.position.z});
     }
+    // one mesh per cloud; far puffs first, the order the renderer sorted them in as separate meshes
+    const geo=mergeParts(parts.sort((a,b)=>a.z-b.z)); geo.userData.keep=false;
+    const g=new THREE.Mesh(geo, skyCloudMat);
     // drift in bands in front of and behind the island, never over it
     const xr=W/2+7;
     const front=false;   // the sea is in view in front of the island, so clouds drift behind it
@@ -3601,17 +3632,21 @@ function syncDim(){
   let sig='';
   for(let y=0;y<H;y++)for(let x=0;x<W;x++) sig+=explored[y][x]&&!visNow[y][x]?'1':'0';
   if(sig===dimSig) return;
-  dimSig=sig; dimGroup.clear();
+  dimSig=sig; freeTree(dimGroup,false); dimGroup.clear();
+  const list=[], rx=new THREE.Matrix4().makeRotationX(-Math.PI/2);
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     if(!explored[y][x]||visNow[y][x]) continue;
-    const m=new THREE.Mesh(DIM_GEO, DIM_MAT); m.rotation.x=-Math.PI/2;
-    m.position.set(wx(x),(tileAt(x,y).terrain==='water'?TOP-0.14:TOP)+0.014,wz(y)); dimGroup.add(m);
+    list.push({geo:DIM_GEO, m:new THREE.Matrix4().makeTranslation(wx(x),(tileAt(x,y).terrain==='water'?TOP-0.14:TOP)+0.014,wz(y)).multiply(rx)});
   }
+  if(!list.length) return;
+  const geo=mergeParts(list); geo.userData.keep=false;
+  const m=new THREE.Mesh(geo, DIM_MAT); m.renderOrder=-1; dimGroup.add(m);
 }
 function syncFog(){
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const k=key(x,y), exp=explored[y][x];
     if(tileGroups[k]) tileGroups[k].visible=exp;
+    const ti=tileInst[k]; if(ti&&ti.on!==exp){ ti.on=exp; writeTile(ti); }
     const fc=fogClouds[k];
     if(exp&&fc){
       dropFog(fc); delete fogClouds[k];
@@ -3626,7 +3661,7 @@ const NEUTRAL_ROOF=0x9a9088;   // roofs of unclaimed towns
 let unitMeshes=new Map(); // id -> group
 let tileGroups={}; // key -> THREE.Group for the tile
 let resourceDecor={}; // key -> group
-let forestTrees={};   // key -> pine groups, shrunk while a unit stands among them
+let forestTrees={};   // key -> tileInst entry of a tile with trees, which shrink while a unit stands among them
 let dropDecor={};     // key -> supply-drop crate
 let pumpjacks=[]; // animated oil pumpjack beams
 
@@ -3778,8 +3813,8 @@ function drawCityLabel(sp,city){
 /* Static board */
 function buildBoard(){
   applyTheme(cosmetics().theme, false);
-  freeTree(boardGroup,false); freeTree(fogGroup,false); freeTree(terrGroup,false);
-  boardGroup.clear(); terrGroup.clear(); terrSig=''; dimGroup.clear(); dimSig=''; pickTiles=[]; cityDecor={}; tileGroups={}; resourceDecor={}; buildingDecor={}; dropDecor={}; pumpjacks=[]; forestTrees={};
+  freeTree(boardGroup,false); freeTree(fogGroup,false); freeTree(terrGroup,false); freeTree(dimGroup,false);
+  boardGroup.clear(); terrGroup.clear(); terrSig=''; dimGroup.clear(); dimSig=''; scat={}; tileInst={}; pickTiles=[]; cityDecor={}; tileGroups={}; resourceDecor={}; buildingDecor={}; dropDecor={}; pumpjacks=[]; forestTrees={};
   fogGroup.clear(); fogClouds={}; dissolving=[];
   const fogTiles={};
   // layered earth strata under the board
@@ -3812,6 +3847,8 @@ function buildBoard(){
     const g=new THREE.Group();
     g.position.set(wx(x),0,wz(y));
     tileGroups[key(x,y)]=g;
+    const k=key(x,y);
+    tileInst[k]={x, y, on:!!explored[y][x], sq:1, parts:[]};
 
     const isWater=t.terrain==='water';
     const h=isWater?WATER_Y-0.06:TOP;   // the water tile is the lake bed; the surface sits on top
@@ -3823,24 +3860,20 @@ function buildBoard(){
     else topMat=M.water;
     const sideMat=Mside[t.terrain];
     const tileBox=new THREE.Mesh(tileGeo(h), [topMat,sideMat]);
-    tileBox.castShadow=true; tileBox.receiveShadow=true;
+    tileBox.visible=false;   // drawn as an instance; this copy stays as the pick target (the raycaster ignores visible)
     tileBox.position.y=h/2;
     tileBox.userData={x,y};
     g.add(tileBox);
     pickTiles.push(tileBox);
+    scatPut(k, tileGeo(h), [topMat,sideMat], new THREE.Matrix4().makeTranslation(0,h/2,0), true);
 
     if(t.terrain==='plains' && !t.city){
       // grass tufts + the odd rock
       const TH=THEMES[curTheme]||{};
       const tufts=Math.round((1+((x*3+y*5)%3))*(TH.tufts??1));
-      if(TH.decor&&!t.resource&&(x*7+y*13)%5===0) envPlace(g, TH.decor, (Math.random()<0.5?-1:1)*0.3, TOP, (Math.random()<0.5?-1:1)*0.3, Math.random()*6, 0.85+Math.random()*0.3, TH.decor!=='DRIFT');
-      for(let i=0;i<tufts;i++){
-        const tuft=cone(0.035,0.09,(i%2)?M.leaf2:M.leaf,5);
-        tuft.castShadow=false;
-        tuft.position.set(-0.32+Math.random()*0.64, TOP+0.045, -0.32+Math.random()*0.64);
-        g.add(tuft);
-      }
-      if((x*11+y*17)%9===0) envPlace(g,'ROCKS', -0.25+Math.random()*0.5, TOP, -0.25+Math.random()*0.5, Math.random()*6, 0.9+Math.random()*0.4, false);
+      if(TH.decor&&!t.resource&&(x*7+y*13)%5===0) envScatter(k, TH.decor, (Math.random()<0.5?-1:1)*0.3, TOP, (Math.random()<0.5?-1:1)*0.3, Math.random()*6, 0.85+Math.random()*0.3, TH.decor!=='DRIFT');
+      for(let i=0;i<tufts;i++) scatPut(k, TUFT_GEO, (i%2)?M.leaf2:M.leaf, new THREE.Matrix4().makeTranslation(-0.32+Math.random()*0.64, TOP+0.045, -0.32+Math.random()*0.64), false);
+      if((x*11+y*17)%9===0) envScatter(k,'ROCKS', -0.25+Math.random()*0.5, TOP, -0.25+Math.random()*0.5, Math.random()*6, 0.9+Math.random()*0.4, false);
     }
     if(t.terrain==='forest'){
       // 4 layered pines of varying height + a bush
@@ -3850,14 +3883,12 @@ function buildBoard(){
         const tx=[-0.26,0.27,-0.05,0.18][i]+(Math.random()*0.1-0.05);
         const tz=[-0.2,-0.24,0.24,0.05][i]+(Math.random()*0.1-0.05);
         const sc=0.85+Math.random()*0.4;
-        const tg=envModel(i===oak?'OAK':kinds[(i+x+y)%4]); tg.position.set(tx,TOP,tz); tg.rotation.y=Math.random()*6.3; tg.scale.setScalar(sc);
-        g.add(tg);
-        (forestTrees[key(x,y)]=forestTrees[key(x,y)]||[]).push(tg);
+        envScatter(k, i===oak?'OAK':kinds[(i+x+y)%4], tx, TOP, tz, Math.random()*6.3, sc, true, true);
       }
-      envPlace(g, TH.bush||'BUSH', 0.3*(Math.random()<0.5?-1:1), TOP, 0.3*(Math.random()<0.5?-1:1), Math.random()*6, 0.9+Math.random()*0.3, false);
+      envScatter(k, TH.bush||'BUSH', 0.3*(Math.random()<0.5?-1:1), TOP, 0.3*(Math.random()<0.5?-1:1), Math.random()*6, 0.9+Math.random()*0.3, false);
     }
     if(t.terrain==='mountain'){
-      envPlace(g, (x*7+y*3)%2?'MTN1':'MTN2', 0, TOP, 0, Math.floor(Math.random()*6)*Math.PI/3, 0.95+Math.random()*0.1);
+      envScatter(k, (x*7+y*3)%2?'MTN1':'MTN2', 0, TOP, 0, Math.floor(Math.random()*6)*Math.PI/3, 0.95+Math.random()*0.1);
     }
     {
       // shorelines get foam on the water side, a strip of sand on the land side and the odd reed bed or lily pads
@@ -3867,22 +3898,18 @@ function buildBoard(){
         const nx=x+dx, ny=y+dy; if(!inb(nx,ny)) continue;
         const nWater=tileAt(nx,ny).terrain==='water';
         if(isWater&&!nWater){
-          const fm=new THREE.Mesh(new THREE.PlaneGeometry(dx?0.06:0.976, dx?0.976:0.06), foamMat);
-          fm.rotation.x=-Math.PI/2; fm.position.set(dx*0.46, WATER_Y+0.002, dy*0.46); fm.castShadow=false; fm.receiveShadow=false;
-          g.add(fm); shore++;
+          scatPut(k, FOAM_GEO[dx?1:0], foamMat, new THREE.Matrix4().makeTranslation(dx*0.46, WATER_Y+0.002, dy*0.46).multiply(new THREE.Matrix4().makeRotationX(-Math.PI/2)), false);
+          shore++;
         }
-        if(!isWater&&nWater&&t.terrain!=='mountain'){
-          const sd=box(dx?0.06:0.976, 0.006, dx?0.976:0.06, shoreSand); sd.castShadow=false;
-          sd.position.set(dx*0.458, TOP+0.003, dy*0.458); g.add(sd);
-        }
+        if(!isWater&&nWater&&t.terrain!=='mountain') scatPut(k, SAND_GEO[dx?1:0], shoreSand, new THREE.Matrix4().makeTranslation(dx*0.458, TOP+0.003, dy*0.458), false);
       }
       if(isWater){
         g.add(waterSurface(x,y));
         if(shore&&(x*13+y*7)%4===0){
           const [dx,dy]=dirs.find(([a,b])=>inb(x+a,y+b)&&tileAt(x+a,y+b).terrain!=='water');
-          envPlace(g,'REEDS', dx*0.36+(dy?0.28:0), WATER_Y, dy*0.36+(dx?-0.26:0), Math.random()*6, 0.9+Math.random()*0.3, false);
+          envScatter(k,'REEDS', dx*0.36+(dy?0.28:0), WATER_Y, dy*0.36+(dx?-0.26:0), Math.random()*6, 0.9+Math.random()*0.3, false);
         }
-        if((x*5+y*11)%6===1) envPlace(g,'LILY', (Math.random()<0.5?-1:1)*0.24, WATER_Y-0.003, (Math.random()<0.5?-1:1)*0.24, Math.random()*6, 1, false);
+        if((x*5+y*11)%6===1) envScatter(k,'LILY', (Math.random()<0.5?-1:1)*0.24, WATER_Y-0.003, (Math.random()<0.5?-1:1)*0.24, Math.random()*6, 1, false);
       }
     }
     if(t.city){
@@ -3904,7 +3931,7 @@ function buildBoard(){
       g.add(flag,cd.sprite);
       cityDecor[key(x,y)]=cd;
     }
-    mergeTileStatics(g, tileBox, x, y);
+    mergeTileStatics(g, tileBox);
     boardGroup.add(g);
     if(t.resource) addResourceDecor(x,y);
     if(t.b) addBuildingDecor(x,y);
@@ -3917,6 +3944,7 @@ function buildBoard(){
     }
   }
   buildFog(fogTiles);
+  buildScatter();
   setWeather((THEMES[curTheme]||{}).fx);
 }
 
@@ -3947,18 +3975,24 @@ function syncTerritory(){
   for(let y=0;y<H;y++)for(let x=0;x<W;x++) sig+=(vis(x,y)&&own[y][x])||'.';
   if(sig===terrSig) return;
   terrSig=sig;
-  terrGroup.clear();
-  const ft=TERR_GEO.f;
+  freeTree(terrGroup,false); terrGroup.clear();
+  // one merged mesh per material: the fill and the border of each owner
+  const parts=new Map(), add=(mat,geo,m)=>{ if(!parts.has(mat)) parts.set(mat,[]); parts.get(mat).push({geo,m}); };
+  const rx=new THREE.Matrix4().makeRotationX(-Math.PI/2);
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const o=vis(x,y)&&own[y][x]; if(!o) continue;
     const top=(tileAt(x,y).terrain==='water'?TOP-0.14:TOP)+0.008;
-    const m=new THREE.Mesh(ft, terrMat(o,false)); m.rotation.x=-Math.PI/2; m.position.set(wx(x),top,wz(y)); terrGroup.add(m);
+    add(terrMat(o,false), TERR_GEO.f, new THREE.Matrix4().makeTranslation(wx(x),top,wz(y)).multiply(rx));
     for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
       const nx=x+dx, ny=y+dy;
       if(inb(nx,ny)&&own[ny][nx]===o) continue;
-      const e=new THREE.Mesh(dx?TERR_GEO.v:TERR_GEO.h, terrMat(o,true));
-      e.position.set(wx(x)+dx*0.464,top+0.004,wz(y)+dy*0.464); terrGroup.add(e);
+      add(terrMat(o,true), dx?TERR_GEO.v:TERR_GEO.h, new THREE.Matrix4().makeTranslation(wx(x)+dx*0.464,top+0.004,wz(y)+dy*0.464));
     }
+  }
+  for(const [mat,list] of parts){
+    const geo=mergeParts(list); geo.userData.keep=false;
+    const m=new THREE.Mesh(geo, mat); m.renderOrder=mat.opacity>0.5?-2:-3;   // fill, then border, then the dim overlay
+    terrGroup.add(m);
   }
 }
 /* Flag emblems, drawn once per colour and shape */
@@ -4557,8 +4591,10 @@ function loop(now){
   {
     const occ=new Set((units||[]).filter(u=>!UNIT_TYPES[u.type].fly).map(u=>key(u.x,u.y)));
     for(const k in forestTrees){
-      const want=occ.has(k)?0.5:1;
-      for(const tg of forestTrees[k]){ const s=tg.scale.y+(want-tg.scale.y)*Math.min(1,dt*8); tg.scale.y=s; }
+      const t=forestTrees[k], want=occ.has(k)?0.5:1;
+      if(t.sq===want) continue;
+      t.sq+=(want-t.sq)*Math.min(1,dt*8); if(Math.abs(want-t.sq)<0.002) t.sq=want;
+      if(t.on) writeTile(t);
     }
   }
   if(!gfxLow) waveOcean(now);
@@ -4622,7 +4658,7 @@ function loop(now){
     c.position.x+=c.userData.v*dt;
     const lim=W/2+8;
     if(c.position.x>lim) c.position.x=-lim;
-    c.position.y+=Math.sin(now*0.0008+c.userData.bobP)*0.001;
+    c.position.y+=Math.sin(now*0.0008+c.userData.bobP)*0.06*dt;
   }
   renderer.render(scene,camera);
   requestAnimationFrame(loop);
