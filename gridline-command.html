@@ -2981,6 +2981,7 @@ function sizeRenderer(){
   renderer.setSize(w,h);
   renderer.setPixelRatio(gfxLow?1:Math.min(window.devicePixelRatio,2));
   camera.aspect=w/h; camera.updateProjectionMatrix();
+  wake();
 }
 window.addEventListener('orientationchange',()=>setTimeout(sizeRenderer,250));
 window.addEventListener('resize', sizeRenderer);
@@ -3015,6 +3016,7 @@ function waveOcean(now){
 function applyGfx(){
   sun.castShadow=!gfxLow;
   renderer.setPixelRatio(gfxLow?1:Math.min(window.devicePixelRatio,2));
+  wake();
 }
 
 /* Camera orbit, custom because the r128 build has no OrbitControls */
@@ -3030,6 +3032,7 @@ function applyCam(){
   );
   camera.lookAt(cam.target);
   camera.updateMatrixWorld();
+  wake();
 }
 let camGoal=null, camDistGoal=null, fitSaved=null;
 let camPhiGoal=null;
@@ -3075,7 +3078,7 @@ function homeCam(x,y){
     }
   }
 }
-function panTo(x,y){ camGoal=new THREE.Vector3(wx(x),0,wz(y)+(innerWidth<700?Math.min(1.6,cam.dist*0.11):0)); }
+function panTo(x,y){ camGoal=new THREE.Vector3(wx(x),0,wz(y)+(innerWidth<700?Math.min(1.6,cam.dist*0.11):0)); wake(); }
 const cvs=renderer.domElement;
 /* Dragging the board keeps the ground you touch under your finger.
    One finger or the mouse drags, two fingers drag and pinch-zoom around the point between them, and a flick
@@ -3187,6 +3190,7 @@ function hoverMove(e){
   setHover(pickXY(e.clientX,e.clientY));
 }
 function setHover(h){
+  wake();
   if(h && (!explored[h.y]||!explored[h.y][h.x])) h=null;
   hover=h;
   const fEl=$('forecast');
@@ -3973,6 +3977,7 @@ function buildBoard(){
   buildFog(fogTiles);
   buildScatter();
   setWeather((THEMES[curTheme]||{}).fx);
+  wake();
 }
 
 const terrGroup=new THREE.Group();
@@ -4403,6 +4408,7 @@ const fx={
   flashes:[],
   pops:[],
   flash(x,y,color){
+    wake();
     if(!visXY(x,y)) return;
     const m=new THREE.Mesh(new THREE.SphereGeometry(0.18,8,8),
       new THREE.MeshBasicMaterial({color, transparent:true, opacity:0.95}));
@@ -4411,6 +4417,7 @@ const fx={
     this.flashes.push({m,t:0,boom:false});
   },
   boom(x,y){
+    wake();
     if(!visXY(x,y)) return;
     this.smoke(x,y);
     const m=new THREE.Mesh(new THREE.SphereGeometry(0.12,8,8),
@@ -4420,6 +4427,7 @@ const fx={
     this.flashes.push({m,t:0,boom:true});
   },
   popup(x,y,text,color){
+    wake();
     if(!visXY(x,y)) return;
     const c=document.createElement('canvas'); c.width=256; c.height=64;
     const ctx=c.getContext('2d');
@@ -4443,6 +4451,7 @@ const fx={
   },
   // animate one attack. Melee attackers lunge, ranged ones recoil, a tracer or shell flies and the target shakes
   strike(ax,ay,tx,ty,aid,tid,kind){
+    wake();
     if(!visXY(ax,ay)&&!visXY(tx,ty)) return;
     const ga=unitMeshes.get(aid), gt=unitMeshes.get(tid);
     const dx=wx(tx)-wx(ax), dz=wz(ty)-wz(ay), L=Math.hypot(dx,dz)||1;
@@ -4467,6 +4476,7 @@ const fx={
     }
   },
   smoke(x,y){
+    wake();
     if(!visXY(x,y)) return;
     for(let i=0;i<5;i++){
       const m=new THREE.Mesh(new THREE.SphereGeometry(0.09+Math.random()*0.05,7,5), new THREE.MeshLambertMaterial({color:0x6b6f6a, transparent:true, opacity:0.75}));
@@ -4481,6 +4491,7 @@ const fx={
     if(dx||dz) g.rotation.y=Math.atan2(dx,dz);
   },
   shock(x,y,color){
+    wake();
     if(!visXY(x,y)) return;
     const m=new THREE.Mesh(new THREE.RingGeometry(0.2,0.4,28),
       new THREE.MeshBasicMaterial({color:color||0xffc24d, transparent:true, opacity:0.85, side:THREE.DoubleSide}));
@@ -4489,6 +4500,7 @@ const fx={
     this.pops.push({sp:m,t:0,shock:true});
   },
   nukeBlast(x,y,R){
+    wake();
     // blinding flash sphere
     const flash=new THREE.Mesh(new THREE.SphereGeometry(0.3,16,16),
       new THREE.MeshBasicMaterial({color:0xfff4d6, transparent:true, opacity:1}));
@@ -4583,10 +4595,33 @@ const fx={
   }
 };
 
-/* Render loop */
-let lastT=performance.now();
+/* Render loop. A frame is drawn at full rate while something moves (camera, units, effects, fog, a finger on the board),
+   at 30 fps while only High's sea, water, flags and weather animate, and about once a second otherwise.
+   Low graphics caps at 30 fps and holds the idle animation still. Menus that cover the board hold the last frame. */
+let lastT=performance.now(), lastDraw=0, animT=0, needDraw=true, wasCovered=false, loopT=null, awakeOn=false;
+function wake(){ needDraw=true; if(loopT){ clearTimeout(loopT); loopT=null; requestAnimationFrame(loop); } }
+const boardCovered=()=>$('setup').classList.contains('show')||$('techPanel').classList.contains('show')||$('overlay').classList.contains('show')||!$('handoff').hidden;
+const boardDimmed=()=>!$('dipPanel').hidden||!$('armyPanel').hidden;
+for(const ev of ['pointerdown','pointerup','click','keydown']) addEventListener(ev, wake, {capture:true, passive:true});
 function loop(now){
-  const dt=Math.min(0.05,(now-lastT)/1000); lastT=now;
+  loopT=null;
+  const raw=Math.min(0.25,(now-lastT)/1000), dt=Math.min(0.05,raw); lastT=now;
+  const covered=boardCovered(), title=!map&&$('setup').classList.contains('show'), dimmed=boardDimmed();
+  if(wasCovered&&!covered) needDraw=true;
+  wasCovered=covered;
+  // anything moving? the idle animation does not count
+  const occ=new Set((units||[]).filter(u=>!UNIT_TYPES[u.type].fly).map(u=>key(u.x,u.y)));
+  let moving=ptrs.size>0||!!camGoal||!!glide||camDistGoal!=null||camPhiGoal!=null||dyingUnits.length>0||dissolving.length>0||
+    fx.flashes.length>0||fx.pops.length>0||Math.abs((hoverRing.userData.target||0)-hoverRing.material.opacity)>0.004;
+  if(!moving) for(const [,g] of unitMeshes){ const ud=g.userData; if(ud.lunge||ud.shake>0||(ud.base&&ud.target&&ud.base.distanceToSquared(ud.target)>1e-6)){ moving=true; break; } }
+  if(!moving) for(const k in forestTrees) if(forestTrees[k].sq!==(occ.has(k)?0.5:1)){ moving=true; break; }
+  let draw;
+  if(covered) draw=title&&!gfxLow&&now-lastDraw>=95;                // the title screen drifts at 10 fps
+  else if(moving||needDraw) draw=!gfxLow||now-lastDraw>=29;
+  else if(!gfxLow&&!dimmed) draw=now-lastDraw>=29;
+  else draw=now-lastDraw>=1000;
+  const adt=moving||(!gfxLow&&!dimmed&&(!covered||title))?dt:0; animT+=adt*1000;
+  const at=animT;   // clock for the idle animation, held while it is not being drawn
   // unit motion + idle animation
   for(const [id,g] of unitMeshes){
     const ud=g.userData;
@@ -4600,11 +4635,11 @@ function loop(now){
     }
     if(ud.shake>0){ ud.shake-=dt; g.position.x+=Math.sin(ud.shake*75)*0.04*(ud.shake/0.38); }
     if(ud.rotor){
-      ud.rotor.rotation.y+=dt*16;
-      ud.tailRotor.rotation.x+=dt*22;
-      g.position.y+=Math.sin(now*0.003+id)*0.04; // hover bob
+      ud.rotor.rotation.y+=adt*16;
+      ud.tailRotor.rotation.x+=adt*22;
+      g.position.y+=Math.sin(at*0.003+id)*0.04; // hover bob
     }
-    if(g.userData.radar) g.userData.radar.rotation.y+=dt*2.4;
+    if(g.userData.radar) g.userData.radar.rotation.y+=adt*2.4;
   }
   for(let i=dyingUnits.length-1;i>=0;i--){
     const d=dyingUnits[i]; d.t+=dt;
@@ -4615,18 +4650,15 @@ function loop(now){
     for(const mm of d.g.userData.mats){ mm.transparent=true; mm.opacity=1-k; }
   }
   // pines shrink back while a unit stands among them, so it is never hidden
-  {
-    const occ=new Set((units||[]).filter(u=>!UNIT_TYPES[u.type].fly).map(u=>key(u.x,u.y)));
-    for(const k in forestTrees){
-      const t=forestTrees[k], want=occ.has(k)?0.5:1;
-      if(t.sq===want) continue;
-      t.sq+=(want-t.sq)*Math.min(1,dt*8); if(Math.abs(want-t.sq)<0.002) t.sq=want;
-      if(t.on) writeTile(t);
-    }
+  for(const k in forestTrees){
+    const t=forestTrees[k], want=occ.has(k)?0.5:1;
+    if(t.sq===want) continue;
+    t.sq+=(want-t.sq)*Math.min(1,dt*8); if(Math.abs(want-t.sq)<0.002) t.sq=want;
+    if(t.on) writeTile(t);
   }
-  if(!gfxLow) waveOcean(now);
-  if(!map&&$('setup').classList.contains('show')){ cam.theta+=dt*0.04; applyCam(); }   // the title screen drifts slowly over the sea
-  if(surf) surf.material.opacity=0.42+Math.sin(now*0.0016)*0.18;
+  if(!gfxLow&&draw) waveOcean(now);
+  if(title&&!gfxLow){ cam.theta+=raw*0.04; applyCam(); }   // the title screen drifts slowly over the sea
+  if(surf) surf.material.opacity=0.42+Math.sin(at*0.0016)*0.18;
   // labels keep a fixed size on screen; unit labels hide in the whole-map view where they would crowd together
   {
     const show=cam.dist<=24, changed=labelScale();
@@ -4658,20 +4690,21 @@ function loop(now){
     applyCam();
     if(cam.target.distanceTo(camGoal)<0.06) camGoal=null;
   }
-  for(const p of pumpjacks) p.rotation.z=Math.sin(now*0.0024)*0.22;
-  streakMat.opacity=0.14+Math.sin(now*0.0011)*0.07;
-  waterU.uTime.value=now*0.001; foamMat.opacity=0.55+Math.sin(now*0.0019)*0.15; flagU.uTime.value=now*0.001; stepWeather(now);
+  for(const p of pumpjacks) p.rotation.z=Math.sin(at*0.0024)*0.22;
+  streakMat.opacity=0.14+Math.sin(at*0.0011)*0.07;
+  waterU.uTime.value=at*0.001; foamMat.opacity=0.55+Math.sin(at*0.0019)*0.15; flagU.uTime.value=at*0.001;
+  if(draw) stepWeather(now);
   // selection / attack rings breathe
   for(const c of hlGroup.children){
     if(c.userData.pulse){
-      const s=1+Math.sin(now*0.0045*c.userData.pulse)*0.06;
+      const s=1+Math.sin(at*0.0045*c.userData.pulse)*0.06;
       c.scale.set(s,s,s);
     }
   }
   // hover ring fades in/out smoothly
-  hoverRing.material.opacity+=((hoverRing.userData.target||0)-hoverRing.material.opacity)*Math.min(1,dt*14);
-  hoverRing.visible=hoverRing.material.opacity>0.02;
-  fogU.uTime.value=now*0.0009-(ORIGIN_X*0.7+ORIGIN_Z*1.3)*0.25;   // same phase per tile as x*0.7+y*1.3
+  { const ht=hoverRing.userData.target||0, ho=hoverRing.material.opacity+(ht-hoverRing.material.opacity)*Math.min(1,dt*14);
+    hoverRing.material.opacity=Math.abs(ht-ho)<0.004?ht:ho; hoverRing.visible=hoverRing.material.opacity>0.02; }
+  fogU.uTime.value=at*0.0009-(ORIGIN_X*0.7+ORIGIN_Z*1.3)*0.25;   // same phase per tile as x*0.7+y*1.3
   // revealed clouds puff away
   for(let i=dissolving.length-1;i>=0;i--){
     const f=dissolving[i];
@@ -4682,13 +4715,16 @@ function loop(now){
   }
   // low clouds drift past the battlefield
   for(const c of decoClouds){
-    c.position.x+=c.userData.v*dt;
+    c.position.x+=c.userData.v*(title?raw:adt);
     const lim=W/2+8;
     if(c.position.x>lim) c.position.x=-lim;
-    c.position.y+=Math.sin(now*0.0008+c.userData.bobP)*0.06*dt;
+    c.position.y+=Math.sin(at*0.0008+c.userData.bobP)*0.06*adt;
   }
-  renderer.render(scene,camera);
-  requestAnimationFrame(loop);
+  if(draw){ renderer.render(scene,camera); lastDraw=now; needDraw=false; }
+  const wa=wantAwake(); if(wa!==awakeOn){ awakeOn=wa; keepAwake(wa); }
+  // the next tick: every frame while drawing often, otherwise a few times a second (wake() cuts the wait short)
+  if(moving||(!covered&&(needDraw||(!gfxLow&&!dimmed)))) requestAnimationFrame(loop);
+  else loopT=setTimeout(()=>{ loopT=null; requestAnimationFrame(loop); }, title&&!gfxLow?100:250);
 }
 
 /* Picking */
@@ -4867,6 +4903,7 @@ function refresh(){
     document.body.classList.toggle('dockR', v.x<0);
   }
   syncUnits(); syncCities(); syncHighlights(); renderInfo();
+  wake();
   NET.uiTick();
   if($('techPanel').classList.contains('show')) renderTech();
   syncUndo();
@@ -6666,16 +6703,20 @@ function log(who,msg){
   l.prepend(e);
   while(l.children.length>60) l.removeChild(l.lastChild);
 }
-let wakeLock=null;
+/* the screen stays on only while a game is on screen; the render loop and tab visibility keep this in step */
+let wakeLock=null, wakeAsking=false;
+const wantAwake=()=>!!map&&!gameOver&&!document.hidden&&!$('setup').classList.contains('show');
 async function keepAwake(on){
   try{
-    if(on&&!wakeLock&&'wakeLock' in navigator&&document.visibilityState==='visible'){
-      wakeLock=await navigator.wakeLock.request('screen');
-      wakeLock.addEventListener('release',()=>{ wakeLock=null; });
+    if(on&&!wakeLock&&!wakeAsking&&'wakeLock' in navigator&&document.visibilityState==='visible'){
+      wakeAsking=true;
+      const w=await navigator.wakeLock.request('screen'); wakeAsking=false;
+      if(!wantAwake()){ w.release(); return; }   // left the game while asking
+      wakeLock=w; w.addEventListener('release',()=>{ if(wakeLock===w) wakeLock=null; });
     } else if(!on&&wakeLock){ const w=wakeLock; wakeLock=null; await w.release(); }
-  }catch(e){ wakeLock=null; }
+  }catch(e){ wakeAsking=false; }
 }
-document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&map&&!gameOver) keepAwake(true); });
+document.addEventListener('visibilitychange',()=>{ awakeOn=wantAwake(); keepAwake(awakeOn); wake(); });
 function endGame(winner){
   if(dip.win&&dip.win.includes(MYSIDE)&&!hotOn()) winner=MYSIDE;   // a shared victory is your victory too
   keepAwake(false);
