@@ -1,0 +1,14 @@
+{
+  "name": "gridline-command",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Gridline Command, a single-file browser tactics game. This file only holds the test tooling.",
+  "license": "UNLICENSED",
+  "scripts": {
+    "test": "playwright test -c tests/playwright.config.js",
+    "sim": "node tests/sim/sim.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  }
+}
