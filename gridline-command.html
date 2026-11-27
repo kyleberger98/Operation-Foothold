@@ -1879,7 +1879,7 @@ function myTurnNotices(){
       turnNotes.push({i:'city', t:'Your cities are occupied, so move a unit off one to recruit'});
     }
   }
-  if(turn>=3&&stars[s]>=5) setTimeout(()=>tipOnce('build','Tap an empty tile inside your borders to build. Farms and Lumber Camps grow your city, and Factories, Markets and Ports earn stars every turn.'),1800);
+  if(turn>=3&&stars[s]>=5) setTimeout(()=>{ if(!(hintGate()&&!hintMem.farm&&farmSpot())) tipOnce('build','Tap an empty tile inside your borders to build. Farms and Lumber Camps grow your city, and Factories, Markets and Ports earn stars every turn.'); },1800);
   { const n=dip.offers.filter(o=>o.to===s&&alive[o.from]).length; if(n) turnNotes.push({i:'hand', c:'#b9a4ff', t:n+' diplomatic offer'+(n>1?'s':'')+' waiting'}); }
   { const at=recapAt, rows=turnNotes.map(r=>typeof r==='string'?{i:'info',t:r}:r);
     let sub='Turn '+turn;
@@ -5478,6 +5478,7 @@ function syncCampBtn(){
     'turn '+c.turn+' \u00b7 '+campOwned(c,c.fac).length+' of '+c.regions.length+' regions'+(c.battle?' \u00b7 battle in progress':c.defend?' \u00b7 under attack':'');
 }
 function showSetup(){
+  tipQ.length=0;
   const grid=$('factionGrid');
   grid.innerHTML='';
   for(const k of Object.keys(FACTIONS)){
@@ -5722,7 +5723,8 @@ function toast(msg,color,onTap){ const n=noteFrom(msg,color); n.onTap=onTap; ret
 const TIPS_KEY='foothold-tips-seen';
 // one tip on screen at a time, the rest wait their turn; a tip counts as seen once it has been read or timed out
 const tipQ=[];
-let tipEl=null;
+let tipEl=null, tipAt=0;
+const tipBlocked=()=>$('setup').classList.contains('show')||$('overlay').classList.contains('show');
 function tipsSeen(){ try{ return JSON.parse(localStorage.getItem(TIPS_KEY)||'{}'); }catch(e){ return {}; } }
 function markTip(k){ const seen=tipsSeen(); seen[k]=1; try{ localStorage.setItem(TIPS_KEY, JSON.stringify(seen)); }catch(e){} }
 function tipOnce(k,msg){
@@ -5733,12 +5735,13 @@ function tipOnce(k,msg){
 function tipNext(){
   if(tipEl&&tipEl.isConnected&&!tipEl.classList.contains('out')) return;
   tipEl=null;
+  if(tipBlocked()||performance.now()<tipAt) return;   // coachTick tries again later
   let q; while((q=tipQ.shift())&&tipsSeen()[q.k]);
   if(!q) return;
   const t=note({icon:'tip', tone:'tip', title:'Tip', text:q.msg, close:true, life:9000});
   if(!t) return;
   tipEl=t; t._k=q.k;
-  t._done=()=>{ markTip(q.k); if(tipEl===t) tipEl=null; setTimeout(tipNext,600); };
+  t._done=()=>{ if(!tipBlocked()) markTip(q.k); if(tipEl===t) tipEl=null; tipAt=performance.now()+600; setTimeout(tipNext,600); };
 }
 function toastFromLog(who,msg){
   const big=/ELIMINATED|SURRENDERS|NUCLEAR|COMMANDER POWER|ran out of time/i.test(msg);
@@ -5896,7 +5899,20 @@ function hintPick(){
 }
 function railSync(on){
   document.body.classList.toggle('railTips', on);
-  if(on) for(const id in RAIL_LAB) $(id).classList.toggle('lab', !railMem[id]);
+  if(!on) return;
+  const tb=$('toasts'), tr=tb.children.length?tb.getBoundingClientRect():null;
+  for(const id in RAIL_LAB){
+    const e=$(id), l=e.querySelector('.rlab'); e.classList.toggle('lab', !railMem[id]);
+    if(!l) continue;
+    l.style.visibility='';
+    if(tr&&l.getClientRects().length&&overlaps(tr,l.getBoundingClientRect())) l.style.visibility='hidden';   // a notice is on top, wait for it
+  }
+}
+// left edge of the visible rail labels
+function railLeft(){
+  let x=innerWidth;
+  for(const id in RAIL_LAB){ const e=$(id), l=e.querySelector('.rlab'); if(!e.hidden&&l&&l.getClientRects().length) x=Math.min(x, l.getBoundingClientRect().left); }
+  return x;
 }
 const RAIL_LAB={fitBtn:'Map', dangerBtn:'Danger', powerBtn:'Power', armyBtn:'Army', dipBtn:'Diplomacy'};
 for(const id in RAIL_LAB){
@@ -5947,6 +5963,7 @@ function coachTick(){
   const live=map&&!gameOver&&side===MYSIDE&&!$('setup').classList.contains('show')&&!$('overlay').classList.contains('show');
   const gate=live&&hintGate();
   railSync(!!gate);
+  if(tipQ.length&&!tipEl) tipNext();
   if(!live){ coachHide(b); return; }
   let step=null, wait=false;
   if(coach.on){ wait=coachCheck()==='wait'; if(coach.on&&!wait) step=TUT[coach.i]; }
@@ -5967,7 +5984,7 @@ function coachTick(){
     px=r.left+r.width/2;
     place=a.place||(r.top>innerHeight/2?'above':'below');
     py=place==='above'?r.top:place==='left'?r.top+r.height/2:r.bottom;
-    if(place==='left'){ const l=a.el.querySelector('.rlab'); ar=l&&l.getClientRects().length?Math.min(r.left,l.getBoundingClientRect().left):r.left; }
+    if(place==='left') ar=Math.min(r.left, railLeft());
     coachPing(a.el.matches('.abtn,.dock')?a.el:null);
   } else if(a.tile){
     coachV.set(wx(a.tile.x), TOP+0.6, wz(a.tile.y)).project(camera);
@@ -5979,23 +5996,33 @@ function coachTick(){
   b.hidden=false;
   b.style.zIndex=techOpen?46:'';
   b.style.width=place==='left'&&ar-24<Math.min(300,innerWidth-84)?Math.max(160,ar-24)+'px':'';   // narrower beside the rail on phones
-  const bw=b.offsetWidth, bh=b.offsetHeight;
+  let bw=b.offsetWidth, bh=b.offsetHeight;
   let top=place==='below'?py+14:place==='above'?py-bh-14:place==='top'?84:place==='left'?py-bh/2:py;
   if(place==='above'&&top<80){ top=py+14; place='below'; }
   let left=place==='left'?Math.max(10, ar-bw-14):Math.min(innerWidth-bw-10, Math.max(10, px-bw/2));
   top=Math.min(innerHeight-bh-10, Math.max(10, top));
-  // keep clear of the right-hand buttons
-  if(place!=='left'){
+  // keep clear of the right-hand buttons and their labels
+  const clearRail=()=>{
+    if(place==='left') return;
     let rl=innerWidth, rt=1e9, rb=-1e9;
     for(const id of RAIL_IDS){ const e=$(id); if(!e.hidden&&e.getClientRects().length){ const r=e.getBoundingClientRect(); rl=Math.min(rl,r.left); rt=Math.min(rt,r.top); rb=Math.max(rb,r.bottom); } }
-    if(top<rb+6&&top+bh>rt-6) left=Math.max(10, Math.min(left, rl-bw-8));
-  }
+    rl=Math.min(rl, railLeft());
+    if(top<rb+6&&top+bh>rt-6&&left+bw>rl-8){
+      if(rl-bw-18<0&&rl-18>=200){   // narrower beside the rail labels on phones
+        b.style.width=(rl-18)+'px'; bw=b.offsetWidth; bh=b.offsetHeight;
+        if(place==='above') top=py-bh-14;
+        top=Math.min(innerHeight-bh-10, Math.max(10, top));
+      }
+      left=Math.max(10, Math.min(left, rl-bw-8));
+    }
+  };
+  clearRail();
   // and below any notices on screen
   const tb=$('toasts');
   if(tb.children.length){
     const tr=tb.getBoundingClientRect();
     if(overlaps(tr,{left, right:left+bw, top, bottom:top+bh})){
-      if(tr.bottom+8+bh<=innerHeight-10){ top=tr.bottom+8; place='free'; }
+      if(tr.bottom+8+bh<=innerHeight-10){ top=tr.bottom+8; place='free'; clearRail(); }
       else { coachHide(b); return; }
     }
   }
@@ -6580,7 +6607,7 @@ function syncPower(){
   if(b.hidden) return;
   const ready=pw.used[MYSIDE]==null;
   b.classList.toggle('ready', ready&&side===MYSIDE);
-  if(ready&&side===MYSIDE&&turn>=3&&tutDone()) tipOnce('power','Your commander power is ready. Tap the lightning button to use it. It works once per game, so save it for the turn that matters.');
+  if(ready&&side===MYSIDE&&turn>=3&&tutDone()&&!(hintGate()&&!hintMem.power)) tipOnce('power','Your commander power is ready. Tap the lightning button to use it. It works once per game, so save it for the turn that matters.');
   b.classList.toggle('spent', !ready);
   b.style.setProperty('--fc', f.css);
 }
@@ -6831,7 +6858,7 @@ const MANUAL=[
     ['Veterans','A unit with three kills can be promoted for +5 max HP and a full heal. It is free, so you can save it as an emergency heal.'],
     ['Titans','Titans are the super unit, with 36 HP, 5 attack and 4 defense but only 1 move. Only a city of level 4 or higher can build one (18\u2605), and each such city you hold supports a single Titan. A city that reaches level 5 can also give you one for free. Helicopters hit it for +50% and Artillery outranges it; Snipers barely scratch it. Titans cannot be promoted.'],
     ['Navy','Research Naval Doctrine (Industry) and any city next to water can launch Patrol Boats (cheap, fast) and Landing Craft onto a free water tile beside it; Blue-Water Fleet adds Destroyers (range 2, +50% against ships) and Battleships (range 3). Ships sail water only. Infantry, Tanks and other short-range land units can\u2019t shoot at ships, but Snipers, Artillery, Flak and Helicopters can. To cross water, select a land unit and tap a Landing Craft next to it to board, sail it beside the shore, then tap a highlighted land tile to put the unit ashore (it can act again next turn). If the craft sinks, its passenger is lost. The Inland Sea map type puts a sea in the middle of the board.'],
-    ['Danger zones','Tap the warning triangle (or press D) to shade every tile an enemy in sight could strike next turn.'],
+    ['Danger zones',()=>'Tap the warning triangle'+(COARSE?'':' (or press D)')+' to shade every tile an enemy in sight could strike next turn.'],
     ['Sentry','Select a unit and tap Sentry to leave it on watch. The Next button and the ready count then skip it every turn until an enemy comes within 3 tiles (you get a notice) or you give it orders. Tap Wake to put it back on duty.'],
     ['Army overview','The list button on the right shows every unit (health, whether it has acted, who is aboard a Landing Craft) and every city (level, income, what it is building toward). Tap a line to jump there.'],
   ]},
@@ -6861,7 +6888,7 @@ const MANUAL=[
     ['Score & medals','Cities and their levels, research, your army, enemy units destroyed and factions eliminated all score points. A solo win earns one to three stars, more for a faster win, and each faction keeps its best medal for every difficulty.'],
   ]},
   {id:'controls', name:'Controls', items:[
-    ['Enemy turns','Tap the speed pill under the banner (or press F) to watch enemy turns at normal speed, fast, or skip straight to your turn. The Camera button in the menu chooses whether the camera follows enemy actions you can see.'],
+    ['Enemy turns',()=>'Tap the speed pill under the banner'+(COARSE?'':' (or press F)')+' to watch enemy turns at normal speed, fast, or skip straight to your turn. The Camera button in the menu chooses whether the camera follows enemy actions you can see.'],
     ['Music','The Music button in the menu switches the background music between Low, On and Off. The sound button mutes music and effects together.'],
     ['Hotkeys','Space/Enter end turn \u00b7 Tab/N next unit \u00b7 U or Ctrl+Z undo \u00b7 F enemy speed \u00b7 C center on HQ \u00b7 V whole map \u00b7 D danger zones \u00b7 P commander power \u00b7 T tech \u00b7 H manual \u00b7 M mute \u00b7 Esc deselect.','pc'],
   ]},
