@@ -2587,11 +2587,7 @@ function openDrop(u,x,y){
     if(r<0.3&&adv.length){ const k=adv[rnd(adv.length)]; tech[s].add(k); msg='intel files that teach '+TECHS[k].name; }
     else if(r<0.55&&near.length){ const q=near[rnd(near.length)]; spawn(s,'TNK',q.x,q.y); const nu=units[units.length-1]; nu.moved=true; nu.attacked=true; msg='a free Tank'; }
     else if(r<0.75&&home){
-      map.flat().forEach(tt=>{ const c=tt.city; if(!c||c.owner!==s||c.level>=MAX_LEVEL) return;
-        c.pop++; const gained=[];
-        while(c.level<MAX_LEVEL&&c.pop>=c.level+1){ c.pop-=c.level+1; c.level++; gained.push(c.level); }
-        if(c.level>=MAX_LEVEL) c.pop=0;
-        if(gained.length) c.rw=(c.rw||[]).concat(gained); });
+      map.flat().forEach(tt=>{ const c=tt.city; if(c&&c.owner===s) addPop(c,1); });
       msg='settlers bringing +1 population to every city';
     }
     else { stars[s]+=25; msg='25\u2605 of supplies'; }
