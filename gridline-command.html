@@ -3421,11 +3421,14 @@ function mergeTileStatics(g, tileBox){
   const byMat=new Map();
   for(const ch of [...g.children]){
     if(ch===tileBox||ch.isSprite||!ch.isMesh||Array.isArray(ch.material)) continue;
-    if(!byMat.has(ch.material)) byMat.set(ch.material,[]);
-    byMat.get(ch.material).push({geo:ch.geometry, m:new THREE.Matrix4().multiplyMatrices(inv, ch.matrixWorld), cast:ch.castShadow, src:ch});
+    const vc=bakeable(ch.material), mk=vc?'vc'+ch.castShadow:ch.material;   // plain scenery colours go into one vertex-coloured mesh (two: with and without shadows)
+    if(!byMat.has(mk)) byMat.set(mk,[]);
+    byMat.get(mk).push({geo:ch.geometry, m:new THREE.Matrix4().multiplyMatrices(inv, ch.matrixWorld), cast:ch.castShadow, src:ch, col:vc?ch.material.color:null, id:ch.material.id});
   }
-  for(const [mat,parts] of byMat){
+  for(const [mk,parts] of byMat){
     if(parts.length<2) continue;
+    const mat=parts[0].col?ENV_VC:mk;
+    parts.sort((a,b)=>a.id-b.id);   // the renderer drew separate materials in id order, which settles touching faces
     for(const p of parts) g.remove(p.src);
     const geo=mergeParts(parts); geo.userData.keep=false;
     const mesh=new THREE.Mesh(geo, mat); mesh.castShadow=parts.some(p=>p.cast); mesh.receiveShadow=true;
@@ -3439,7 +3442,7 @@ function mergeTileStatics(g, tileBox){
 let scat=null;        // pieces gathered while the board is built
 let tileInst={};      // key -> {x, y, on, sq, parts:[[mesh, index, matrix in the tile, squashes]]}
 const ENV_MATS_I={};  // twins of ENV_MATS for instances; one material on both kinds of mesh recompiles every time it switches
-const envMatI=k=>ENV_MATS_I[k]||(ENV_MATS_I[k]=ENV_MATS[k].clone());
+const envMatI=k=>{ if(!ENV_MATS_I[k]) for(const kk in ENV_MATS) ENV_MATS_I[kk]=ENV_MATS_I[kk]||ENV_MATS[kk].clone(); return ENV_MATS_I[k]; };   // made in palette order, the order the renderer draws them in
 const ZERO_M=new THREE.Matrix4().makeScale(0,0,0), Y_AXIS=new THREE.Vector3(0,1,0);
 const TUFT_GEO=new THREE.ConeGeometry(0.035,0.09,5);
 const SAND_GEO=[new THREE.BoxGeometry(0.976,0.006,0.06), new THREE.BoxGeometry(0.06,0.006,0.976)];
@@ -3483,17 +3486,20 @@ const FOG_VARIANTS={};
 function mergeParts(parts){
   let n=0; const nis=parts.map(p=>{ const g=p.geo.index?p.geo.toNonIndexed():p.geo; n+=g.attributes.position.count; return g; });
   const pos=new Float32Array(n*3), nor=new Float32Array(n*3), v=new THREE.Vector3(), nm=new THREE.Matrix3();
+  const col=parts[0].col?new Float32Array(n*3):null;   // parts with a col get it as a vertex colour
   let o=0;
   parts.forEach((p,i)=>{
     const g=nis[i], pa=g.attributes.position, na=g.attributes.normal; nm.getNormalMatrix(p.m);
     for(let k=0;k<pa.count;k++){
       v.fromBufferAttribute(pa,k).applyMatrix4(p.m); pos[(o+k)*3]=v.x; pos[(o+k)*3+1]=v.y; pos[(o+k)*3+2]=v.z;
       v.fromBufferAttribute(na,k).applyMatrix3(nm).normalize(); nor[(o+k)*3]=v.x; nor[(o+k)*3+1]=v.y; nor[(o+k)*3+2]=v.z;
+      if(col){ col[(o+k)*3]=p.col.r; col[(o+k)*3+1]=p.col.g; col[(o+k)*3+2]=p.col.b; }
     }
     o+=pa.count;
   });
   const out=new THREE.BufferGeometry();
   out.setAttribute('position',new THREE.BufferAttribute(pos,3)); out.setAttribute('normal',new THREE.BufferAttribute(nor,3));
+  if(col) out.setAttribute('color',new THREE.BufferAttribute(col,3));
   out.userData.keep=true;
   return out;
 }
@@ -3712,6 +3718,27 @@ function envModel(name, shadow=true, team=null){
   }
   return g;
 }
+/* a static model with its plain colours baked into one vertex-coloured mesh per piece; the team colour and glowing materials stay apart.
+   Colours are read when it is made, and a theme change rebuilds the board. */
+const ENV_VC=new THREE.MeshLambertMaterial({vertexColors:true});
+const ENV_SET=new Set(Object.values(ENV_MATS)), ID_M=new THREE.Matrix4();
+const bakeable=m=>ENV_SET.has(m)&&m.emissive.getHex()===0;
+function bakeModel(name, shadow=true, team=null){
+  const g=new THREE.Group();
+  for(const piece in ENV_MODELS[name]){
+    const pd=ENV_MODELS[name][piece], parts=[];
+    let holder=g;
+    if(piece!=='main'){ holder=new THREE.Group(); holder.position.fromArray(pd.p); g.add(holder); g.userData[piece]=holder; }
+    const add=(geo,mat)=>{ const m=new THREE.Mesh(geo,mat); m.castShadow=shadow; m.receiveShadow=true; holder.add(m); };
+    for(const mat in pd.m){
+      const mm=mat==='team'&&team?team:ENV_MATS[mat], geo=envGeo(name,piece,mat);
+      if(bakeable(mm)) parts.push({geo, m:ID_M, col:mm.color, mat:mm}); else add(geo,mm);
+    }
+    if(parts.length>1){ const geo=mergeParts(parts.sort((a,b)=>a.mat.id-b.mat.id)); geo.userData.keep=false; add(geo,ENV_VC); }
+    else if(parts.length) add(parts[0].geo, parts[0].mat);
+  }
+  return g;
+}
 /* drop a static model straight into a tile group as loose meshes, so the tile's static merge can batch them */
 function envPlace(g, name, x, y, z, rot=0, sc=1, shadow=true, team=null){
   const tmp=envModel(name, shadow, team); tmp.position.set(x,y,z); tmp.rotation.y=rot; tmp.scale.setScalar(sc); tmp.updateMatrix();
@@ -3724,7 +3751,7 @@ const M_crop2=new THREE.MeshLambertMaterial({color:0x8c7a40});
 const M_ore=new THREE.MeshLambertMaterial({color:0x848e96});
 const M_oreVein=new THREE.MeshLambertMaterial({color:0xf0b35c});
 function makeDrop(){
-  const g=envModel('DROP'); g.position.y=TOP; g.rotation.y=Math.random()*Math.PI*2;
+  const g=bakeModel('DROP'); g.position.y=TOP; g.rotation.y=Math.random()*Math.PI*2;
   const w=new THREE.Group(); w.add(g); w.userData.bob=true;
   return w;
 }
@@ -3735,13 +3762,13 @@ function addDropDecor(x,y){
 function removeDropDecor(x,y){
   const k=key(x,y), d=dropDecor[k];
   if(!d) return;
-  tileGroups[k].remove(d); delete dropDecor[k];
+  tileGroups[k].remove(d); freeTree(d,false); delete dropDecor[k];
 }
 /* Blender-made resource models (art/env/env.py) */
-function makeCrop(){ const g=new THREE.Group(), m=envModel('CROP'); m.position.y=TOP; m.rotation.y=Math.random()<0.5?0:Math.PI/2; g.add(m); return g; }
-function makeOre(){ const g=new THREE.Group(), m=envModel('ORE'); m.position.y=TOP; m.rotation.y=Math.random()*Math.PI*2; g.add(m); return g; }
+function makeCrop(){ const g=new THREE.Group(), m=bakeModel('CROP'); m.position.y=TOP; m.rotation.y=Math.random()<0.5?0:Math.PI/2; g.add(m); return g; }
+function makeOre(){ const g=new THREE.Group(), m=bakeModel('ORE'); m.position.y=TOP; m.rotation.y=Math.random()*Math.PI*2; g.add(m); return g; }
 function makeOil(onWater){
-  const g=new THREE.Group(), m=envModel(onWater?'RIG':'PUMP'); m.position.y=TOP; m.rotation.y=onWater?Math.random()*Math.PI*2:(Math.random()<0.5?0:Math.PI);
+  const g=new THREE.Group(), m=bakeModel(onWater?'RIG':'PUMP'); m.position.y=TOP; m.rotation.y=onWater?Math.random()*Math.PI*2:(Math.random()<0.5?0:Math.PI);
   g.add(m);
   if(!onWater){ g.userData.pivot=m.userData.beam; pumpjacks.push(m.userData.beam); }
   return g;
@@ -3753,7 +3780,7 @@ function addBuildingDecor(x,y){
   const t=tileAt(x,y), k=key(x,y); if(!t.b||!tileGroups[k]) return;
   if(buildingDecor[k]){ tileGroups[k].remove(buildingDecor[k]); freeTree(buildingDecor[k],false); }
   const [ox,oz,sc]=BLD_SPOT[t.terrain]||BLD_SPOT.plains;
-  const m=envModel(t.b); m.position.set(ox,t.terrain==='water'?WATER_Y:TOP,oz); m.scale.setScalar(sc); m.rotation.y=((x*3+y)%2)*Math.PI/2;
+  const m=bakeModel(t.b); m.position.set(ox,t.terrain==='water'?WATER_Y:TOP,oz); m.scale.setScalar(sc); m.rotation.y=((x*3+y)%2)*Math.PI/2;
   tileGroups[k].add(m); buildingDecor[k]=m;
 }
 function addResourceDecor(x,y){
@@ -3771,7 +3798,7 @@ function removeResourceDecor(x,y){
   const k=key(x,y), d=resourceDecor[k];
   if(!d) return;
   if(d.userData.pivot) pumpjacks=pumpjacks.filter(p=>p!==d.userData.pivot);
-  tileGroups[k].remove(d);
+  tileGroups[k].remove(d); freeTree(d,false);
   delete resourceDecor[k];
 }
 
@@ -4061,10 +4088,10 @@ function syncCities(){
       cd.extra=new THREE.Group();
       const spots=[[0.2,-0.17,'HOUSE',0],[-0.28,0.25,'HOUSE2',Math.PI/2],[0.04,0.29,'FLATS',0],[0.29,0.09,'TOWER',0]];
       for(let i=0;i<Math.min(4,city.level-1);i++){
-        const [bx,bz,kind,r]=spots[i], m=envModel(kind,true,cd.roof);
+        const [bx,bz,kind,r]=spots[i], m=bakeModel(kind,true,cd.roof);
         m.position.set(bx,TOP+0.02,bz); m.rotation.y=r+((x+y+i)%2)*Math.PI; cd.extra.add(m);
       }
-      if(city.walls){ const wl=envModel('WALLS',true,cd.roof); wl.position.y=TOP; cd.extra.add(wl); }
+      if(city.walls){ const wl=bakeModel('WALLS',true,cd.roof); wl.position.y=TOP; cd.extra.add(wl); }
       cd.g.add(cd.extra);
     }
     // rival and neutral cities only show while you can see them
