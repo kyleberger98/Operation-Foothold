@@ -6577,9 +6577,10 @@ window.addEventListener('keydown',e=>{
   if(e.key==='Escape'){   // close the top panel first, then clear the selection
     const setupOpen=$('setup').classList.contains('show');
     if(setupOpen){ if(map) $('setup').classList.remove('show'); return; }
-    if(armyOpen) $('armyPanel').hidden=true;
-    else if(dipOpen) $('dipPanel').hidden=true;
-    else if(techOpen) $('techPanel').classList.remove('show');
+    const shut=(p,b)=>{ const a=document.activeElement; if(a&&(p.contains(a)||a.id===b)) a.blur(); };   // so Space or Enter doesn't reopen it
+    if(armyOpen){ $('armyPanel').hidden=true; shut($('armyPanel'),'armyBtn'); }
+    else if(dipOpen){ $('dipPanel').hidden=true; shut($('dipPanel'),'dipBtn'); }
+    else if(techOpen){ $('techPanel').classList.remove('show'); shut($('techPanel'),'techBtn'); }
     else { sel=null; refresh(); }
     return;
   }
@@ -6601,8 +6602,9 @@ window.addEventListener('keydown',e=>{
   if(e.key==='v'||e.key==='V'){ toggleFit(); return; }
   if(e.key==='f'||e.key==='F'){ cycleSpeed(); return; }
   if(side!==MYSIDE) return;
-  // a focused control or an open panel keeps Enter, Space and Tab for itself
-  const busy=techOpen||dipOpen||armyOpen||!!(tg&&tg!==document.body&&tg.closest&&tg.closest('button,a,select,[tabindex]'));
+  // an open panel, or a control reached with the keyboard, keeps Enter, Space and Tab for itself
+  let kbd=false; try{ kbd=!!(tg&&tg!==document.body&&tg.matches(':focus-visible')&&tg.closest('button,a,select,[tabindex]')); }catch(err){}
+  const busy=techOpen||dipOpen||armyOpen||kbd;
   if(busy&&(e.key===' '||e.key==='Enter'||e.key==='Tab')) return;
   if(e.key===' '||e.key==='Enter'){ e.preventDefault(); $('endTurn').click(); return; }
   if(e.key==='u'||e.key==='U'||((e.key==='z'||e.key==='Z')&&(e.ctrlKey||e.metaKey))){ e.preventDefault(); undo(); return; }
@@ -7439,7 +7441,7 @@ function showDefeat(){
   $('ovTitle').textContent='HQ Lost'; $('ovTitle').className='lose';
   $('ovBody').style.textAlign=''; $('ovBody').style.maxWidth='';
   $('ovBody').textContent='Your headquarters has fallen. The fog is lifted so you can watch the rest of the battle.';
-  if(!hotOn()&&!xpDone){ xpDone=true; const d=document.createElement('div'); d.innerHTML=xpHtml(awardXP(false)); $('ovBody').appendChild(d.firstChild); renderRankBtn(); }   // a loss, paid now
+  if(!hotOn()&&!NET.client&&!xpDone){ xpDone=true; const d=document.createElement('div'); d.innerHTML=xpHtml(awardXP(false)); $('ovBody').appendChild(d.firstChild); renderRankBtn(); }   // a loss, paid now (online guests are paid at the end, so a rejoin can't pay twice)
   const btn=$('restart');
   btn.textContent='Watch the battle';
   btn.onclick=()=>{ $('overlay').classList.remove('show'); resetOverlayButton(); };
