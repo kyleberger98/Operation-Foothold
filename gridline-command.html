@@ -1072,7 +1072,7 @@ const POWERS={
   AEGIS:  {key:'triage',   name:'Field Triage',      desc:'Every unit you have is healed to full health.'},
   CRIMSON:{key:'assault',  name:'All-Out Assault',   desc:'For the rest of this turn your units deal double damage.'},
   SOLARIS:{key:'windfall', name:'Windfall',          desc:'Collect one and a half turns of income right now (at least 9\u2605, at most 30\u2605).'},
-  GHOST:  {key:'ambush',   name:'Ambush',            desc:'For the rest of this turn your units deal +25% damage and enemies cannot return fire.'},
+  GHOST:  {key:'ambush',   name:'Ambush',            desc:'For the rest of this turn your units deal +10% damage and enemies cannot return fire.'},
   BASTION:{key:'bulwark',  name:'Hold the Line',     desc:'For two rounds, your units take half damage.'},
   VERDANT:{key:'festival', name:'Harvest Festival',  desc:'Every city you hold gains +2 population. Fully grown cities pay 4\u2605 each instead.'},
   TIDE:   {key:'airdrop',  name:'Reinforcements',    desc:'A free unit lands at every city you hold: Infantry, or once you have Mechanized Warfare, Tanks at up to four cities.'},
@@ -1271,8 +1271,8 @@ const UNIT_TYPES={
 };
 /* one unit only its own faction can train */
 Object.assign(UNIT_TYPES,{
-  AMB:{key:'AMB', name:'Field Ambulance', faction:'AEGIS',   cost:5, hp:12, atk:1, def:2, move:2, range:1, fly:false, medic:3,
-       desc:'Aegis only. At the start of your turn it heals every friendly unit next to it by 3 HP.'},
+  AMB:{key:'AMB', name:'Field Ambulance', faction:'AEGIS',   cost:5, hp:12, atk:1, def:2, move:2, range:1, fly:false, medic:4,
+       desc:'Aegis only. At the start of your turn it heals every friendly unit next to it by 4 HP.'},
   SHK:{key:'SHK', name:'Shock Troops',    faction:'CRIMSON', cost:5, hp:10, atk:3, def:1, move:2, range:1, fly:false, blitz:true,
        desc:'Crimson only. Fast assault infantry that can capture a city on the same turn it moves in.'},
   MRT:{key:'MRT', name:'Mortar Truck',    faction:'SOLARIS', cost:6, hp:8, atk:4, def:1, move:2, range:2, fly:false,
@@ -2305,7 +2305,7 @@ function calcDamage(u,d,frac){
   const AF=effAtk*(u.hp/u.maxHp);
   const DF=uDef(d)*defMult(u,d)*(d.hp/d.maxHp)*defBonus(d)*guardAura(d);
   const drill=techDmg(u,d);
-  const rage=(pw.rage[u.owner]===turn&&side===u.owner?2:1)*(pw.ghost[u.owner]===turn&&side===u.owner?1.25:1);   // All-Out Assault, Ambush
+  const rage=(pw.rage[u.owner]===turn&&side===u.owner?2:1)*(pw.ghost[u.owner]===turn&&side===u.owner?1.1:1);   // All-Out Assault, Ambush
   const dmg=Math.max(1, Math.round(AF/(AF+DF)*effAtk*4.5*(frac||1)*drill*rage*shieldMul(d.owner)));
   return {dmg, AF, DF};
 }
@@ -7628,7 +7628,7 @@ const MANUAL=[
   ]},
   {id:'units', name:'Units', items:[
     ['Counters','Snipers get +25% vs Infantry. Tanks resist Sniper fire. Helicopters get +75% vs Tanks and Titans and resist tank guns. Flak Batteries get +75% vs Helicopters and resist their fire. A unit that resists its attacker also takes less return fire from it. Mechanized Warfare\u2019s extra Tank DEF only protects the Tank; it doesn\u2019t make it hit back harder. Artillery blasts also hit enemies next to the target for 50%.'],
-    ['Faction units','Every faction has one unit nobody else can train: Aegis Field Ambulance (heals the units next to it by 3 HP each turn), Crimson Shock Troops (capture a city the turn they move in), Solaris Mortar Truck (6\u2605, range 2, moves and fires), Ghost Recon Drone (flies 4, sees 2 tiles further), Bastion Guardian (18 HP; units next to it get +30% defense), Verdant Forest Stalker (+50% attack from a forest) and Tidewatch Hovercraft (crosses water). Each needs one tech, shown on the faction card.'],
+    ['Faction units','Every faction has one unit nobody else can train: Aegis Field Ambulance (heals the units next to it by 4 HP each turn), Crimson Shock Troops (capture a city the turn they move in), Solaris Mortar Truck (6\u2605, range 2, moves and fires), Ghost Recon Drone (flies 4, sees 2 tiles further), Bastion Guardian (18 HP; units next to it get +30% defense), Verdant Forest Stalker (+50% attack from a forest) and Tidewatch Hovercraft (crosses water). Each needs one tech, shown on the faction card.'],
     ['Veterans','A unit with three kills can be promoted for +5 max HP and a full heal. It is free, so you can save it as an emergency heal.'],
     ['Titans','Titans are the super unit, with 36 HP, 5 attack and 4 defense but only 1 move. Only a city of level 4 or higher can build one (18\u2605, 10\u2605 in a city with a Titan foundry), and each such city you hold supports a single Titan. Each blow also hits enemies next to the target for 25%. Helicopters hit it for +75% and Artillery outranges it; Snipers barely scratch it. Titans cannot be promoted.'],
     ['Navy','Research Naval Doctrine (Industry) and any city next to water can launch Patrol Boats (cheap, fast) and Landing Craft onto a free water tile beside it; Blue-Water Fleet adds Destroyers (range 2, +50% against ships) and Battleships (range 3). Ships sail water only. Infantry, Tanks and other short-range land units can\u2019t shoot at ships, but Snipers, Artillery, Flak and Helicopters can. To cross water, select a land unit and tap a Landing Craft next to it to board, sail it beside the shore, then tap a highlighted land tile to put the unit ashore (it can act again next turn). If the craft sinks, its passenger is lost. The Inland Sea map type puts a sea in the middle of the board.'],
@@ -7642,7 +7642,7 @@ const MANUAL=[
     ['Diplomacy','Tap the handshake button to see every faction: who is at war with whom, their strength and their attitude to you. Offer peace (10 turns and renewable, with no attacks, captures or entering each other\u2019s territory), an alliance (shared sight, pass through each other\u2019s units, and you win together when only allies remain), gift stars or demand tribute. Declaring war before a peace runs out breaks a treaty and every faction remembers. Computer rivals judge offers by who is winning, who else threatens them and whether they trust you.'],
     ['Tribute','You can demand tribute from each rival once every 6 turns. A computer pays only if you are much stronger, never more than half its stars, and while at war only if your troops are within 3 tiles of one of its cities.'],
     ['Broken treaties','A computer rival that is much stronger than you may turn on you. First it masses troops on your border: you get a notice, and its attitude reads Massing troops. A turn or more later it declares war, breaking the treaty, and every faction remembers. Gifts and a well-defended border make this less likely. A computer ally may also leave an alliance if you pull far ahead, or if you add little once the common rival is nearly beaten.'],
-    ['Commander powers','Every faction has one power you can use once per game on your own turn, with the lightning button. Aegis heals everything. Crimson deals double damage this turn. Solaris collects a turn and a half of income (9 to 30\u2605). Ghost deals +25% damage with no return fire this turn. Iron Bastion takes half damage for two rounds. Verdant adds +2 population in every city, and a fully grown city pays 4\u2605 instead. Tidewatch gets a free unit at every city: Infantry, or once it has Mechanized Warfare, Tanks at up to four cities (HQ first) and Infantry at the rest. Rivals above Easy use theirs too.'],
+    ['Commander powers','Every faction has one power you can use once per game on your own turn, with the lightning button. Aegis heals everything. Crimson deals double damage this turn. Solaris collects a turn and a half of income (9 to 30\u2605). Ghost deals +10% damage with no return fire this turn. Iron Bastion takes half damage for two rounds. Verdant adds +2 population in every city, and a fully grown city pays 4\u2605 instead. Tidewatch gets a free unit at every city: Infantry, or once it has Mechanized Warfare, Tanks at up to four cities (HQ first) and Infantry at the rest. Rivals above Easy use theirs too.'],
     ['Factions','Aegis units have +2 HP and heal while resting or on the march (free Field Medicine). Crimson pays 1\u2605 less for every unit and building. Solaris can mine from the start and pays less to harvest. Ghost sees 3 tiles and starts with Marksmanship. Iron Bastion has City Walls on every city it holds and free Fortification. For Verdant, crops give +1 population. Tidewatch starts with free Field Radio.'],
     ['Surrender','A computer rival that is down to its HQ and hopelessly outgunned gives up instead of dragging out the ending.'],
   ]},
