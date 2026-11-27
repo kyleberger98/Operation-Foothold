@@ -1263,7 +1263,7 @@ const UNIT_TYPES={
   INF:{key:'INF', name:'Infantry',   cost:2, hp:10, atk:2, def:2, move:1, range:1, fly:false, desc:'Cheap, dependable riflemen.'},
   SNP:{key:'SNP', name:'Sniper',     cost:5, hp:8,  atk:3, def:1, move:1, range:2, fly:false, desc:'Strikes from 2 tiles. +25% damage vs Infantry; armor shrugs it off.'},
   TNK:{key:'TNK', name:'Tank',       cost:7, hp:16, atk:4, def:3, move:2, range:1, fly:false, desc:'Heavy armor. Fast, and takes far less damage from Snipers.'},
-  ART:{key:'ART', name:'Artillery',  cost:9, hp:10,  atk:5, def:1, move:1, range:3, fly:false, siege:true, splash:0.25, desc:'Fires at range 3. Its blast also hits enemies next to the target for 25% damage. Cannot move and fire on the same turn.'},
+  ART:{key:'ART', name:'Artillery',  cost:9, hp:10,  atk:5, def:1, move:1, range:3, fly:false, siege:true, splash:0.5, desc:'Fires at range 3. Its blast also hits enemies next to the target for 50% damage. Cannot move and fire on the same turn.'},
   AA: {key:'AA',  name:'Flak Battery', cost:4, hp:12, atk:2, def:2, move:1, range:2, fly:false, desc:'Anti-air guns that strike from 2 tiles. +75% damage vs Helicopters, and shrugs off their return fire.'},
   HEL:{key:'HEL', name:'Helicopter', cost:8, hp:14, atk:3, def:2, move:3, range:1, fly:true, desc:'Flies over water and mountains. +75% damage vs Tanks and Titans, and their guns can barely track it.'},
   TTN:{key:'TTN', name:'Titan', cost:18, hp:36, atk:5, def:4, move:1, range:1, fly:false, super:true, splash:0.25, desc:'A colossal war walker. Slow, but it shrugs off Sniper fire, and each blow also hits enemies next to its target for 25% damage. Only a city of level 4 or higher can field one, and each such city supports a single Titan.'},
@@ -1326,7 +1326,7 @@ const TECHS={
   DRILLS:{key:'DRILLS',name:'Combat Drills',    branch:'Combat',   tier:2, req:'MARKS', unlocks:'Infantry and Snipers deal +30% damage, and Infantry gain +1 DEF.'},
   MECH: {key:'MECH',  name:'Mechanized Warfare',branch:'Combat',   tier:2, req:'MARKS', unlocks:'Unlocks the Tank. Tanks gain +1 DEF when attacked; their return fire is unchanged.'},
   ARMOR:{key:'ARMOR', name:'Composite Armor',   branch:'Combat',   tier:3, req:'MECH',  unlocks:'Tanks, Artillery and Flak gain +2 DEF.'},
-  SIEGE:{key:'SIEGE', name:'Siege Doctrine',    branch:'Combat',   tier:3, req:'MECH',  unlocks:'Unlocks Artillery. Its blast hits enemies next to the target for 50% damage instead of 25%.'},
+  SIEGE:{key:'SIEGE', name:'Siege Doctrine',    branch:'Combat',   tier:3, req:'MECH',  unlocks:'Unlocks Artillery, whose blast also hits enemies next to the target for 50% damage.'},
   SPG:  {key:'SPG',   name:'Self-Propelled Guns',branch:'Combat',  tier:3, req:'SIEGE', unlocks:'Artillery can move and fire in the same turn, and gains +1 move.'},
   MINING:{key:'MINING',name:'Mining',           branch:'Industry', tier:1, req:null,    unlocks:'Unlocks ore harvesting (4\u2605 for +2 pop) and Quarries on mountains (+2 pop).'},
   DRILL:{key:'DRILL', name:'Oil Drilling',      branch:'Industry', tier:2, req:'MINING',unlocks:'Unlocks oil harvesting (6\u2605 for +3 pop). Every harvest costs 1\u2605 less.'},
@@ -2345,7 +2345,7 @@ function fcText(f,tu){
   return `Attack ${UNIT_TYPES[tu.type].name}: deal <b>${f.dmg}</b>`+
     (f.cAtk?` <b style="color:var(--amber)">\u25b2 strong vs ${UNIT_TYPES[tu.type].name}</b>`:'')+
     (f.cDef?' <b style="color:#8aa08c">\u25bc armored target</b>':'')+
-    (f.splashN?` <b style="color:var(--amber)">blast hits ${f.splashN} more</b>`:'')+
+    (f.splashN?` <b style="color:var(--amber)">blast hits ${f.splashN} more for ${f.splashP}%</b>`:'')+
     (f.kills?(' · <b>destroys it'+(f.advances?' and advances':'')+'</b>')
             :(f.rdmg?` \u00b7 take <b>${f.rdmg}</b> back`+(f.dies?', <b>enough to destroy your unit</b>':'')
                     :' \u00b7 no retaliation'));
@@ -2366,7 +2366,7 @@ function forecast(u,d){
     splashN=units.filter(e=>hostile(e.owner,u.owner) && e!==d &&
       Math.max(Math.abs(e.x-d.x),Math.abs(e.y-d.y))<=R).length;
   }
-  return {dmg,kills,advances,rdmg,dies,cAtk:atkMult(u,d)>1,cDef:defMult(u,d)>1,splashN};
+  return {dmg,kills,advances,rdmg,dies,cAtk:atkMult(u,d)>1,cDef:defMult(u,d)>1,splashN,splashP:Math.round(100*splashFrac(u))};
 }
 
 function passable(u,x,y){
@@ -2502,7 +2502,7 @@ function defBonus(d){
   return 1;
 }
 function blastR(u){ return UNIT_TYPES[u.type].nuke || 1; }
-const splashFrac=u=>(UNIT_TYPES[u.type].splash||0)+(u.type==='ART'&&hasTech(u.owner,'SIEGE')?0.25:0);   // Siege Doctrine
+const splashFrac=u=>UNIT_TYPES[u.type].splash||0;
 /* buildings a blast at (x,y) flattens: side s's own and its allies' (g = terrGrid()) */
 function blastBuildings(s,x,y,R,g){
   let own=0, ally=0;
@@ -7612,10 +7612,10 @@ const MANUAL=[
     ['Buildings','Tap a tile inside your territory to build. Farm (plains, +2 pop), Lumber Camp (forest, +1 pop) and Quarry (mountain, Mining, +2 pop) grow the nearby city. Port (water, Naval Doctrine) adds +1 pop and +1\u2605 a turn. Factory (Logistics, one per city) pays +1\u2605 a turn for each Farm, Camp or Quarry next to it; Market (Urban Planning, one per city) pays +1\u2605 a turn for each building next to it, up to 4 each. Buildings serve whoever holds the land.'],
     ['Develop','Select one of your cities and tap Develop to spend stars on +1 population (4\u2605 + 2\u2605 per level, once per city each turn). A level-5 city builds Barracks instead, at 20\u2605 for +1 army size, up to three per city.'],
     ['Army size','Each city supports its level + 1 units, and a Command post adds 2 more. Grow and capture cities to field a bigger army.'],
-    ['Tech','Combat: Sniper, then Tank, then Artillery, plus drills, armor and self-propelled guns. Mechanized Warfare unlocks the Tank, and Tanks gain +1 DEF when attacked. It doesn\u2019t add to their return fire. Siege Doctrine makes Artillery blasts hit for 50%. Industry: Ore, then Oil, then Helicopter, plus cheaper training, +1\u2605 per city and faster gunships. Support: healing, 2\u00d7 city defense, forest camouflage, field hospitals and blast protection. Intel: +1 vision, the Flak Battery and longer artillery range. Strategic: Satellite Network (reveals the map) and Manhattan Project (the Nuclear Missile, a one-use 5\u00d75 strike). A tech costs 4/6/12/18\u2605 by tier, plus its tier for every city beyond your first (counted at the start of your turn). In the tech tree, dashed rings with a padlock are locked until you research the tech they branch from.'],
+    ['Tech','Combat: Sniper, then Tank, then Artillery, plus drills, armor and self-propelled guns. Mechanized Warfare unlocks the Tank, and Tanks gain +1 DEF when attacked. It doesn\u2019t add to their return fire. Industry: Ore, then Oil, then Helicopter, plus cheaper training, +1\u2605 per city and faster gunships. Support: healing, 2\u00d7 city defense, forest camouflage, field hospitals and blast protection. Intel: +1 vision, the Flak Battery and longer artillery range. Strategic: Satellite Network (reveals the map) and Manhattan Project (the Nuclear Missile, a one-use 5\u00d75 strike). A tech costs 4/6/12/18\u2605 by tier, plus its tier for every city beyond your first (counted at the start of your turn). In the tech tree, dashed rings with a padlock are locked until you research the tech they branch from.'],
   ]},
   {id:'units', name:'Units', items:[
-    ['Counters','Snipers get +25% vs Infantry. Tanks resist Sniper fire. Helicopters get +75% vs Tanks and Titans and resist tank guns. Flak Batteries get +75% vs Helicopters and resist their fire. A unit that resists its attacker also takes less return fire from it. Mechanized Warfare\u2019s extra Tank DEF only protects the Tank; it doesn\u2019t make it hit back harder. Artillery blasts also hit enemies next to the target for 25% (50% with Siege Doctrine).'],
+    ['Counters','Snipers get +25% vs Infantry. Tanks resist Sniper fire. Helicopters get +75% vs Tanks and Titans and resist tank guns. Flak Batteries get +75% vs Helicopters and resist their fire. A unit that resists its attacker also takes less return fire from it. Mechanized Warfare\u2019s extra Tank DEF only protects the Tank; it doesn\u2019t make it hit back harder. Artillery blasts also hit enemies next to the target for 50%.'],
     ['Faction units','Every faction has one unit nobody else can train: Aegis Field Ambulance (heals the units next to it by 3 HP each turn), Crimson Shock Troops (capture a city the turn they move in), Solaris Mortar Truck (6\u2605, range 2, moves and fires), Ghost Recon Drone (flies 4, sees 2 tiles further), Bastion Guardian (18 HP; units next to it get +30% defense), Verdant Forest Stalker (+50% attack from a forest) and Tidewatch Hovercraft (crosses water). Each needs one tech, shown on the faction card.'],
     ['Veterans','A unit with three kills can be promoted for +5 max HP and a full heal. It is free, so you can save it as an emergency heal.'],
     ['Titans','Titans are the super unit, with 36 HP, 5 attack and 4 defense but only 1 move. Only a city of level 4 or higher can build one (18\u2605, 10\u2605 in a city with a Titan foundry), and each such city you hold supports a single Titan. Each blow also hits enemies next to the target for 25%. Helicopters hit it for +75% and Artillery outranges it; Snipers barely scratch it. Titans cannot be promoted.'],
