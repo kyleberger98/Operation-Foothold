@@ -795,7 +795,7 @@ body.tsz #techTree .tn-cost{font-size:12px}
       <div class="tag">Turn-based tactics · capture the enemy HQ</div>
       <div class="homeBtns">
         <button id="resumeBtn" class="bigbtn primary" style="display:none">Resume<span>back to the battlefield</span></button>
-        <button id="continueBtn" class="bigbtn primary" style="display:none">Continue campaign<span id="continueInfo"></span></button>
+        <button id="continueBtn" class="bigbtn primary" style="display:none">Continue game<span id="continueInfo"></span></button>
         <button id="rejoinBtn" class="bigbtn primary" style="display:none">Rejoin online game<span id="rejoinInfo"></span></button>
         <button id="hostResumeBtn" class="bigbtn primary" style="display:none">Resume room<span id="hostResumeInfo"></span></button>
         <button id="quickBtn" class="bigbtn gold">Quick play<span id="quickInfo"></span></button>
@@ -6230,10 +6230,11 @@ function showSetup(){
   let mainSave=null; try{ mainSave=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); }catch(e){}
   if(!running&&mainSave&&!(mainSave.cfg&&mainSave.cfg.campaign)){
     cb.style.display='';
+    cb.firstChild.nodeValue=mainSave.hot?'Continue pass & play':mainSave.cfg&&mainSave.cfg.mode==='score'?'Continue score attack':'Continue game';
     try{
-      const d=JSON.parse(localStorage.getItem(SAVE_KEY));
+      const d=mainSave;
       $('continueInfo').textContent=(d.hot?'Pass & play · '+d.hot.length+' players':FACTIONS[d.sides.P].name)+' · turn '+d.turn+' · '+d.W+'×'+d.W;
-    }catch(e){ $('continueInfo').textContent='saved campaign'; }
+    }catch(e){ $('continueInfo').textContent='saved game'; }
   } else cb.style.display='none';
   disarm();
   syncRejoin(); syncCampBtn();
