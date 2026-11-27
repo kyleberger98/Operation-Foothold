@@ -1581,6 +1581,7 @@ const unitAt=(x,y)=>units.find(u=>u.x===x&&u.y===y);
 const tileAt=(x,y)=>map[y][x];
 
 /* keep the fairest of a few candidate maps, so villages and resources split evenly between the HQs */
+let tutNear=false;   // the guided game, first or replayed, starts in a corner near the camera
 function genMap(){
   let best=null, bs=1e9;
   for(let i=0;i<(mapType().mirror&&enemySides.length<2?1:12)&&bs>1;i++){   // a 1v1 mirror is fair already
@@ -1673,7 +1674,7 @@ function genMap1(){
   }
   // seats get a random corner; the first rival sits opposite you, the others take the other diagonal
   const C=[{x:1,y:H-2},{x:W-2,y:1},{x:1,y:1},{x:W-2,y:H-2}];
-  const r0=(!NET.on&&!tutDone())?(rnd(2)?3:0):rnd(4), rest=r0<2?[2,3]:[0,1];   // the first game starts near the camera
+  const r0=(!NET.on&&(!tutDone()||tutNear))?(rnd(2)?3:0):rnd(4), rest=r0<2?[2,3]:[0,1];   // the first game starts near the camera
   if(mapType().mirror?rest[0]===3||rest[0]===0:rnd(2)) rest.reverse();   // a mirrored map keeps its top half, so a third seat goes there
   const corners=[C[r0],C[[1,0,3,2][r0]],...rest.map(i=>C[i])];
   const caps={[P]:corners[0]};
@@ -6272,7 +6273,7 @@ $('resumeBtn').onclick=()=>{ disarm(); $('setup').classList.remove('show'); sfx.
 function launchTutorial(){
   const keep={...cfg};
   cfg.size=9; cfg.enemies=1; cfg.diff='easy'; cfg.hot=1; cfg.mode='conquest'; cfg.map='classic'; cfg.mods=[];   // guided game on a small map with one easy rival
-  launchSolo(true,true);
+  tutNear=true; launchSolo(true,true); tutNear=false;
   cfg=keep;
 }
 $('quickBtn').onclick=()=>{ if(!confirmAbandon($('quickBtn'))) return; if(tutDone()) launchSolo(false); else launchTutorial(); };
