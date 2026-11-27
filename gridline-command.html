@@ -5840,7 +5840,7 @@ const campCanHit=(c,r,f)=>campHit2(c,r,f)||(r.capital&&r.owner!==f&&campNear(c,r
 const campCanAttack=(c,r)=>campCanHit(c,r,c.fac);
 /* Battle objectives. Most battles are won by taking the enemy HQ, but some ask for something else:
    take: take their HQ. hold: last a number of turns with as many cities as the attacker. raid: hold a number of cities by a turn.
-   two: a third faction joins and you get +6 stars; take the defender's HQ. cap: a capital, with walls, a veteran guard and +3 stars.
+   two: a third faction joins, you get +12 stars and it gets 4 fewer and no perks; take the defender's HQ. cap: a capital, with walls, a veteran guard and +3 stars.
    Any but a capital battle can also have a match modifier. Older saves have no objective, which means take. */
 const CAMP_OBJ={take:'Conquest', hold:'Hold out', raid:'Raid', two:'Two fronts', cap:'Capital assault'};
 const CAMP_CAP=[{bonus:'walls'},{bonus:'vet'},{bonus:'stars'}];
@@ -5861,7 +5861,7 @@ function campObjText(o, enemy){
   o=o||{k:'take'};
   const t=o.k==='hold'?'Last '+o.turns+' turns with at least as many cities as them, or take their HQ.':
     o.k==='raid'?'Hold '+o.cities+' cities at once by turn '+o.turns+', or take their HQ.':
-    o.k==='two'&&FACTIONS[o.with]?'Take the '+FACTIONS[enemy].name+' HQ. '+FACTIONS[o.with].name+' joins the fight against you both. You start with +6\u2605.':
+    o.k==='two'&&FACTIONS[o.with]?'Take the '+FACTIONS[enemy].name+' HQ. '+FACTIONS[o.with].name+' joins the fight against you both. You start with +12\u2605.':
     o.k==='cap'?'Take their HQ. A capital has City Walls, a veteran guard and +3\u2605.':FACTIONS[o.vs]?'Take the '+FACTIONS[o.vs].name+' HQ.':'Take their HQ.';
   return t+(MODS[o.mod]?' '+MODS[o.mod].name+': '+MODS[o.mod].note+'.':'');
 }
@@ -5880,7 +5880,7 @@ function campBattle(kind, regionId, enemy, obj){
   cfg=keep;
   const bon=campBonuses(c, r, c.fac, enemy), go=gcfg.campaign.obj;
   campApplyBonuses(P, bon.me); campApplyBonuses(enemySides[0], bon.enemy);
-  if(two){ campApplyBonuses(enemySides[1], r.nb.map(k=>c.regions[k]).filter(q=>q.owner===o.with)); stars[P]+=6; }
+  if(two){ stars[P]+=12; stars[enemySides[1]]-=4; }   // the third rival brings no region perks
   if(r.capital) campApplyBonuses(kind==='attack'?enemySides[0]:P, CAMP_CAP);
   if(o.k==='raid'){ let v=0; map.flat().forEach(t=>{ if(t.city&&!t.city.owner) v++; }); go.cities=Math.min(o.cities, 1+v); }
   computeVision(); refresh(); autoSave();
@@ -7657,7 +7657,7 @@ const MANUAL=[
   ]},
   {id:'camp', name:'Campaign', items:[
     ['Campaign','Campaign on the title screen gives you a random map of 10, 14 or 20 regions shared between you and three rival factions. Each campaign turn you attack a region next to yours and fight a battle for it, on a map that matches the region (highlands, woodland, lakes or coast; capitals are bigger). Win and the region is yours. Hold every region to win the campaign. A map code lets a friend play the same map.'],
-    ['Objectives','The card shows the objective. Conquest: take their HQ. Raid: hold a number of cities at once by a set turn, or take their HQ. Two fronts: a third rival joins and fights you both, and you start with +6\u2605. Take the defender\u2019s HQ; you can\u2019t make peace or an alliance with the defender, and if the third rival knocks it out first, take the third rival\u2019s HQ instead. Capital assault: their HQ has City Walls, a veteran guard and +3\u2605. Some battles also carry a match modifier.'],
+    ['Objectives','The card shows the objective. Conquest: take their HQ. Raid: hold a number of cities at once by a set turn, or take their HQ. Two fronts: a third rival joins and fights you both. You start with +12\u2605, and the third rival starts 4\u2605 short and without region perks. Take the defender\u2019s HQ; you can\u2019t make peace or an alliance with the defender, and if the third rival knocks it out first, take the third rival\u2019s HQ instead. Capital assault: their HQ has City Walls, a veteran guard and +3\u2605. Some battles also carry a match modifier.'],
     ['Capitals','You can only attack a rival\u2019s capital (\u2605) once you hold 2 of the regions next to it and none of its neighbours still belong to its faction. When it falls, any neighbours it still has surrender, and the rest of that faction joins its strongest rival neighbour or fights on without a capital. A rival region with only your regions around it surrenders too.'],
     ['Perks','Every region has a perk: Supply depot +3\u2605, Research station a free tech, Veteran garrison an extra veteran Infantry, Fortress walls on the HQ, Factory town +1\u2605 income, Watchtower longer sight. In a battle you get the perks of your regions next to the contested one, and the defender gets theirs plus the contested region\u2019s own. Nothing else carries over between battles.'],
     ['Rival moves','After each of your attacks the rivals move. They fight each other, and now and then one attacks a region of yours, at most once every 4 campaign turns. Defend it in a battle or give it up (not your capital: losing it ends the campaign). Win the defence and you push on into a region the attacker holds next to it. Some defences are Hold out: last the shown number of turns with at least as many cities as the attacker, or take their HQ.'],
