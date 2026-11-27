@@ -2955,7 +2955,7 @@ try{
   const g=localStorage.getItem('foothold-gfx');
   if(g) gfxLow=g==='low';
   else if((navigator.deviceMemory||8)<=2){ gfxLow=true; localStorage.setItem('foothold-gfx','low'); localStorage.setItem('foothold-gfx-note','1'); }
-  else if(!navigator.webdriver) gfxProbe={ts:[]};   // automated browsers render in software and would always fail it
+  else if(!navigator.webdriver) gfxProbe={ts:[], ws:[]};   // automated browsers render in software and would always fail it
   gfxNoteDue=localStorage.getItem('foothold-gfx-note')==='1';
 }catch(e){}
 const scene=new THREE.Scene();
@@ -3389,7 +3389,7 @@ scene.add(boardGroup, unitGroup, hlGroup, fxGroup, fogGroup, cloudGroup);
 
 /* Fog of war, a continuous cloud blanket over undiscovered land */
 let explored=[];           // [y][x] -> bool (permanent once seen)
-let fogClouds={};          // key -> {parts:[[instanced mesh, index]]} of the cloud covering an unexplored tile
+let fogClouds={};          // key -> true while an unexplored tile is under cloud
 let dissolving=[];         // clouds currently puffing away
 const cloudMat=new THREE.MeshLambertMaterial({color:0xdfe6ea});
 const cloudMatSoft=new THREE.MeshLambertMaterial({color:0xbcc7cf});
@@ -3450,12 +3450,13 @@ function mergeTileStatics(g, tileBox){
 }
 /* Scenery drawn as instances. Each model piece and material is one InstancedMesh for the whole board, so the
    tile boxes, tufts, trees, rocks and shore strips cost a few draw calls. Each tile keeps its copies, to hide them
-   under fog and to squash its trees while a unit stands there. */
+   under fog and to squash its trees while a unit stands there. Only the copies on explored tiles are in the drawn range. */
 let scat=null;        // pieces gathered while the board is built
-let tileInst={};      // key -> {x, y, on, sq, parts:[[mesh, index, matrix in the tile, squashes]]}
+let tileInst={};      // key -> {x, y, on, sq, parts:[[mesh, index (-1 while hidden), matrix in the tile, squashes]]}
+let scatDirty=false;  // a tile was shown or hidden; the instances are packed again before the next frame
 const ENV_MATS_I={};  // twins of ENV_MATS for instances; one material on both kinds of mesh recompiles every time it switches
 const envMatI=k=>{ if(!ENV_MATS_I[k]) for(const kk in ENV_MATS) ENV_MATS_I[kk]=ENV_MATS_I[kk]||ENV_MATS[kk].clone(); return ENV_MATS_I[k]; };   // made in palette order, the order the renderer draws them in
-const ZERO_M=new THREE.Matrix4().makeScale(0,0,0), Y_AXIS=new THREE.Vector3(0,1,0);
+const Y_AXIS=new THREE.Vector3(0,1,0);
 const TUFT_GEO=new THREE.ConeGeometry(0.035,0.09,5);
 const SAND_GEO=[new THREE.BoxGeometry(0.976,0.006,0.06), new THREE.BoxGeometry(0.06,0.006,0.976)];
 const FOAM_GEO=[new THREE.PlaneGeometry(0.976,0.06), new THREE.PlaneGeometry(0.06,0.976)];
@@ -3478,18 +3479,32 @@ function buildScatter(){
     const im=new THREE.InstancedMesh(geo, mat, items.length);
     im.castShadow=cast; im.receiveShadow=true;
     if(mat===foamMat) im.renderOrder=-4;   // under the territory and dim overlays, as before
-    items.forEach(([k,L,tree],i)=>tileInst[k].parts.push([im,i,L,tree]));
+    im.userData.items=items.map(([k,L,tree])=>{ const p=[im,-1,L,tree]; tileInst[k].parts.push(p); return [tileInst[k],p]; });
     boardGroup.add(im);
   }
   scat=null;
-  for(const k in tileInst){ const t=tileInst[k]; if(t.parts.some(p=>p[3])) forestTrees[k]=t; writeTile(t); }
+  for(const k in tileInst){ const t=tileInst[k]; if(t.parts.some(p=>p[3])) forestTrees[k]=t; }
+  scatDirty=true;
+}
+function packScatter(){
+  if(!scatDirty) return;
+  scatDirty=false;
+  for(const im of boardGroup.children){
+    if(!im.userData.items) continue;
+    let n=0;
+    for(const [t,p] of im.userData.items) p[1]=t.on?n++:-1;
+    im.count=n; im.visible=n>0;
+  }
+  for(const k in tileInst) writeTile(tileInst[k]);
 }
 const tileM=new THREE.Matrix4(), squashM=new THREE.Matrix4(), instM=new THREE.Matrix4();
 function writeTile(t){
+  if(t.parts.some(p=>(p[1]>=0)!==t.on)){ scatDirty=true; return; }   // shown or hidden: packed before the next frame
+  if(!t.on) return;
   tileM.makeTranslation(wx(t.x),0,wz(t.y));
   if(t.sq!==1) squashM.makeTranslation(wx(t.x),TOP,wz(t.y)).multiply(instM.makeScale(1,t.sq,1)).multiply(instM.makeTranslation(0,-TOP,0));
   for(const [im,i,L,tree] of t.parts){
-    im.setMatrixAt(i, t.on?instM.multiplyMatrices(tree&&t.sq!==1?squashM:tileM, L):ZERO_M);
+    im.setMatrixAt(i, instM.multiplyMatrices(tree&&t.sq!==1?squashM:tileM, L));
     im.instanceMatrix.needsUpdate=true;
   }
 }
@@ -3541,31 +3556,38 @@ function makeFogCloud(x,y){
   g.userData={baseY:y0};
   return g;
 }
-/* one instanced mesh per cloud variant and material covers every hidden tile */
+/* one instanced mesh per cloud variant and material covers the hidden tiles. Before a frame is drawn only the hidden
+   tiles in view are written into it, so the cover is a few draw calls and nothing off screen is drawn. */
+let fogDirty=true;
+const fogPV=new THREE.Matrix4(), fogLastPV=new THREE.Matrix4(), fogFr=new THREE.Frustum(), fogS=new THREE.Sphere(new THREE.Vector3(),0.95);
 function buildFog(tiles){
-  const m=new THREE.Matrix4();
   for(const vk in tiles){
-    const fv=FOG_VARIANTS[vk], list=tiles[vk];
+    const fv=FOG_VARIANTS[vk], list=tiles[vk].map(([x,y])=>[x,y,key(x,y)]);
     for(const [geo,mat] of [[fv.a,cloudMat],[fv.b,cloudMatSoft]]){
       if(!geo) continue;
       const im=new THREE.InstancedMesh(geo,mat,list.length);
-      im.userData.keys=list.map(([x,y])=>key(x,y));
-      list.forEach(([x,y],i)=>{ im.setMatrixAt(i, m.makeTranslation(wx(x),0.52,wz(y))); fogClouds[key(x,y)].parts.push([im,i]); });
+      im.userData.tiles=list; im.count=0; im.visible=false;
       fogGroup.add(im);
     }
   }
+  fogDirty=true;
 }
-/* a revealed tile's instance is swapped with the last one, so only the remaining cover is drawn */
-function dropFog(fc){
-  for(const [im,i] of fc.parts){
-    const last=--im.count, ks=im.userData.keys;
-    if(i!==last){
-      im.getMatrixAt(last,TMP_M); im.setMatrixAt(i,TMP_M); ks[i]=ks[last];
-      for(const q of fogClouds[ks[i]].parts) if(q[0]===im) q[1]=i;
+function cullFog(){
+  camera.updateMatrixWorld(); fogPV.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);
+  if(!fogDirty&&fogPV.equals(fogLastPV)) return;
+  fogLastPV.copy(fogPV); fogDirty=false; fogFr.setFromProjectionMatrix(fogPV);
+  for(const im of fogGroup.children){
+    const ts=im.userData.tiles; if(!ts) continue;   // a cloud puffing away
+    let n=0;
+    for(const [x,y,k] of ts){
+      if(!fogClouds[k]) continue;
+      fogS.center.set(wx(x),0.52,wz(y));
+      if(fogFr.intersectsSphere(fogS)) im.setMatrixAt(n++, TMP_M.makeTranslation(wx(x),0.52,wz(y)));
     }
-    im.instanceMatrix.needsUpdate=true; im.visible=im.count>0;
+    im.count=n; im.visible=n>0; im.instanceMatrix.needsUpdate=true;
   }
 }
+scene.onBeforeRender=()=>{ packScatter(); cullFog(); };
 let decoClouds=[];
 let surf=null;
 function buildSkyClouds(){
@@ -3667,7 +3689,7 @@ function syncFog(){
     const ti=tileInst[k]; if(ti&&ti.on!==exp){ ti.on=exp; writeTile(ti); }
     const fc=fogClouds[k];
     if(exp&&fc){
-      dropFog(fc); delete fogClouds[k];
+      delete fogClouds[k]; fogDirty=true;
       const d=makeFogCloud(x,y); fogGroup.add(d); dissolving.push(d);
     }
   }
@@ -3980,7 +4002,7 @@ function buildBoard(){
       g.visible=false;
       fogVariant((x+y)%2,(x*7+y*3)%4);
       (fogTiles[fogKey(x,y)]=fogTiles[fogKey(x,y)]||[]).push([x,y]);
-      fogClouds[key(x,y)]={parts:[]};
+      fogClouds[key(x,y)]=true;
     }
   }
   buildFog(fogTiles);
@@ -4605,7 +4627,8 @@ const fx={
 };
 
 /* The first game on a device with no graphics choice draws every frame for 4 seconds (after a second to settle).
-   If the median frame takes over 22 ms, it moves to Low and says so once. */
+   If the median frame takes over 22 ms, it moves to Low and says so once. A steady 30 fps with little work per frame
+   is a browser frame cap (low power mode), not a slow device, so it decides nothing and tries again next launch. */
 function gfxCheck(now){
   const pr=gfxProbe;
   if(pr){
@@ -4614,10 +4637,11 @@ function gfxCheck(now){
     if(pr.prev) pr.ts.push(now-pr.prev);
     pr.prev=now;
     if(now<pr.t0+4000) return true;
-    const ts=pr.ts.sort((a,b)=>a-b), med=ts[ts.length>>1];
+    const ts=pr.ts.sort((a,b)=>a-b), med=ts[ts.length>>1], ws=pr.ws.sort((a,b)=>a-b);
     gfxProbe=null;
     if(!ts.length) return false;   // no frames to judge by; try again next launch
     if(med<=22){ try{ localStorage.setItem('foothold-gfx','high'); }catch(e){} return false; }
+    if(med>31&&med<35.5&&ts[Math.floor(ts.length*0.9)]<37&&(ws[ws.length>>1]||0)<12) return false;
     setGfx(true); gfxNoteDue=true;
   }
   if(gfxNoteDue){
@@ -4636,7 +4660,7 @@ const boardCovered=()=>$('setup').classList.contains('show')||$('techPanel').cla
 const boardDimmed=()=>!$('dipPanel').hidden||!$('armyPanel').hidden;
 for(const ev of ['pointerdown','pointerup','click','keydown']) addEventListener(ev, wake, {capture:true, passive:true});
 function loop(now){
-  loopT=null;
+  loopT=null; const t0=performance.now();
   const raw=Math.min(0.25,(now-lastT)/1000), dt=Math.min(0.05,raw); lastT=now;
   const covered=boardCovered(), title=!map&&$('setup').classList.contains('show'), dimmed=boardDimmed();
   if(wasCovered&&!covered) needDraw=true;
@@ -4649,7 +4673,7 @@ function loop(now){
   if(!moving) for(const k in forestTrees) if(forestTrees[k].sq!==(occ.has(k)?0.5:1)){ moving=true; break; }
   if(map&&!covered&&!document.hidden&&(gfxProbe||gfxNoteDue)) moving=gfxCheck(now)||moving;
   let draw;
-  if(covered) draw=title&&!gfxLow&&now-lastDraw>=95;                // the title screen drifts at 10 fps
+  if(covered) draw=title&&!gfxLow&&now-lastDraw>=95||needDraw&&now-lastDraw>=500;   // the title screen drifts at 10 fps; a resize or first frame still draws
   else if(moving||needDraw) draw=!gfxLow||now-lastDraw>=29;
   else if(!gfxLow&&!dimmed) draw=now-lastDraw>=29;
   else draw=now-lastDraw>=1000;
@@ -4753,7 +4777,7 @@ function loop(now){
     if(c.position.x>lim) c.position.x=-lim;
     c.position.y+=Math.sin(at*0.0008+c.userData.bobP)*0.06*adt;
   }
-  if(draw){ renderer.render(scene,camera); lastDraw=now; needDraw=false; }
+  if(draw){ renderer.render(scene,camera); lastDraw=now; needDraw=false; if(gfxProbe&&gfxProbe.prev) gfxProbe.ws.push(performance.now()-t0); }
   const wa=wantAwake(); if(wa!==awakeOn){ awakeOn=wa; keepAwake(wa); }
   // the next tick: every frame while drawing often, otherwise a few times a second (wake() cuts the wait short)
   if(moving||(!covered&&(needDraw||(!gfxLow&&!dimmed)))) requestAnimationFrame(loop);
