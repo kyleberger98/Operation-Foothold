@@ -6977,7 +6977,8 @@ const NET={
       let sl=this.slots.find(x=>x.kind==='open');
       if(!sl) return deny('Lobby is full. Ask the host to open a slot.');
       const used=this.slots.map(x=>x.name).filter(Boolean);
-      for(let k=2;used.includes(nm);k++) nm=String(m.name).slice(0,12).toUpperCase()+'-'+k;   // callsigns stay unique
+      const base=nm.slice(0,12);
+      for(let k=2;used.includes(nm);k++) nm=base+'-'+k;   // callsigns stay unique
       sl.kind='human'; sl.name=nm; sl.rk=Math.max(1,Math.min(RANKS.length,m.rk|0)); sl.em=EMBLEMS[m.em]?m.em:'none';
       this.humans[sl.s]={name:nm, conn};
       conn._side=sl.s;
@@ -7028,7 +7029,7 @@ const NET={
     if(old&&old!==conn){ old._side=null; try{ old.close(); }catch(e){} }
     h.conn=conn; conn._side=slot;
     if(h.bot&&side!==slot) delete h.bot;   // mid-turn, the AI finishes the turn first (see turnStart)
-    if(side===slot){ clearTimeout(this._takeT); this._takeT=null; }
+    if(side===slot){ clearTimeout(this._takeT); this._takeT=null; this._held=null; }
     netBar(null);
     log('sys', h.name+' reconnected.');
     const d=this.stateFor(slot,this.state()); d.explored=markSeen(slot);
@@ -7040,16 +7041,17 @@ const NET={
     const h=this.humans[s]; if(!h||h.conn||h.bot) return;
     clearTimeout(this._takeT);
     const g0=gen, take=()=>{ if(gen===g0&&this.humans[s]&&!this.humans[s].conn&&side===s) this.aiTakeover(s); };
-    this._takeT=setTimeout(take, this.GRACE*1000);
+    this._takeT=setTimeout(take, this.GRACE*1000); this._held=s;
     netBar(h.name+' disconnected. Their seat is held for '+this.GRACE+' s.', 'AI plays', take,
       'Wait', ()=>{ clearTimeout(this._takeT); this._takeT=null; netBar('Waiting for '+h.name+' to rejoin.', 'AI plays', take); });
   },
   turnStart(s){
     for(const k in this.humans){ const h=this.humans[k];
       if(h.bot&&h.conn&&h.conn.open){ delete h.bot; log('sys', h.name+' takes back command.'); }
-      if(k!==s) markSeen(k); }
+      markSeen(k); }
     this.turnEnds=(this.timer&&(s===P||this.isHuman(s))&&alive[s])?Date.now()+this.timer*1000:0;
     clearTimeout(this._takeT); this._takeT=null;
+    if(this._held){ this._held=null; if(!this._ask) netBar(null); }   // last turn's held-seat bar
     const h=this.humans[s];
     if(h&&!h.conn&&!h.bot&&alive[s]) this.holdSeat(s);
     if(h&&h.conn&&!h.bot) this._fsDue=s;   // the guest keeps a full save in case the host vanishes
