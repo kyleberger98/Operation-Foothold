@@ -617,6 +617,10 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
 }
 /* the online turn timer takes the Cities slot on narrow phones */
 @media (max-width:400px){ #hud:has(#hudTimerBox:not([hidden])) .hb-cities{display:none} }
+@media (min-width:521px) and (max-width:600px){
+  #hud:has(#hudTimerBox:not([hidden])){left:calc(env(safe-area-inset-left,0px) + 64px); right:calc(env(safe-area-inset-right,0px) + 118px); transform:none; justify-content:center}
+  #hud:has(#hudTimerBox:not([hidden])) .hud-box{min-width:56px; padding:6px 9px 5px}
+}
 /* Text size setting. Large and Larger scale the panels that carry most of the reading */
 body.tsz :is(#command>*, .toast, .apInner>*, #techDetail>*, #techLegend, .rwInner>*, .hoBox>*, #overlay>*, #endBar>*,
   #homePane, #soloPane, #profilePane, #mpPane, #campNew, #campStatus, #campLegend, #campCard, #campLog){zoom:var(--tz)}
@@ -636,7 +640,8 @@ body.tsz #techTree .tn-cost{font-size:12px}
 @media (prefers-reduced-motion:reduce){
   button,.fcard,.opt,#command{transition:none}
   #factionGrid,.optRow,.homeBtns,.toast,.toast.out{animation:none}
-  #endTurn.pulse .disc,#techBtn.avail .disc::after,.coach-ping .disc{animation:none}
+  #endTurn.pulse .disc,#techBtn.avail .disc::after,.coach-ping .disc,.abtn.coach-ping .disc{animation:none}
+  .coach-ping .disc,.abtn.coach-ping .disc{box-shadow:0 0 0 3px rgba(244,240,227,.3), inset 0 0 0 2px rgba(244,240,227,.9)}
   #powerBtn.ready,#turnBanner.show,#turnBanner .tbDots i,#mpJoinBtn.invited{animation:none}
   #turnBanner .tbDots i{opacity:.7}
   #techTree .tn.avail:not(.cant) .tn-ring{animation:none; stroke-opacity:.8}
@@ -4143,7 +4148,9 @@ function drawLabel(sp,u){
   ctx.fillStyle=col;
   const nm=u.cargo?'LANDER+'+(UNIT_LABEL[u.cargo.type]||u.cargo.type):UNIT_LABEL[u.type]||t.key;
   let fs=27; while(fs>16){ ctx.font='700 '+fs+'px Saira Condensed, sans-serif'; if(ctx.measureText(nm).width<=76) break; fs-=2; }
-  ctx.fillText(nm,76,26);
+  const nw=ctx.measureText(nm).width;
+  if(nw>80){ ctx.save(); ctx.translate(76,0); ctx.scale(80/nw,1); ctx.fillText(nm,0,26); ctx.restore(); }   // squeeze long cargo names clear of the glyph
+  else ctx.fillText(nm,76,26);
   // hp bar, then the veteran star or promotion dot after the number
   const r=Math.max(0,u.hp/u.maxHp), hp=String(Math.max(0,u.hp));
   ctx.fillStyle='rgba(0,0,0,.6)'; ctx.fillRect(10,38,66,9);
@@ -4409,8 +4416,8 @@ const fx={
     if(!visXY(ax,ay)&&!visXY(tx,ty)) return;
     const ga=unitMeshes.get(aid), gt=unitMeshes.get(tid);
     const dx=wx(tx)-wx(ax), dz=wz(ty)-wz(ay), L=Math.hypot(dx,dz)||1;
-    if(ga) ga.userData.lunge={x:dx/L, z:dz/L, t:0, amp:kind==='melee'?0.3:-0.08};
-    if(gt) gt.userData.shake=0.38;
+    if(ga&&!RM) ga.userData.lunge={x:dx/L, z:dz/L, t:0, amp:kind==='melee'?0.3:-0.08};
+    if(gt&&!RM) gt.userData.shake=0.38;
     const a=new THREE.Vector3(wx(ax),TOP+0.34,wz(ay)), b=new THREE.Vector3(wx(tx),TOP+0.3,wz(ty));
     if(kind==='shot'){
       const len=a.distanceTo(b);
@@ -4554,7 +4561,7 @@ function loop(now){
   for(const [id,g] of unitMeshes){
     const ud=g.userData;
     if(!ud.base) ud.base=g.position.clone();
-    if(ud.target) ud.base.lerp(ud.target, Math.min(1, dt*9));
+    if(ud.target) ud.base.lerp(ud.target, Math.min(1, dt*(RM?30:9)));
     g.position.copy(ud.base);
     if(ud.lunge){
       ud.lunge.t+=dt; const k=ud.lunge.t/0.3;
