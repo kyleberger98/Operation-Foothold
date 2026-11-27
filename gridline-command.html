@@ -497,6 +497,7 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
 .saveRow{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
 .saveRow .opt{flex:1 1 140px}
 .saveNote{margin-top:10px; font-size:10.5px; color:var(--dim); letter-spacing:.04em; text-align:center}
+.loadMsg{color:#ffb4aa; font-size:12px}
 #factionGrid,.optRow,.homeBtns{animation:panelIn .22s ease both}
 @keyframes panelIn{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:none}}
 
@@ -737,6 +738,7 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
         <button id="profileBtn" class="bigbtn"><i id="pbBadge" class="rkBadge t1">1</i><div class="pbTxt">Profile<span id="pbInfo">rank and unlocks</span></div></button>
         <button id="tutBtn" class="bigbtn">How to play<span>a guided first game</span></button>
       </div>
+      <div class="saveNote loadMsg" role="alert" hidden></div>
       <div class="saveNote">Your campaign auto-saves every move on this device.</div>
       <div class="saveNote" id="progLine" hidden></div>
       <div class="setRow"><button id="speedMenuBtn" class="speedMenu"></button><button id="soundMenuBtn" class="speedMenu"></button><button id="musicMenuBtn" class="speedMenu"></button><button id="gfxMenuBtn" class="speedMenu"></button><button id="followMenuBtn" class="speedMenu"></button><button id="installBtn" class="speedMenu install" hidden></button></div>
@@ -791,6 +793,7 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
       <button id="importBtn" class="opt">Import Save<span>load from file</span></button>
       <input type="file" id="importFile" accept=".json,application/json" style="display:none">
     </div>
+    <div class="saveNote loadMsg" role="alert" hidden></div>
     </div>
     <div id="profilePane" style="display:none">
       <button class="backBtn" data-back>◂ Back</button>
@@ -4903,8 +4906,7 @@ function swapSaveSides(d, me){
   d.sides=swKeys(d.sides); d.alive=swKeys(d.alive); d.stars=swKeys(d.stars); d.tech=swKeys(d.tech);
   d.names=swKeys(d.names); d.tc=swKeys(d.tc); d.ln=swKeys(d.ln); d.tl=swKeys(d.tl);
   if(d.pw) for(const k of ['used','rage','ghost','shield']) d.pw[k]=swKeys(d.pw[k]);
-  d.enemySides=d.enemySides.map(sw);
-  d.units.forEach(u=>u.owner=sw(u.owner));
+  d.units.forEach(u=>{ u.owner=sw(u.owner); if(u.cargo) u.cargo.owner=sw(u.cargo.owner); });   // the seats stay the same, only their labels trade
   d.map.forEach(row=>row.forEach(t=>{ if(t.c&&t.c.o) t.c.o=sw(t.c.o); }));
   if(d.rv) d.rv.forEach(r=>r.s=sw(r.s));
   if(d.dip){   // treaties, offers and memories follow the swapped seats
@@ -4918,10 +4920,25 @@ function swapSaveSides(d, me){
   d.me=P;
   return d;
 }
+/* check a save before anything on screen changes */
+function saveValid(d){
+  if(!d||typeof d!=='object'||!d.sides||!d.alive||!d.stars||!d.tech||!Array.isArray(d.enemySides)||!Array.isArray(d.units)||!Array.isArray(d.map)) return false;
+  const n=+d.W, seats=[P,...d.enemySides];
+  if(!(n>=5&&n<=40)||d.map.length!==n||d.map.some(r=>!Array.isArray(r)||r.length!==n)) return false;
+  if(new Set(seats).size!==seats.length||seats.some(s=>!FACTIONS[d.sides[s]])) return false;
+  const ok=o=>seats.includes(o);
+  if(d.units.some(u=>!u||!UNIT_TYPES[u.type]||!ok(u.owner)||!(u.x>=0&&u.x<n&&u.y>=0&&u.y<n)||(u.cargo&&(!UNIT_TYPES[u.cargo.type]||!ok(u.cargo.owner))))) return false;
+  return d.map.every(r=>r.every(t=>t&&(!t.c||!t.c.o||ok(t.c.o))));
+}
+function loadFail(m){   // the menu covers the toasts, so say it on the menu as well
+  toast(m,'var(--red)');
+  document.querySelectorAll('.loadMsg').forEach(el=>{ el.textContent=m; el.hidden=false; clearTimeout(el._t); el._t=setTimeout(()=>{ el.hidden=true; },6000); });
+}
 function restoreGame(data, net){
+  if(!net&&data&&data.me){ try{ data=swapSaveSides(data, data.me); }catch(e){ data=null; } }
+  if(!saveValid(data)){ loadFail('Save file could not be loaded.'); return false; }
   document.body.classList.remove('nogame');
   keepAwake(true);
-  if(!net&&data&&data.me) data=swapSaveSides(data, data.me);
   if(net) tutStop();
   try{
     gen++;
@@ -4991,7 +5008,7 @@ function restoreGame(data, net){
     return true;
   }catch(e){
     console.error('restore failed',e);
-    log('sys','Save file could not be loaded.');
+    loadFail('Save file could not be loaded.');
     return false;
   }
 }
@@ -5012,7 +5029,7 @@ function importSave(file){
     try{
       const data=JSON.parse(r.result);
       if(restoreGame(data)&&CAN_STORE){ try{ localStorage.setItem(SAVE_KEY, r.result); }catch(e){} }
-    }catch(e){ log('sys','Save file could not be read.'); }
+    }catch(e){ loadFail('Save file could not be read.'); }
   };
   r.readAsText(file);
 }
