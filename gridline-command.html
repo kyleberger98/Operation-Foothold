@@ -1136,8 +1136,9 @@ const DIFFS={
 /* map types and optional rule modifiers (chosen in Custom setup or by the online host) */
 const MAP_TYPES={
   classic: {name:'Classic',   note:'mixed terrain',          water:0.11, mount:0.10, forest:0.19},
-  highland:{name:'Highlands', note:'mountain passes',        water:0.06, mount:0.24, forest:0.15},
-  woods:   {name:'Woodland',  note:'forests everywhere',     water:0.07, mount:0.08, forest:0.42},
+  highland:{name:'Highlands', note:'mountain passes',        water:0.06, mount:0.07, forest:0.15, ridges:true},
+  woods:   {name:'Woodland',  note:'forests everywhere',     water:0.07, mount:0.08, forest:0.42, groves:true},
+  river:   {name:'River',     note:'fords cross a river',    water:0.04, mount:0.08, forest:0.2, river:true},
   lakes:   {name:'Lakes',     note:'water splits the land',  water:0.08, mount:0.08, forest:0.18, lakes:true},
   sea:     {name:'Inland Sea', note:'a sea in the middle',     water:0.05, mount:0.09, forest:0.18, sea:true},
   mirror:  {name:'Mirrored',  note:'fair, symmetric map',    water:0.10, mount:0.10, forest:0.19, mirror:true},
@@ -1147,10 +1148,18 @@ const MODS={
   rich:    {name:'Double income',  note:'every city pays twice as much'},
   titans:  {name:'Early Titans',   note:'any city can field a Titan'},
   nopower: {name:'No powers',      note:'commander powers switched off'},
+  scarce:  {name:'Scarce stars',   note:'cities pay half income'},
+  fortress:{name:'Fortress world', note:'every city starts with walls'},
+  barren:  {name:'Barren land',    note:'no stray resources or early supply drops'},
+  deadline:{name:'Turn limit',     note:'top score wins after turn 40'},
 };
 const mapType=()=>MAP_TYPES[((gcfg||cfg).map)]||MAP_TYPES.classic;
 const mod=k=>{ const m=(gcfg||cfg).mods; return !!(m&&m.includes(k)); };
 let gcfg=null, blockedHint=false, lastNuke={}, nukeWarned={}, mapReveals=[];   // settings of the game being played (the menu's cfg can change underneath it)
+/* per-game match events: ad = airdrop announced for turn at, adN = turn the next one lands, hq = turn an HQ last fell,
+   sd = stalemate deadline turn, tu = the game ended on time */
+const mx0=()=>({ad:null, adN:10, hq:0, sd:0, tu:0});
+let mx=mx0();
 const diff=()=>DIFFS[(gcfg||cfg).diff]||DIFFS.normal;
 const isAI=s=>s!==P && !HOT.includes(s) && !(NET.on&&NET.isHuman(s));
 /* Diplomacy
@@ -1218,7 +1227,8 @@ function uMove(u){ return UNIT_TYPES[u.type].move + (u.type==='HEL'&&hasTech(u.o
 /* artillery can't move and fire on the same turn unless its owner has Self-Propelled Guns */
 function siegeLocked(u){ return !!UNIT_TYPES[u.type].siege && u.moved && !(u.type==='ART'&&hasTech(u.owner,'SPG')); }
 function cityIncome(c){ const o=c.owner;
-  return ((c.capital?2:1)+c.level+(c.bonus||0)+(o&&hasTech(o,'URBAN')?(c.level>=3?2:1):0))*(mod('rich')?2:1); }
+  const v=((c.capital?2:1)+c.level+(c.bonus||0)+(o&&hasTech(o,'URBAN')?(c.level>=3?2:1):0))*(mod('rich')?2:1);
+  return mod('scarce')?Math.ceil(v/2):v; }
 /* cities travel through saves and the network in this compact form */
 const packCity=c=>c?{o:c.owner,cap:!!c.capital,l:c.level,p:c.pop,rw:c.rw&&c.rw.length?c.rw:0,wa:c.walls?1:0,bd:c.border||0,bn:c.bonus||0,sc:c.scout?1:0,dv:c.dev||0,bk:c.bk||0,cm:c.cmd?1:0,fd:c.fdy?1:0}:0;
 const unpackCity=o=>o?{owner:o.o,capital:!!o.cap,level:o.l,pop:o.p,rw:o.rw||[],walls:!!o.wa,border:o.bd||1,bonus:o.bn||0,scout:!!o.sc,dev:o.dv||0,bk:o.bk||0,cmd:!!o.cm,fdy:!!o.fd}:null;
@@ -1523,7 +1533,8 @@ function resultHtml(winner, firstTime){
     if(won&&minorAlly(me)){
       parts['Allied victory']=150; stars=1;
       note='A full win needs a third of the allied cities or score.';
-    } else if(won){
+    } else if(won&&mx.tu&&turnOrder.some(s=>s!==me&&alive[s])){ stars=1; note='Won on score when time ran out. Take every HQ for more stars.'; }
+    else if(won){
       parts['Victory']=500; parts['Speed bonus']=30*Math.max(0,par+8-turn);
       stars=turn<=par?3:turn<=par+8?2:1;
       note=stars===3?'Won by turn '+par+'.':stars===2?'Three stars need a win by turn '+par+'.':'Two stars need a win by turn '+(par+8)+'.';
@@ -1553,7 +1564,62 @@ const cheb=(a,b)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
 const unitAt=(x,y)=>units.find(u=>u.x===x&&u.y===y);
 const tileAt=(x,y)=>map[y][x];
 
+/* keep the fairest of a few candidate maps, so villages and resources split evenly between the HQs */
 function genMap(){
+  let best=null, bs=1e9;
+  for(let i=0;i<(mapType().mirror&&enemySides.length<2?1:12)&&bs>1;i++){   // a 1v1 mirror is fair already
+    const caps=genMap1(), sc=mapGap(caps);
+    if(sc<bs){ bs=sc; best={caps,map}; }
+  }
+  map=best.map;
+  return best.caps;
+}
+/* walking distance on land from one tile to every other */
+function landDist(src){
+  const d=Array.from({length:H},()=>Array(W).fill(1e9)), q=[src];
+  d[src.y][src.x]=0;
+  for(let i=0;i<q.length;i++){ const p=q[i];
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){ const x=p.x+dx, y=p.y+dy;
+      if(!inb(x,y)||d[y][x]<1e9) continue;
+      const t=tileAt(x,y).terrain; if(t==='water'||t==='mountain') continue;
+      d[y][x]=d[p.y][p.x]+1; q.push({x,y}); } }
+  return d;
+}
+/* how unevenly villages and resources sit between the HQs: each counts for the HQ strictly nearest on foot */
+function mapGap(caps){
+  const hs=Object.values(caps), ds=hs.map(landDist), vil=hs.map(()=>0), res=hs.map(()=>0), RV={CROP:2,ORE:4,OIL:6};
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const t=tileAt(x,y), v=t.city&&!t.city.capital;
+    if(!v&&!t.resource) continue;
+    const d=ds.map(g=>{ let m=g[y][x];
+      if(t.terrain==='water') for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++) if(inb(x+dx,y+dy)) m=Math.min(m,g[y+dy][x+dx]+1);
+      return m; });
+    const lo=Math.min(...d);
+    if(lo>=1e9||d.filter(n=>n===lo).length>1) continue;
+    if(v) vil[d.indexOf(lo)]++; else res[d.indexOf(lo)]+=RV[t.resource]||0;
+  }
+  const gap=a=>Math.max(...a)-Math.min(...a);
+  return gap(vil)*8+gap(res);
+}
+/* a meandering line of mountains or water from edge to edge, kept clear of the corners. Tiles join side to side
+   so units can't slip through diagonally, and a few gaps leave passes or fords. vert: runs top to bottom */
+function mapWall(vert,terr,gaps){
+  const L=vert?H:W, A=vert?W:H, lo=A>=11?4:3, hi=A-1-lo, mid=Math.floor(L/2);
+  let c=Math.max(lo,Math.min(hi,Math.floor((A-1)/2)+rnd(3)-1));
+  const line=[];
+  for(let i=0;i<L;i++){
+    const row=[c];
+    if(i&&Math.random()<0.45){ const n=Math.max(lo,Math.min(hi,c+(rnd(2)?1:-1))); if(n!==c){ row.push(n); c=n; } }
+    line.push(row);
+  }
+  // one gap on each side of the middle (where another wall may cross), then any extra at random
+  const opts=[];
+  for(let i=1;i<L-1;i++) if(Math.abs(i-mid)>=2) opts.push(i);
+  const pick=[opts.filter(i=>i<mid), opts.filter(i=>i>mid)].map(a=>a[rnd(a.length)]);
+  for(let k=0;k<20&&pick.length<gaps;k++){ const i=opts[rnd(opts.length)]; if(pick.every(j=>Math.abs(i-j)>=2)) pick.push(i); }
+  line.forEach((row,i)=>row.forEach(k=>{ const t=vert?tileAt(k,i):tileAt(i,k); t.terrain=pick.includes(i)?'plains':terr; }));
+}
+function genMap1(){
   map=[];
   for(let y=0;y<H;y++){
     const row=[];
@@ -1579,7 +1645,21 @@ function genMap(){
       if(d<edge) map[y][x].terrain='water';
     }
   }
-  const corners=[{x:1,y:H-2},{x:W-2,y:1},{x:1,y:1},{x:W-2,y:H-2}];
+  if(mapType().ridges){ mapWall(true,'mountain',2+rnd(2)); mapWall(false,'mountain',2+rnd(2)); }   // two ranges cross in the middle
+  if(mapType().river) mapWall(!!rnd(2),'water',2+rnd(2));
+  if(mapType().groves){   // one smoothing pass gathers the forest into groves and clearings
+    const f=map.map(r=>r.map(t=>t.terrain==='forest'));
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+      const t=map[y][x]; if(t.terrain!=='forest'&&t.terrain!=='plains') continue;
+      let n=0; for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++) if(inb(x+dx,y+dy)&&f[y+dy][x+dx]) n++;
+      if(n>=5) t.terrain='forest'; else if(n<=2) t.terrain='plains';
+    }
+  }
+  // seats get a random corner; the first rival sits opposite you, the others take the other diagonal
+  const C=[{x:1,y:H-2},{x:W-2,y:1},{x:1,y:1},{x:W-2,y:H-2}];
+  const r0=(!NET.on&&!tutDone())?(rnd(2)?3:0):rnd(4), rest=r0<2?[2,3]:[0,1];   // the first game starts near the camera
+  if(mapType().mirror?rest[0]===3||rest[0]===0:rnd(2)) rest.reverse();   // a mirrored map keeps its top half, so a third seat goes there
+  const corners=[C[r0],C[[1,0,3,2][r0]],...rest.map(i=>C[i])];
   const caps={[P]:corners[0]};
   enemySides.forEach((s,i)=>caps[s]=corners[i+1]);
   for(const s in caps){
@@ -1658,14 +1738,14 @@ function genMap(){
     }
   }
   let extra=0, g2=0;
-  const extraTarget=Math.max(3, Math.round(W*H/30));
+  const extraTarget=mod('barren')?0:Math.max(3, Math.round(W*H/30));
   while(extra<extraTarget && g2++<400){
     const x=rnd(W), y=rnd(H), t=tileAt(x,y);
     if(t.city||t.resource||t.terrain==='mountain'||t.terrain==='water') continue;
     t.resource=Math.random()<0.6?'CROP':'ORE'; extra++;
   }
   // supply drops, like Polytopia's ruins, reward whoever reaches them first
-  const dropTarget=Math.max(2, Math.round(W*H/36));
+  const dropTarget=mod('barren')?0:Math.max(2, Math.round(W*H/36));
   let drops=0, g3=0;
   while(drops<dropTarget && g3++<600){
     const x=rnd(W), y=rnd(H), t=tileAt(x,y);
@@ -1674,6 +1754,7 @@ function genMap(){
     t.ruin=true; drops++;
   }
   if(mapType().mirror){ mirrorMap(caps); linkHQs(caps); }
+  if(mod('fortress')) map.flat().forEach(t=>{ if(t.city) t.city.walls=true; });
   return caps;
 }
 /* every HQ must be reachable on foot from every other, so carve a plains path through water and mountains where needed */
@@ -1893,10 +1974,11 @@ function harvest(x,y,owner){
 }
 function turnHead(s){
   let h='Your turn \u00b7 turn '+turn+' \u00b7 +'+income(s)+'\u2605 income';
-  if(gameMode()==='score'){
+  const lim=turnLimit();
+  if(lim){
     const rk=turnOrder.filter(x=>alive[x]).sort((a,b)=>scoreOf(b)-scoreOf(a)).indexOf(s);
     h+='\nScore '+scoreOf(s)+' \u00b7 '+['1st','2nd','3rd','4th'][rk]+
-      (turn>=SCORE_TURNS-4?' \u00b7 '+(turn===SCORE_TURNS?'final turn!':(SCORE_TURNS-turn+1)+' turns left'):'');
+      (turn>=lim-4?' \u00b7 '+(turn===lim?'final turn!':(lim-turn+1)+' turns left'):'');
   }
   return h;
 }
@@ -1932,10 +2014,13 @@ function myTurnNotices(){
   }
   if(turn>=3&&stars[s]>=5) setTimeout(()=>tipOnce('build','Tap an empty tile inside your borders to build. Farms and Lumber Camps grow your city, and Factories, Markets and Ports earn stars every turn.'),1800);
   { const n=dip.offers.filter(o=>o.to===s&&alive[o.from]).length; if(n) turnNotes.push({i:'hand', c:'#b9a4ff', t:n+' diplomatic offer'+(n>1?'s':'')+' waiting'}); }
+  if(mx.ad){ const w=mx.ad.s; turnNotes.push({i:'star', t:'Supply drop lands '+(mx.ad.at>turn?'next turn':w&&alive[w]&&w!==s?'at the start of '+meta(w).name+'\u2019s turn':'when your turn ends')+(recapAt?'':' (tap to look)')}); if(!recapAt) recapAt={x:mx.ad.x,y:mx.ad.y}; }
+  if(mx.sd&&gameMode()==='conquest') turnNotes.push({i:'warn', t:'Stalemate: the top score wins after turn '+mx.sd+' unless an HQ falls'});
   { const at=recapAt, rows=turnNotes.map(r=>typeof r==='string'?{i:'info',t:r}:r);
     let sub='Turn '+turn;
-    if(gameMode()==='score'){ const rk=turnOrder.filter(x=>alive[x]).sort((a,b)=>scoreOf(b)-scoreOf(a)).indexOf(s);
-      sub+=' \u00b7 '+['1st','2nd','3rd','4th'][rk]+' \u00b7 '+scoreOf(s)+' pts'+(turn>=SCORE_TURNS-4?' \u00b7 '+(turn===SCORE_TURNS?'final turn!':(SCORE_TURNS-turn+1)+' left'):''); }
+    const lim=turnLimit();
+    if(lim){ const rk=turnOrder.filter(x=>alive[x]).sort((a,b)=>scoreOf(b)-scoreOf(a)).indexOf(s);
+      sub+=' \u00b7 '+['1st','2nd','3rd','4th'][rk]+' \u00b7 '+scoreOf(s)+' pts'+(turn>=lim-4?' \u00b7 '+(turn===lim?'final turn!':(lim-turn+1)+' left'):''); }
     const html=`<div class="thd"><b>${hotOn()?esc(pname(s)):'Your turn'}</b><span>${sub}</span><em>+${income(s)}\u2605</em></div>`+
       rows.map(r=>`<div class="trow" style="--rc:${r.c||'var(--amber)'}"><i>${svgIcon(r.i)}</i>${esc(r.t)}</div>`).join('');
     note({turn:true, html, color:meta(s).css, life:rows.length?5200+900*rows.length:2600, onTap:at?()=>panTo(at.x,at.y):null}); }
@@ -1971,6 +2056,65 @@ function showCurtain(s){
   $('handoff').style.setProperty('--fc', f.css);
   $('handoff').hidden=false;
 }
+/* Contested airdrops: from turn 10, every 5 or 6 turns, a rich supply drop lands on the land tile most evenly
+   placed between the living HQs. It is announced and marked a turn ahead, and lands at the start of a random
+   player's turn so no seat always gets the first grab. A unit standing there when it lands opens it. */
+function dropSpot(){
+  const hqs=[];
+  map.forEach((r,y)=>r.forEach((t,x)=>{ if(t.city&&t.city.capital&&alive[t.city.owner]) hqs.push({x,y}); }));
+  if(hqs.length<2) return null;
+  const ds=hqs.map(landDist);
+  let best=null, bs=1e9;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const t=tileAt(x,y);
+    if(t.terrain==='water'||t.terrain==='mountain'||t.city||t.resource||t.ruin||t.b) continue;
+    const d=ds.map(g=>g[y][x]), hi=Math.max(...d);
+    if(hi>=1e9) continue;
+    const sc=(hi-Math.min(...d))*3+hi+(unitAt(x,y)?2:0)+Math.random()*0.5;
+    if(sc<bs){ bs=sc; best={x,y}; }
+  }
+  return best;
+}
+const DEADLINE_TURNS=40;
+/* the last turn before the top score wins: Score attack, the Turn limit modifier, or a stalemate countdown */
+function turnLimit(){
+  if(gameMode()==='score') return SCORE_TURNS;
+  const l=mod('deadline')?DEADLINE_TURNS:0;
+  return mx.sd&&(!l||mx.sd<l)?mx.sd:l;
+}
+/* at the start of each player's turn, on the host: the announced airdrop lands when its turn comes */
+function dropTick(s){
+  if(!mx.ad||turn<mx.ad.at||(mx.ad.s&&mx.ad.s!==s&&alive[mx.ad.s])) return;
+  {
+    let {x,y}=mx.ad; const t=tileAt(x,y);
+    if(t.city||t.resource||t.ruin||t.b){ const q=dropSpot(); if(q){ x=q.x; y=q.y; } else x=-1; }
+    mx.ad=null; mx.adN=turn+5+rnd(2);
+    if(x>=0){
+      tileAt(x,y).ruin=true; tileAt(x,y).ad=1; addDropDecor(x,y);
+      fx.shock(x,y,0xf0b35c);
+      log('sys','A supply drop has landed near the centre.');
+      const u=unitAt(x,y); if(u&&u.type!=='NUKE') openDrop(u,x,y);
+    }
+  }
+}
+/* once per round, on the host: airdrop announcements and the stalemate countdown */
+function roundTick(){
+  if(!mx.ad&&turn>=mx.adN-1){
+    const q=dropSpot(), live=turnOrder.filter(o=>alive[o]);
+    if(q){
+      mx.ad={x:q.x,y:q.y,at:turn+1,s:live[rnd(live.length)]};
+      for(const s of turnOrder) if(alive[s]){ mapReveals.push({s,x:q.x,y:q.y,r:1});
+        if(s===MYSIDE) revealAround(q.x,q.y,1);
+        else if(exploredBy[s]) for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++) if(inb(q.x+dx,q.y+dy)) exploredBy[s][q.y+dy][q.x+dx]=true; }
+      log('sys','Supply drop inbound near the centre next turn.');
+    } else mx.adN=turn+3;
+  }
+  // a conquest game with no HQ taken for 10 turns late on gets a deadline: the top score wins in 10 turns
+  if(gameMode()==='conquest'&&!mx.sd&&turn>=(W>=15?60:50)&&turn-mx.hq>=10){
+    mx.sd=turn+9;
+    log('sys','Stalemate: the top score wins after turn '+mx.sd+' unless an HQ falls.');
+  }
+}
 function startTurn(s, first){
   side=s;
   if(hotOn()&&HOT.includes(s)&&s!==MYSIDE) handTo(s);
@@ -2002,9 +2146,12 @@ function startTurn(s, first){
   }
   units.forEach(u=>{ if(u.owner===s){u.moved=false;u.attacked=false;u.held=false;u.waited=false;u.walked=false;} });
   if(s===turnOrder.find(x=>alive[x]) && !first){
-    if(gameMode()==='score'&&turn>=SCORE_TURNS){ sel=null; endGame(scoreLeader()); return; }   // time is up: the top score wins
+    const lim=turnLimit();
+    if(lim&&turn>=lim){ sel=null; mx.tu=1; endGame(scoreLeader()); return; }   // time is up: the top score wins
     turn++;   // counts on even after the player is knocked out
+    roundTick();
   }
+  if(!first) dropTick(s);
   dipTurn(s, s===turnOrder.find(x=>alive[x])&&!first);
   undoStack.length=0;   // undo never reaches back past the start of a turn
   if(NET.host&&NET.inGame) NET.turnStart(s);
@@ -2408,8 +2555,8 @@ function attack(u,d){
 }
 /* a unit that reaches a supply drop opens it for stars, a free tech, a recruit, a map reveal or city growth */
 function openDrop(u,x,y){
-  const t=tileAt(x,y), s=u.owner;
-  t.ruin=false; removeDropDecor(x,y);
+  const t=tileAt(x,y), s=u.owner, big=t.ad;
+  t.ruin=false; t.ad=0; removeDropDecor(x,y);
   const whose=NET.on?meta(s).name+"'s troops":(s===MYSIDE?'Your troops':'Enemy troops');
   const nextTech=Object.keys(TECHS).filter(k=>!hasTech(s,k)&&TECHS[k].tier<=3&&(!TECHS[k].req||hasTech(s,TECHS[k].req)));
   const near=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]].map(([dx,dy])=>({x:x+dx,y:y+dy}))
@@ -2418,7 +2565,21 @@ function openDrop(u,x,y){
   map.forEach((row,yy)=>row.forEach((tt,xx)=>{ if(tt.city&&tt.city.owner===s){ const d=cheb({x:xx,y:yy},{x,y}); if(d<hd){ hd=d; home={x:xx,y:yy,c:tt.city}; } } }));
   const r=Math.random();
   let msg;
-  if(r<0.3||(r<0.55&&!nextTech.length)){ stars[s]+=10; msg='10\u2605 of supplies'; }
+  if(big){   // a contested airdrop carries more
+    const adv=Object.keys(TECHS).filter(k=>!hasTech(s,k)&&TECHS[k].tier>=3&&(!TECHS[k].req||hasTech(s,TECHS[k].req)));
+    if(r<0.3&&adv.length){ const k=adv[rnd(adv.length)]; tech[s].add(k); msg='intel files that teach '+TECHS[k].name; }
+    else if(r<0.55&&near.length){ const q=near[rnd(near.length)]; spawn(s,'TNK',q.x,q.y); const nu=units[units.length-1]; nu.moved=true; nu.attacked=true; msg='a free Tank'; }
+    else if(r<0.75&&home){
+      map.flat().forEach(tt=>{ const c=tt.city; if(!c||c.owner!==s||c.level>=MAX_LEVEL) return;
+        c.pop++; const gained=[];
+        while(c.level<MAX_LEVEL&&c.pop>=c.level+1){ c.pop-=c.level+1; c.level++; gained.push(c.level); }
+        if(c.level>=MAX_LEVEL) c.pop=0;
+        if(gained.length) c.rw=(c.rw||[]).concat(gained); });
+      msg='settlers bringing +1 population to every city';
+    }
+    else { stars[s]+=25; msg='25\u2605 of supplies'; }
+  }
+  else if(r<0.3||(r<0.55&&!nextTech.length)){ stars[s]+=10; msg='10\u2605 of supplies'; }
   else if(r<0.55){ const k=nextTech[rnd(nextTech.length)]; tech[s].add(k); msg='intel files that teach '+TECHS[k].name; }
   else if(r<0.75&&near.length){ const q=near[rnd(near.length)]; spawn(s,'INF',q.x,q.y); const nu=units[units.length-1]; nu.moved=true; nu.attacked=true; msg='a free Infantry recruit'; }
   else if(r<0.88||!home){ stars[s]+=4; mapReveals.push({s,x,y,r:4}); if(s===MYSIDE) revealAround(x,y,4); msg='a map of the area and 4\u2605'; }
@@ -2480,7 +2641,7 @@ function aiSurrenders(s){
   return top&&sidePower(s)*4<tp ? top : null;
 }
 function eliminate(s, by, surrendered){
-  alive[s]=false;
+  alive[s]=false; mx.hq=turn; mx.sd=0;
   units=units.filter(q=>{
     if(q.owner!==s) return true;
     if(!surrendered){ recKill(q.owner,by); if(q.cargo) recKill(q.owner,by); if(visXY(q.x,q.y)) fx.boom(q.x,q.y); }
@@ -2954,9 +3115,11 @@ async function aiTurn(me){
     const t=tileAt(x,y), c=t.city;
     if(!kn[y][x]){ if(t.terrain!=='water') objs.push({x,y,w:5}); continue; }
     if(c&&c.owner!==me&&(!c.owner||hostile(c.owner,me)||dip.warn[me+'>'+c.owner]!=null)&&!closed(x,y)) objs.push({x,y,w:c.capital?0:1});
-    if(t.ruin) objs.push({x,y,w:0.5});
+    if(t.ruin) objs.push({x,y,w:t.ad?-2:0.5});
   }
   foes.forEach(f=>objs.push({x:f.x,y:f.y,w:2}));
+  const inbound=p=>!!mx.ad&&p.x===mx.ad.x&&p.y===mx.ad.y;   // the announced airdrop tile: get there and hold it
+  if(mx.ad) objs.push({x:mx.ad.x,y:mx.ad.y,w:-2});
 
   const aiPromote=()=>units.filter(q=>q.owner===me&&canPromote(q)&&q.hp<=q.maxHp-3).forEach(promote);
   aiPromote();
@@ -3013,7 +3176,7 @@ async function aiTurn(me){
       if(gameOver) break;
       refresh(); continue;
     }
-    const guarding=hq&&hqThreat&&u.x===hq.x&&u.y===hq.y;
+    const guarding=(hq&&hqThreat&&u.x===hq.x&&u.y===hq.y)||inbound(u);
     // a Field Ambulance doesn't fight; it parks next to the most damaged friendly unit, out of the line of fire
     if(UNIT_TYPES[u.type].medic){
       const hurt=units.filter(q=>q.owner===me&&q!==u&&q.type!=='NUKE').sort((a,b)=>(b.maxHp-b.hp)-(a.maxHp-a.hp)||cheb(a,u)-cheb(b,u));
@@ -3061,7 +3224,7 @@ async function aiTurn(me){
         if(hqThreat&&hq&&!unitAt(hq.x,hq.y)&&r.has(key(hq.x,hq.y))){ best={x:hq.x,y:hq.y}; bestScore=-2; }
         if(bestScore>=0&&!wounded) for(const p of r.values()){
           const c=tileAt(p.x,p.y).city;
-          if((c&&c.owner!==me&&(!c.owner||hostile(c.owner,me)))||tileAt(p.x,p.y).ruin){ best=p; bestScore=-1; break; }
+          if((c&&c.owner!==me&&(!c.owner||hostile(c.owner,me)))||tileAt(p.x,p.y).ruin||inbound(p)){ best=p; bestScore=-1; break; }
         }
         if(bestScore>=0){
           for(const p of r.values()){
@@ -4526,6 +4689,7 @@ const hlMatBlast=new THREE.MeshBasicMaterial({color:0xff4a3d, transparent:true, 
 const hlMatDanger=new THREE.MeshBasicMaterial({color:0xe8625a, transparent:true, opacity:0.16, side:THREE.DoubleSide});
 let dangerOn=false;
 const hlMatAllDanger=new THREE.MeshBasicMaterial({color:0xff4a3d, transparent:true, opacity:0.3, side:THREE.DoubleSide});
+const hlMatDrop=new THREE.MeshBasicMaterial({color:0xf0b35c, transparent:true, opacity:0.32, side:THREE.DoubleSide});
 function dangerTiles(){
   const out=new Set();
   for(const e of units){
@@ -4548,6 +4712,13 @@ function toggleDanger(){
 }
 function syncHighlights(){
   hlGroup.clear();
+  if(mx.ad&&map&&!gameOver){   // where the next airdrop lands
+    const m=new THREE.Mesh(hlGeoPlane,hlMatDrop), r=new THREE.Mesh(hlGeoRing,hlMatSel);
+    m.rotation.x=r.rotation.x=-Math.PI/2;
+    m.position.set(wx(mx.ad.x),TOP+0.014,wz(mx.ad.y)); r.position.set(wx(mx.ad.x),TOP+0.026,wz(mx.ad.y));
+    r.userData.pulse=1.2;
+    hlGroup.add(m,r);
+  }
   if(dangerOn&&map&&!gameOver){
     for(const k of dangerTiles()){
       const [x,y]=k.split(',').map(Number), tt=tileAt(x,y);
@@ -5139,6 +5310,7 @@ function onTileClick(x,y){
   const c=tileAt(x,y).city;
   if(c&&!u&&(c.owner===MYSIDE||visXY(x,y))){ sel={kind:'city',x,y}; sfx.select(); refresh(); return; }
   if(tileAt(x,y).ruin){ sel={kind:'drop',x,y}; sfx.select(); refresh(); return; }
+  if(mx.ad&&mx.ad.x===x&&mx.ad.y===y){ sel={kind:'inbound',x,y}; sfx.select(); refresh(); return; }
   if(tileAt(x,y).resource){ sel={kind:'res',x,y}; sfx.select(); refresh(); return; }
   if(tileAt(x,y).b||(terrGrid()[y][x]===MYSIDE&&!gameOver)){ sel={kind:'tile',x,y}; sfx.select(); refresh(); return; }
   sel=null; refresh();
@@ -5164,7 +5336,7 @@ function refresh(){
   $('hudStars').textContent=stars[MYSIDE];
   syncDipBadge();
   $('hudIncome').textContent='+'+income(MYSIDE);
-  $('hudTurn').textContent=gameMode()==='score'?turn+'/'+SCORE_TURNS:turn;
+  $('hudTurn').textContent=turnLimit()?turn+'/'+turnLimit():turn;
   syncPower();
   const hs=$('hudSide');
   hs.textContent=side===MYSIDE?'YOU':(playerMeta[side]?meta(side).name.split(' ')[0].toUpperCase():'ENEMY');
@@ -5304,7 +5476,7 @@ function serializeGame(){
     stars:{...stars},
     tech:Object.fromEntries(turnOrder.map(s=>[s,[...tech[s]]])),
     turn, uid, stats:{...stats},
-    tc:{...turnCities}, ln:{...lastNuke}, rv:mapReveals, me:hotOn()?P:MYSIDE, tl:tally, pw, dip, ak:packKnow(),
+    tc:{...turnCities}, ln:{...lastNuke}, rv:mapReveals, me:hotOn()?P:MYSIDE, tl:tally, pw, dip, ak:packKnow(), mx,
     hot:hotOn()?[...HOT]:0, hs:side, ex:hotOn()?{...exploredBy,[MYSIDE]:explored}:0,
     names:Object.fromEntries(turnOrder.map(s=>[s,meta(s).name])),
     units:units.map(u=>({...u})),
@@ -5312,7 +5484,7 @@ function serializeGame(){
     map:map.map(row=>row.map(t=>({
       t:t.terrain,
       c:packCity(t.city),
-      r:t.resource||0, ru:t.ruin?1:0, b:t.b||0
+      r:t.resource||0, ru:t.ruin?(t.ad?2:1):0, b:t.b||0
     })))
   });
 }
@@ -5336,6 +5508,7 @@ function swapSaveSides(d, me){
   d.map.forEach(row=>row.forEach(t=>{ if(t.c&&t.c.o) t.c.o=sw(t.c.o); }));
   if(d.rv) d.rv.forEach(r=>r.s=sw(r.s));
   if(d.ak) d.ak=swKeys(d.ak);
+  if(d.mx&&d.mx.ad&&d.mx.ad.s) d.mx.ad.s=sw(d.mx.ad.s);
   if(d.dip){   // treaties, offers and memories follow the swapped seats
     const swPair=(k,sep)=>k.split(sep).map(x=>x.endsWith('$')?sw(x.slice(0,-1))+'$':sw(x)).join(sep);
     const rel={}; for(const k in d.dip.rel||{}){ const [a,b]=k.split('|').map(sw); rel[relKey(a,b)]=d.dip.rel[k]; } d.dip.rel=rel;
@@ -5375,6 +5548,7 @@ function restoreGame(data, net){
     tally=data.tl?JSON.parse(JSON.stringify(data.tl)):{};
     pw=Object.assign(pw0(), data.pw?JSON.parse(JSON.stringify(data.pw)):{});
     dip=Object.assign(dip0(), data.dip?JSON.parse(JSON.stringify(data.dip)):{});
+    mx=Object.assign(mx0(), data.mx?JSON.parse(JSON.stringify(data.mx)):{hq:data.turn||0});   // old saves: count quiet turns from here
     $('endBar').hidden=true;
     if(!net) NET.leave();
     pendingAtk=null;
@@ -5399,7 +5573,7 @@ function restoreGame(data, net){
     map=data.map.map(row=>row.map(o=>({
       terrain:o.t,
       city:unpackCity(o.c),
-      resource:o.r||null, ruin:!!o.ru, b:o.b||null
+      resource:o.r||null, ruin:!!o.ru, ad:o.ru===2?1:0, b:o.b||null
     })));
     explored=data.explored?data.explored.map(r=>[...r]):Array.from({length:H},()=>Array(W).fill(false));
     if(hotOn()&&exploredBy[MYSIDE]) explored=exploredBy[MYSIDE];
@@ -6633,9 +6807,22 @@ function renderInfoBody(){
     if(!tileAt(sel.x,sel.y).ruin) sel=null;
     else {
       por.innerHTML=svgIcon('chest');
-      title.textContent='Supply drop';
+      const big=tileAt(sel.x,sel.y).ad;
+      title.textContent=big?'Airdrop':'Supply drop';
       sub.textContent='Unclaimed until a unit arrives to open it';
-      body.textContent='Move any unit onto it for stars, a free tech, a free Infantry, a map of the area, or settlers for your nearest city.';
+      body.textContent=big?'Move any unit onto it for 25\u2605, an advanced tech, a free Tank, or +1 population in every city.'
+                          :'Move any unit onto it for stars, a free tech, a free Infantry, a map of the area, or settlers for your nearest city.';
+      return;
+    }
+  }
+  if(sel&&sel.kind==='inbound'){
+    if(!mx.ad) sel=null;
+    else {
+      por.innerHTML=svgIcon('chest');
+      title.textContent='Airdrop inbound';
+      const w=mx.ad.s;
+      sub.textContent=!w?'Lands next turn':'Lands at the start of '+(w===MYSIDE?'your':meta(w).name+'\u2019s')+' next turn';
+      body.textContent='A unit standing here when it lands opens it. Otherwise the first unit to reach it does.';
       return;
     }
   }
@@ -7069,7 +7256,7 @@ function endGame(winner){
   btn.textContent='Redeploy';
   btn.onclick=()=>{ $('overlay').classList.remove('show'); rejoinInfo(null); NET.leave(); showSetup(); };
   const tally=` Turn ${turn} \u00b7 ${stats.kills} enemy units destroyed \u00b7 ${stats.losses} lost.`;
-  const timeUp=gameMode()==='score'&&turnOrder.filter(s=>alive[s]).length>1;
+  const timeUp=(gameMode()==='score'||mx.tu)&&turnOrder.filter(s=>alive[s]).length>1;
   if(dip.win&&winner===MYSIDE&&!hotOn()){ t.textContent='Allied victory'; t.className='win';
     b.textContent='Every rival is beaten. You share the region with '+dip.win.filter(x=>x!==MYSIDE).map(x=>meta(x).name).join(' and ')+'.'+(minorAlly(MYSIDE)?' They did most of the fighting.':'')+tally; }
   else if(winner===MYSIDE){ t.textContent='Victory'; t.className='win';
@@ -7606,10 +7793,10 @@ const NET={
       alive:{...alive}, stars:{...stars},
       tech:Object.fromEntries(turnOrder.map(s=>[s,[...tech[s]]])),
       turn, uid, side, over:gameOver, winner:this.winner, stats:{...stats},
-      rk:this.ranks, tm:this.timer, te:this.turnEnds?Math.max(0,this.turnEnds-Date.now()):0, tc:{...turnCities}, rv:mapReveals, ln:{...lastNuke}, tl:tally, pw, dip,
+      rk:this.ranks, tm:this.timer, te:this.turnEnds?Math.max(0,this.turnEnds-Date.now()):0, tc:{...turnCities}, rv:mapReveals, ln:{...lastNuke}, tl:tally, pw, dip, mx,
       units:units.map(u=>({...u})),
       explored:null,
-      map:map.map(row=>row.map(t=>({t:t.terrain, c:packCity(t.city), r:t.resource||0, ru:t.ruin?1:0, b:t.b||0})))
+      map:map.map(row=>row.map(t=>({t:t.terrain, c:packCity(t.city), r:t.resource||0, ru:t.ruin?(t.ad?2:1):0, b:t.b||0})))
     };
   },
   flushSoon(now){
@@ -7920,6 +8107,7 @@ function applyNetState(d, evts){
     if((o.r||null)!==t.resource){ t.resource=o.r||null; if(!t.resource) removeResourceDecor(x,y); }
     if((o.b||null)!==(t.b||null)){ t.b=o.b||null; if(t.b) addBuildingDecor(x,y); else terr=true; }
     if(!!o.ru!==!!t.ruin){ t.ruin=!!o.ru; if(t.ruin) addDropDecor(x,y); else removeDropDecor(x,y); }
+    t.ad=o.ru===2?1:0;
     t.city=unpackCity(o.c);
   }
   const wasAlive=alive[MYSIDE];
@@ -7932,7 +8120,7 @@ function applyNetState(d, evts){
   pendingAtk=pa&&side===MYSIDE&&byId(pa.uid)&&JSON.stringify([byId(pa.uid),pa.tid!=null?byId(pa.tid):0])===pk?pa:null;
   NET.humansList=d.humans||[]; NET.ranks=d.rk||{};
   NET.timer=d.tm||0; NET.turnEnds=Number.isFinite(d.te)&&d.te>0?Date.now()+d.te:0;
-  turnCities=d.tc||{}; tally=d.tl||{}; pw=Object.assign(pw0(), d.pw||{}); dip=Object.assign(dip0(), d.dip||{});
+  turnCities=d.tc||{}; tally=d.tl||{}; pw=Object.assign(pw0(), d.pw||{}); dip=Object.assign(dip0(), d.dip||{}); mx=Object.assign(mx0(), d.mx||{});
   for(const r of d.rv||[]) if(r.s===MYSIDE) revealAround(r.x,r.y,r.r);
   if(terr) buildBoard();
   if(sel){
@@ -8127,7 +8315,7 @@ function newGame(){
   fitSaved=null; camDistGoal=null; camPhiGoal=null; cam.phi=0.96; $('fitBtn').classList.remove('on');
   $('turnBanner').classList.remove('show');
   pw=pw0();
-  gcfg={...cfg}; blockedHint=false; lastNuke={}; nukeWarned={}; mapReveals=[]; seenBy={}; aiKnow={}; sentry.clear();
+  gcfg={...cfg}; blockedHint=false; lastNuke={}; nukeWarned={}; mapReveals=[]; seenBy={}; aiKnow={}; sentry.clear(); mx=mx0();
   for(const k in aiSupportT) delete aiSupportT[k];
   for(const k in aiShipT) delete aiShipT[k];
   undoStack.length=0;
@@ -8163,7 +8351,7 @@ function newGame(){
   stats={kills:0,losses:0}; tally={};
   stars={}; tech={};
   for(const s of turnOrder){
-    stars[s]=(isAI(s)?diff().start:6)+(turnOrder.indexOf(s)>0?6:0);   // moving first is worth about 6 stars
+    stars[s]=(isAI(s)?diff().start:6)+(turnOrder.indexOf(s)>0?4:0);   // moving first is worth about 4 stars
     tech[s]=new Set([].concat(playerMeta[s].faction.startTech||[]));
   }
   for(const [,g] of unitMeshes){ unitGroup.remove(g); freeUnitMesh(g); }
