@@ -1141,8 +1141,6 @@ function visionR(s){ return (meta(s).faction.vision||2)+(hasTech(s,'RADIO')?1:0)
 function uAtk(u){
   const t=u.type, o=u.owner;
   let a=UNIT_TYPES[t].atk;
-  if(t==='TNK'&&hasTech(o,'MECH')) a+=1;
-  if(t==='ART'&&hasTech(o,'SIEGE')) a+=1;
   if(t==='HEL'&&hasTech(o,'TURBO')) a+=1;
   if(UNIT_TYPES[t].naval&&hasTech(o,'FLEET')) a+=1;
   return a;
@@ -1150,7 +1148,7 @@ function uAtk(u){
 function uDef(u){
   const home=inb(u.x,u.y)&&tileAt(u.x,u.y).city&&tileAt(u.x,u.y).city.owner===u.owner;
   const t=u.type, o=u.owner;
-  return UNIT_TYPES[t].def + ((t==='TNK'||t==='ART'||t==='AA')&&hasTech(o,'ARMOR')?2:0) + (t==='INF'&&hasTech(o,'DRILLS')?1:0)
+  return UNIT_TYPES[t].def + (t==='TNK'&&hasTech(o,'MECH')?1:0) + ((t==='TNK'||t==='ART'||t==='AA')&&hasTech(o,'ARMOR')?2:0) + (t==='INF'&&hasTech(o,'DRILLS')?1:0)
     + (t==='HEL'&&hasTech(o,'AVIA')?1:0) + (home&&hasTech(o,'CIVDEF')?1:0);
 }
 function uMove(u){ return UNIT_TYPES[u.type].move + (u.type==='HEL'&&hasTech(u.owner,'TURBO')?1:0) + (u.type==='INF'?(meta(u.owner).faction.infMove||0):0)
@@ -1179,7 +1177,7 @@ const UNIT_TYPES={
   TNK:{key:'TNK', name:'Tank',       cost:7, hp:16, atk:4, def:3, move:2, range:1, fly:false, desc:'Heavy armor. Fast, and takes far less damage from Snipers.'},
   ART:{key:'ART', name:'Artillery',  cost:9, hp:10,  atk:5, def:1, move:1, range:3, fly:false, siege:true, splash:0.25, desc:'Fires at range 3. Its blast also hits enemies next to the target for 25% damage. Cannot move and fire on the same turn.'},
   AA: {key:'AA',  name:'Flak Battery', cost:4, hp:12, atk:2, def:2, move:1, range:2, fly:false, desc:'Anti-air guns that strike from 2 tiles. +75% damage vs Helicopters, and shrugs off their return fire.'},
-  HEL:{key:'HEL', name:'Helicopter', cost:8, hp:14, atk:3, def:2, move:3, range:1, fly:true, desc:'Flies over water and mountains. +50% damage vs Tanks, and their guns can barely track it.'},
+  HEL:{key:'HEL', name:'Helicopter', cost:8, hp:14, atk:3, def:2, move:3, range:1, fly:true, desc:'Flies over water and mountains. +75% damage vs Tanks and Titans, and their guns can barely track it.'},
   TTN:{key:'TTN', name:'Titan', cost:18, hp:36, atk:5, def:4, move:1, range:1, fly:false, super:true, splash:0.25, desc:'A colossal war walker. Slow, but it shrugs off Sniper fire, and each blow also hits enemies next to its target for 25% damage. Only a city of level 4 or higher can field one, and each such city supports a single Titan.'},
   NUKE:{key:'NUKE', name:'Nuclear Missile', cost:15, hp:1, atk:10, def:0, move:0, range:6, fly:false, siege:true, splash:1.0, nuke:2, oneShot:true, desc:'Fires once at range 6 and hits every enemy unit within 2 tiles of the target. Consumed on use.'},
 };
@@ -1238,9 +1236,9 @@ function addPop(c,n){
 const TECHS={
   MARKS:{key:'MARKS', name:'Marksmanship',      branch:'Combat',   tier:1, req:null,    unlocks:'Unlocks the Sniper. Infantry are trained with +2 HP.'},
   DRILLS:{key:'DRILLS',name:'Combat Drills',    branch:'Combat',   tier:2, req:'MARKS', unlocks:'Infantry and Snipers deal +30% damage, and Infantry gain +1 DEF.'},
-  MECH: {key:'MECH',  name:'Mechanized Warfare',branch:'Combat',   tier:2, req:'MARKS', unlocks:'Unlocks the Tank. Tanks gain +1 ATK.'},
+  MECH: {key:'MECH',  name:'Mechanized Warfare',branch:'Combat',   tier:2, req:'MARKS', unlocks:'Unlocks the Tank. Tanks gain +1 DEF.'},
   ARMOR:{key:'ARMOR', name:'Composite Armor',   branch:'Combat',   tier:3, req:'MECH',  unlocks:'Tanks, Artillery and Flak gain +2 DEF.'},
-  SIEGE:{key:'SIEGE', name:'Siege Doctrine',    branch:'Combat',   tier:3, req:'MECH',  unlocks:'Unlocks Artillery. Artillery gains +1 ATK.'},
+  SIEGE:{key:'SIEGE', name:'Siege Doctrine',    branch:'Combat',   tier:3, req:'MECH',  unlocks:'Unlocks Artillery. Its blast hits enemies next to the target for 50% damage instead of 25%.'},
   SPG:  {key:'SPG',   name:'Self-Propelled Guns',branch:'Combat',  tier:3, req:'SIEGE', unlocks:'Artillery can move and fire in the same turn, and gains +1 move.'},
   MINING:{key:'MINING',name:'Mining',           branch:'Industry', tier:1, req:null,    unlocks:'Unlocks ore harvesting (4\u2605 for +2 pop) and Quarries on mountains (+2 pop).'},
   DRILL:{key:'DRILL', name:'Oil Drilling',      branch:'Industry', tier:2, req:'MINING',unlocks:'Unlocks oil harvesting (6\u2605 for +3 pop). Every harvest costs 1\u2605 less.'},
@@ -2078,7 +2076,7 @@ function calcDamage(u,d,frac){
 // damage multiplier by attacker type, then defender type
 const ATK_BONUS={
   SNP:{INF:1.25},  // snipers pick off infantry
-  HEL:{TNK:1.5, TTN:1.5},   // gunships hunt armor
+  HEL:{TNK:1.75, TTN:1.75},   // gunships hunt armor
   AA:{HEL:1.75},   // flak shreds rotorcraft
   DST:{PTB:1.5, LND:1.5, DST:1.5, BTL:1.5},   // destroyers hunt ships
 };
@@ -2100,6 +2098,8 @@ function guardAura(d){
   return 1;
 }
 function defMult(a,d){ return (DEF_BONUS[d.type]&&DEF_BONUS[d.type][a.type])||1; }
+/* return fire from d after u's attack; u's armour against d blunts it too */
+function retDmg(u,d,AF,DF){ return Math.max(1,Math.round(DF/(AF+DF)*uDef(d)*4.5*drillMul(d,u)*shieldMul(u.owner)/defMult(d,u))); }
 
 /* Combat forecast */
 function fcText(f,tu){
@@ -2118,7 +2118,7 @@ function forecast(u,d){
   const advances=kills && uRange(u)===1 && !ut.siege && passable(u,d.x,d.y);
   let rdmg=0, dies=false;
   if(!kills && uRange(d)>=cheb(u,d) && !dt.siege && canHit(d,u) && pw.ghost[u.owner]!==turn){
-    rdmg=Math.max(1,Math.round(DF/(AF+DF)*uDef(d)*4.5*drillMul(d,u)*shieldMul(u.owner)));
+    rdmg=retDmg(u,d,AF,DF);
     dies=rdmg>=u.hp;
   }
   let splashN=0;
@@ -2243,8 +2243,9 @@ function defBonus(d){
   return 1;
 }
 function blastR(u){ return UNIT_TYPES[u.type].nuke || 1; }
+const splashFrac=u=>(UNIT_TYPES[u.type].splash||0)+(u.type==='ART'&&hasTech(u.owner,'SIEGE')?0.25:0);   // Siege Doctrine
 function splashDamage(u,cx,cy){
-  const frac=UNIT_TYPES[u.type].splash;
+  const frac=splashFrac(u);
   if(!frac) return;
   const R=blastR(u);
   const hit=units.filter(e=>{
@@ -2298,7 +2299,7 @@ function attack(u,d){
       moveUnit(u,d.x,d.y);
     }
   } else if(uRange(d)>=dist && !dt.siege && canHit(d,u) && pw.ghost[u.owner]!==turn){
-    const rdmg=Math.max(1,Math.round(DF/(AF+DF)*uDef(d)*4.5*drillMul(d,u)*shieldMul(u.owner)));
+    const rdmg=retDmg(u,d,AF,DF);
     u.hp-=rdmg;
     fx.flash(u.x,u.y,0xff5040);
     fx.strike(d.x,d.y,u.x,u.y,d.id,u.id, dist>1?'shot':'melee');
