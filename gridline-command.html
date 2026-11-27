@@ -5926,7 +5926,10 @@ function campaignResult(info, won){
     if(won){ line=campTake(c, r, c.fac) || r.name+' is yours.'; }
     else line='The assault on '+r.name+' failed.';
   } else {
-    if(won) line=r.name+' holds.';
+    if(won){   // a won defence pushes on into a region the attacker holds next to it
+      line=r.name+' holds.'; const q=r.nb.map(k=>c.regions[k]).find(q=>q.owner===enemy&&!q.capital);
+      if(q){ q.owner=c.fac; line+=' You push on and take '+q.name+'.'; }
+    }
     else { line=campTake(c, r, enemy) || r.name+' falls to '+FACTIONS[enemy].name+'.'; }
   }
   c.log.unshift('Turn '+c.turn+': '+line);
@@ -5956,6 +5959,8 @@ function campTake(c, r, to){
   return line;
 }
 function campEliminations(c){
+  // a rival region with only your regions around it (not a capital) surrenders
+  for(let k=0;k<3;k++) for(const q of c.regions) if(q.owner!==c.fac&&!q.capital&&q.nb.length&&q.nb.every(j=>c.regions[j].owner===c.fac)){ c.log.unshift(q.name+' is cut off and surrenders.'); q.owner=c.fac; }
   for(const f of c.sides) if(f!==c.fac&&!(c.out||[]).includes(f)&&!campOwned(c,f).length){ c.out=[...(c.out||[]),f]; c.log.unshift(FACTIONS[f].name+' has been driven from the map.'); }
 }
 function campCheckEnd(c){
@@ -5963,7 +5968,9 @@ function campCheckEnd(c){
   if(c.regions.every(r=>r.owner===c.fac)){ c.over='won'; c.log.unshift('Every region is yours. Campaign won in '+c.turn+' turns.'); return true; }
   return false;
 }
-/* the rivals' moves after each of your battles: attacks on each other are settled at once, an attack on you is a battle */
+/* the rivals' moves after each of your battles: attacks on each other are settled at once, an attack on you is a battle,
+   at most once every CAMP_DEF_GAP campaign turns */
+const CAMP_DEF_GAP=4;
 function campRivals(c){
   const R=campRng((c.seed^(c.turn*2654435761))>>>0);
   const live=c.sides.filter(f=>f!==c.fac&&campOwned(c,f).length);
@@ -5974,7 +5981,7 @@ function campRivals(c){
     let targets=c.regions.filter(r=>campCanHit(c,r,f));
     // you get at most one attack per turn, and rivals pick on each other two times in three when they can
     const others=targets.filter(r=>r.owner!==c.fac);
-    if(others.length&&(defend||R()<0.67)) targets=others;
+    if(others.length&&(defend||R()<0.67)||(c.defT&&c.turn+1-c.defT<CAMP_DEF_GAP)) targets=others;
     if(!targets.length) continue;
     targets.sort((a,b)=>campOwned(c,b.owner).length-campOwned(c,a.owner).length);   // they lean toward the biggest
     const t=R()<0.6?targets[0]:targets[Math.floor(R()*targets.length)];
@@ -5988,7 +5995,7 @@ function campRivals(c){
   }
   campEliminations(c);
   c.turn++;
-  if(defend){ defend.obj=campObjFor(c, c.regions[defend.region], 'defend', defend.enemy); c.defend=defend; c.log.unshift(FACTIONS[defend.enemy].name+' marches on '+c.regions[defend.region].name+'.'); }
+  if(defend){ defend.obj=campObjFor(c, c.regions[defend.region], 'defend', defend.enemy); c.defend=defend; c.defT=c.turn; c.log.unshift(FACTIONS[defend.enemy].name+' marches on '+c.regions[defend.region].name+'.'); }
   else c.defend=null;
   if(c.log.length>40) c.log.length=40;
 }
@@ -6143,8 +6150,9 @@ function renderCampaign(){
     else btn('Fight the battle','it was interrupted, so start it again',()=>campBattle(c.battle.kind,c.battle.region,c.battle.enemy,c.battle.obj));
   } else if(c.defend){
     const r=c.regions[c.defend.region];
+    const push=r.nb.map(k=>c.regions[k]).find(q=>q.owner===c.defend.enemy&&!q.capital);
     const bd=campBonuses(c,r,c.defend.enemy,c.fac), lst=a=>a.length?a.map(q=>CAMP_BONUS[q.bonus].name).join(', '):'none';
-    card.innerHTML='<h4>'+esc(r.name)+' is under attack</h4><div class="cs">Your perks: <b>'+lst(bd.enemy)+'</b> \u00b7 theirs: <b>'+lst(bd.me)+'</b></div><div class="cs">'+FACTIONS[c.defend.enemy].name+' is marching in. Fight them off, or give the region up.'+(r.capital?' <b>This is your capital. If you lose it, the campaign is over.</b>':'')+'</div>'+
+    card.innerHTML='<h4>'+esc(r.name)+' is under attack</h4><div class="cs">Your perks: <b>'+lst(bd.enemy)+'</b> \u00b7 theirs: <b>'+lst(bd.me)+'</b></div><div class="cs">'+FACTIONS[c.defend.enemy].name+' is marching in. Fight them off'+(push?' and you push on into '+esc(push.name):'')+', or give the region up.'+(r.capital?' <b>This is your capital. If you lose it, the campaign is over.</b>':'')+'</div>'+
       '<div class="cs cobj"><b>'+CAMP_OBJ[(c.defend.obj||{}).k||'take']+':</b> '+esc(campObjText(c.defend.obj,c.defend.enemy))+'</div>';
     btn('Defend '+esc(r.name),CAMP_TERRAIN[r.terrain]+' \u00b7 '+r.size+'\u00d7'+r.size,()=>{ const d=c.defend; c.defend=null; campSave(c); campBattle('defend',d.region,d.enemy,d.obj); });
     if(!r.capital) btn('Give it up','the region falls without a fight',()=>{ r.owner=c.defend.enemy; c.log.unshift('Turn '+c.turn+': '+r.name+' abandoned to '+FACTIONS[c.defend.enemy].name+'.'); c.defend=null; campEliminations(c); if(!campCheckEnd(c)) campRivals(c); campSave(c); renderCampaign(); },'');
