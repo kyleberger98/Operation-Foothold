@@ -483,7 +483,7 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
 #campCard .cs{color:var(--dim)}
 #campCard .bigbtn{margin-top:10px}
 #campCard .cperk{margin-top:6px; color:var(--amber)}
-#campCard .cbn{margin-top:6px}
+#campCard .cbn, #campCard .cobj{margin-top:6px}
 #campLog{margin-top:10px; font-size:11.5px; color:var(--dim); line-height:1.6; max-height:120px; overflow-y:auto}
 #campLog div::before{content:'\25b8 '; color:var(--amber)}
 .campFoot{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:12px; font-size:11px; color:var(--dim)}
@@ -801,7 +801,7 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
       <button class="backBtn" data-back>◂ Back</button>
       <h3>Campaign</h3>
       <div id="campNew">
-        <p class="campIntro">A random theatre of war split into regions held by you and three rival factions. Each turn you attack a region next to yours, which is fought as a normal game; win it and the region is yours. Take a rival&rsquo;s capital &#9733; and its whole faction surrenders. Between your battles the rivals fight each other, and sometimes come for you. Hold every region to win; lose your own capital and the campaign is over.</p>
+        <p class="campIntro">A random theatre of war split into regions held by you and three rival factions. Each turn you attack a region next to yours and fight a battle for it. Most are won by taking the enemy HQ, but some ask you to hold out, raid villages or face two rivals at once. Win and the region is yours. A rival&rsquo;s capital &#9733; can only be attacked once you hold two regions next to it; when it falls, those neighbours surrender and the rest of that faction joins another rival or fights on. Between your battles the rivals fight each other, and sometimes come for you. Hold every region to win; lose your own capital and the campaign is over.</p>
         <div class="sec">Your faction</div>
         <div class="optRow" id="campFacRow"></div>
         <div id="campFacInfo"></div>
@@ -1936,6 +1936,7 @@ function startTurn(s, first){
   units.forEach(u=>{ if(u.owner===s){u.moved=false;u.attacked=false;u.held=false;u.waited=false;u.walked=false;} });
   if(s===turnOrder.find(x=>alive[x]) && !first){
     if(gameMode()==='score'&&turn>=SCORE_TURNS){ sel=null; endGame(scoreLeader()); return; }   // time is up: the top score wins
+    if(campObjCheck(true)) return;
     turn++;   // counts on even after the player is knocked out
   }
   dipTurn(s, s===turnOrder.find(x=>alive[x])&&!first);
@@ -2382,6 +2383,7 @@ function captureCity(u){
     if(wasCap && prev && prev!==u.owner){
       eliminate(prev, u.owner);
     }
+    campObjCheck(false, wasCap&&prev===enemySides[0]&&u.owner===P);
   }
   return true;
 }
@@ -4737,7 +4739,7 @@ function refresh(){
   $('hudStars').textContent=stars[MYSIDE];
   syncDipBadge();
   $('hudIncome').textContent='+'+income(MYSIDE);
-  $('hudTurn').textContent=gameMode()==='score'?turn+'/'+SCORE_TURNS:turn;
+  $('hudTurn').textContent=gameMode()==='score'?turn+'/'+SCORE_TURNS:campTurns()?turn+'/'+campTurns():turn;
   syncPower();
   const hs=$('hudSide');
   hs.textContent=side===MYSIDE?'YOU':(playerMeta[side]?meta(side).name.split(' ')[0].toUpperCase():'ENEMY');
@@ -5179,27 +5181,80 @@ function genCampaign(seed, n, fac, diffKey){
   return c;
 }
 const campOwned=(c,f)=>c.regions.filter(r=>r.owner===f);
-const campCanAttack=(c,r)=>r.owner!==c.fac&&r.nb.some(k=>c.regions[k].owner===c.fac);
+/* side f can attack region r from a neighbour. A capital needs two neighbours (or all of them if it has fewer),
+   unless there is nothing else f could attack */
+const campNear=(c,r,f)=>r.nb.filter(k=>c.regions[k].owner===f).length;
+const campHit2=(c,r,f)=>r.owner!==f&&campNear(c,r,f)>=(r.capital?Math.min(2,r.nb.length):1);
+const campCanHit=(c,r,f)=>campHit2(c,r,f)||(r.capital&&r.owner!==f&&campNear(c,r,f)>0&&!c.regions.some(q=>campHit2(c,q,f)));
+const campCanAttack=(c,r)=>campCanHit(c,r,c.fac);
+/* Battle objectives. Most battles are won by taking the enemy HQ, but some ask for something else:
+   take: take their HQ. hold: last a number of turns with as many cities as the attacker. raid: hold a number of cities by a turn.
+   two: a third faction joins and you get +6 stars; take the defender's HQ. cap: a capital, with walls, a veteran guard and +3 stars.
+   Any but a capital battle can also have a match modifier. Older saves have no objective, which means take. */
+const CAMP_OBJ={take:'Conquest', hold:'Hold out', raid:'Raid', two:'Two fronts', cap:'Capital assault'};
+const CAMP_CAP=[{bonus:'walls'},{bonus:'vet'},{bonus:'stars'}];
+/* the objective of a battle over region r, fixed by the map code, the campaign turn and the region */
+function campObjFor(c, r, kind, enemy){
+  const R=campRng((c.seed^Math.imul(c.turn,40503)^Math.imul(r.id+1,-1640531535)^(kind==='defend'?0x5bd1:0))>>>0), o={k:'take'};
+  if(kind==='defend'){ if(R()<0.6){ o.k='hold'; o.turns=r.size+3; } }
+  else if(r.capital) o.k='cap';
+  else {
+    const third=c.sides.filter(f=>f!==c.fac&&f!==enemy&&r.nb.some(k=>c.regions[k].owner===f)), x=R();
+    if(third.length&&x<0.3){ o.k='two'; o.with=third.sort((a,b)=>campOwned(c,b).length-campOwned(c,a).length)[0]; }
+    else if(x>=0.7){ o.k='raid'; o.cities=r.size>9?5:4; o.turns=r.size+5; }
+  }
+  if(o.k!=='cap'&&R()<0.25) o.mod=['nopower','rich','titans','nofog'][Math.floor(R()*4)];
+  return o;
+}
+function campObjText(o, enemy){
+  o=o||{k:'take'};
+  const t=o.k==='hold'?'Last '+o.turns+' turns with at least as many cities as them, or take their HQ.':
+    o.k==='raid'?'Hold '+o.cities+' cities at once by turn '+o.turns+', or take their HQ.':
+    o.k==='two'&&FACTIONS[o.with]?'Take the '+FACTIONS[enemy].name+' HQ. '+FACTIONS[o.with].name+' joins the fight against you both. You start with +6\u2605.':
+    o.k==='cap'?'Take their HQ. A capital has City Walls, a veteran guard and +3\u2605.':'Take their HQ.';
+  return t+(MODS[o.mod]?' '+MODS[o.mod].name+': '+MODS[o.mod].note+'.':'');
+}
 /* start the battle for a region, a normal game against its owner on a map that matches its terrain */
-function campBattle(kind, regionId, enemy){
+function campBattle(kind, regionId, enemy, obj){
   const c=campLoad(); if(!c) return;
-  const r=c.regions[regionId];
-  c.battle={id:Math.floor(Math.random()*1e9), kind, region:regionId, enemy};
+  const r=c.regions[regionId], o=obj||campObjFor(c, r, kind, enemy), two=o.k==='two'&&FACTIONS[o.with]&&o.with!==enemy;
+  c.battle={id:Math.floor(Math.random()*1e9), kind, region:regionId, enemy, obj:o};
   campSave(c);
   const keep=cfg;
-  cfg={size:r.size, enemies:1, faction:c.fac, diff:c.diff, mode:'conquest', map:r.terrain, mods:[], hot:1, hotFac:[], enemyFacs:[enemy],
-       campaign:{id:c.battle.id, kind, region:regionId, name:r.name}};
+  cfg={size:two?Math.max(11,r.size):r.size, enemies:two?2:1, faction:c.fac, diff:c.diff, mode:'conquest', map:r.terrain, mods:MODS[o.mod]?[o.mod]:[], hot:1, hotFac:[], enemyFacs:two?[enemy,o.with]:[enemy],
+       campaign:{id:c.battle.id, kind, region:regionId, name:r.name, obj:{...o}}};
   $('setup').classList.remove('show');
   NET.leave(); sfx.capture();
   newGame(); tutStop();
   cfg=keep;
-  const bon=campBonuses(c, r, c.fac, enemy);
+  const bon=campBonuses(c, r, c.fac, enemy), go=gcfg.campaign.obj;
   campApplyBonuses(P, bon.me); campApplyBonuses(enemySides[0], bon.enemy);
+  if(two){ campApplyBonuses(enemySides[1], r.nb.map(k=>c.regions[k]).filter(q=>q.owner===o.with)); stars[P]+=6; }
+  if(r.capital) campApplyBonuses(kind==='attack'?enemySides[0]:P, CAMP_CAP);
+  if(o.k==='raid'){ let v=0; map.flat().forEach(t=>{ if(t.city&&!t.city.owner) v++; }); go.cities=Math.min(o.cities, 1+v); }
   computeVision(); refresh(); autoSave();
-  toast((kind==='attack'?'Assault on ':'Defend ')+r.name+' against '+FACTIONS[enemy].name+'. Take their HQ to win the region.'+
+  const goal=campObjText(go, enemy);
+  log('sys', 'Objective: '+goal);
+  toast((kind==='attack'?'Assault on ':'Defend ')+r.name+' against '+FACTIONS[enemy].name+'. '+goal+
     (bon.me.length?'\nYour perks: '+bon.me.map(q=>CAMP_BONUS[q.bonus].name).join(', ')+'.':'')+
     (bon.enemy.length?'\nTheir perks: '+bon.enemy.map(q=>CAMP_BONUS[q.bonus].name).join(', ')+'.':''),'var(--amber)');
 }
+/* checks a battle objective other than taking the HQ; roundEnd is set as a new round begins. True if the battle ended. */
+function campObjCheck(roundEnd, tookFoe){
+  const cp=(gcfg||{}).campaign, o=cp&&cp.obj; if(!o||o.k==='take'||gameOver||!map||NET.on) return false;
+  const foe=enemySides[0];
+  let w=null, end='';
+  if(!alive[P]) w=turnOrder.find(s=>alive[s]);   // in a three-way battle you don't stay to watch
+  else if(o.k==='two'&&tookFoe){ w=P; end='You took the '+meta(foe).name+' HQ.'; }
+  else if(o.k==='raid'&&cityCount(P)>=o.cities){ w=P; end='You hold '+o.cities+' cities. The raid succeeded.'; }
+  else if(roundEnd&&o.turns&&turn>=o.turns){
+    const held=o.k==='hold'&&cityCount(P)>=cityCount(foe);
+    w=held?P:foe; end=held?'You held out for '+o.turns+' turns.':o.k==='hold'?'Time is up. '+meta(foe).name+' holds more cities.':'Time is up. The raid failed.'; }
+  if(!w) return false;
+  cp.end=end; sel=null; endGame(w);
+  return true;
+}
+const campTurns=()=>{ const cp=(gcfg||{}).campaign; return cp&&cp.obj&&cp.obj.turns||0; };
 /* called once when a campaign battle ends; returns a line for the end screen */
 function campaignResult(info, won){
   const c=campLoad();
@@ -5221,13 +5276,22 @@ function campaignResult(info, won){
   campSave(c);
   return line;
 }
-/* hand a region over; a captured capital takes its whole faction with it. Returns a log line for a capital, else null. */
+/* hand a region over. A captured capital also takes the regions next to it; the rest of that faction joins
+   its strongest rival neighbour, or fights on without a capital. Returns a log line for a capital, else null. */
 function campTake(c, r, to){
   const from=r.owner; r.owner=to;
   if(!r.capital||from===to) return null;
   r.capital=false;
-  let n=0; for(const q of c.regions) if(q.owner===from){ q.owner=to; n++; }
-  return r.name+', the '+FACTIONS[from].name+' capital, falls to '+(to===c.fac?'you':FACTIONS[to].name)+(n?'. Their '+n+' other region'+(n===1?'':'s')+' surrender'+(n===1?'s':'')+' too.':'.');
+  let n=0; for(const k of r.nb){ const q=c.regions[k]; if(q.owner===from){ q.owner=to; n++; } }
+  const rest=campOwned(c,from), pl=k=>k+' region'+(k===1?'':'s');
+  let line=r.name+', the '+FACTIONS[from].name+' capital, falls to '+(to===c.fac?'you':FACTIONS[to].name)+'.'+(n?' '+pl(n)+' next to it surrender'+(n===1?'s':'')+'.':'');
+  if(rest.length){
+    const near=c.sides.filter(f=>f!==from&&f!==c.fac&&rest.some(q=>q.nb.some(k=>c.regions[k].owner===f)));
+    const heir=near.sort((a,b)=>campOwned(c,b).length-campOwned(c,a).length)[0];
+    if(heir){ rest.forEach(q=>q.owner=heir); line+=' Their other '+pl(rest.length)+' join'+(rest.length===1?'s':'')+' '+FACTIONS[heir].name+'.'; }
+    else line+=' Their other '+pl(rest.length)+' fight'+(rest.length===1?'s':'')+' on without a capital.';
+  }
+  return line;
 }
 function campEliminations(c){
   for(const f of c.sides) if(f!==c.fac&&!(c.out||[]).includes(f)&&!campOwned(c,f).length){ c.out=[...(c.out||[]),f]; c.log.unshift(FACTIONS[f].name+' has been driven from the map.'); }
@@ -5245,7 +5309,7 @@ function campRivals(c){
   let defend=null;
   for(const f of live){
     if(R()>0.55||!campOwned(c,f).length) continue;
-    let targets=c.regions.filter(r=>r.owner!==f&&r.nb.some(k=>c.regions[k].owner===f));
+    let targets=c.regions.filter(r=>campCanHit(c,r,f));
     // you get at most one attack per turn, and rivals pick on each other two times in three when they can
     const others=targets.filter(r=>r.owner!==c.fac);
     if(others.length&&(defend||R()<0.67)) targets=others;
@@ -5262,7 +5326,7 @@ function campRivals(c){
   }
   campEliminations(c);
   c.turn++;
-  if(defend){ c.defend=defend; c.log.unshift(FACTIONS[defend.enemy].name+' marches on '+c.regions[defend.region].name+'.'); }
+  if(defend){ defend.obj=campObjFor(c, c.regions[defend.region], 'defend', defend.enemy); c.defend=defend; c.log.unshift(FACTIONS[defend.enemy].name+' marches on '+c.regions[defend.region].name+'.'); }
   else c.defend=null;
   if(c.log.length>40) c.log.length=40;
 }
@@ -5406,30 +5470,38 @@ function renderCampaign(){
     btn('New campaign','start over on a new map',()=>{ campSave(null); campSel=null; renderCampaign(); });
   } else if(c.battle){
     const r=c.regions[c.battle.region];
-    card.innerHTML='<h4>'+(c.battle.kind==='attack'?'Assault on ':'Defence of ')+esc(r.name)+'</h4><div class="cs">Against '+FACTIONS[c.battle.enemy].name+' \u00b7 '+CAMP_TERRAIN[r.terrain]+' \u00b7 '+r.size+'\u00d7'+r.size+'</div>';
+    const bo=c.battle.obj||{k:'take'}, bs=bo.k==='two'?Math.max(11,r.size):r.size;
+    card.innerHTML='<h4>'+(c.battle.kind==='attack'?'Assault on ':'Defence of ')+esc(r.name)+'</h4><div class="cs">Against '+FACTIONS[c.battle.enemy].name+' \u00b7 '+CAMP_TERRAIN[r.terrain]+' \u00b7 '+bs+'\u00d7'+bs+'</div>'+
+      '<div class="cs cobj"><b>'+CAMP_OBJ[bo.k]+':</b> '+esc(campObjText(bo,c.battle.enemy))+'</div>';
     const running=!!map&&!gameOver&&(gcfg||{}).campaign&&gcfg.campaign.id===c.battle.id;
     // the battle's own slot (older builds kept it in the main slot)
     let saved=null; for(const k of [CAMP_SAVE_KEY,SAVE_KEY]){ try{ const d=JSON.parse(localStorage.getItem(k)||'null'); if(!saved&&d&&d.cfg&&d.cfg.campaign&&d.cfg.campaign.id===c.battle.id) saved=d; }catch(e){} }
     if(running) btn('Back to the battle','',()=>{ $('setup').classList.remove('show'); sfx.select(); });
     else if(saved) btn('Resume the battle','continue where you left off',()=>{ try{ if(restoreGame(saved)){ tutStop(); sfx.capture(); } }catch(e){} });
-    else btn('Fight the battle','it was interrupted, so start it again',()=>campBattle(c.battle.kind,c.battle.region,c.battle.enemy));
+    else btn('Fight the battle','it was interrupted, so start it again',()=>campBattle(c.battle.kind,c.battle.region,c.battle.enemy,c.battle.obj));
   } else if(c.defend){
     const r=c.regions[c.defend.region];
     const bd=campBonuses(c,r,c.defend.enemy,c.fac), lst=a=>a.length?a.map(q=>CAMP_BONUS[q.bonus].name).join(', '):'none';
-    card.innerHTML='<h4>'+esc(r.name)+' is under attack</h4><div class="cs">Your perks: <b>'+lst(bd.enemy)+'</b> \u00b7 theirs: <b>'+lst(bd.me)+'</b></div><div class="cs">'+FACTIONS[c.defend.enemy].name+' is marching in. Fight them off, or give the region up.'+(r.capital?' <b>This is your capital. If you lose it, the campaign is over.</b>':'')+'</div>';
-    btn('Defend '+esc(r.name),CAMP_TERRAIN[r.terrain]+' \u00b7 '+r.size+'\u00d7'+r.size,()=>{ const d=c.defend; c.defend=null; campSave(c); campBattle('defend',d.region,d.enemy); });
+    card.innerHTML='<h4>'+esc(r.name)+' is under attack</h4><div class="cs">Your perks: <b>'+lst(bd.enemy)+'</b> \u00b7 theirs: <b>'+lst(bd.me)+'</b></div><div class="cs">'+FACTIONS[c.defend.enemy].name+' is marching in. Fight them off, or give the region up.'+(r.capital?' <b>This is your capital. If you lose it, the campaign is over.</b>':'')+'</div>'+
+      '<div class="cs cobj"><b>'+CAMP_OBJ[(c.defend.obj||{}).k||'take']+':</b> '+esc(campObjText(c.defend.obj,c.defend.enemy))+'</div>';
+    btn('Defend '+esc(r.name),CAMP_TERRAIN[r.terrain]+' \u00b7 '+r.size+'\u00d7'+r.size,()=>{ const d=c.defend; c.defend=null; campSave(c); campBattle('defend',d.region,d.enemy,d.obj); });
     if(!r.capital) btn('Give it up','the region falls without a fight',()=>{ r.owner=c.defend.enemy; c.log.unshift('Turn '+c.turn+': '+r.name+' abandoned to '+FACTIONS[c.defend.enemy].name+'.'); c.defend=null; campEliminations(c); if(!campCheckEnd(c)) campRivals(c); campSave(c); renderCampaign(); },'');
   } else if(campSel!=null){
     const r=c.regions[campSel];
-    const owner=r.owner===c.fac?'yours':FACTIONS[r.owner].name;
-    card.innerHTML='<h4>'+esc(r.name)+(r.capital?' \u2605':'')+'</h4><div class="cs">'+owner+' \u00b7 '+CAMP_TERRAIN[r.terrain]+' \u00b7 battle map '+r.size+'\u00d7'+r.size+(r.capital?' \u00b7 capital':'')+'</div>'+
+    const owner=r.owner===c.fac?'yours':FACTIONS[r.owner].name, can=campCanAttack(c,r), o=can?campObjFor(c,r,'attack',r.owner):null, bs=o&&o.k==='two'?Math.max(11,r.size):r.size;
+    card.innerHTML='<h4>'+esc(r.name)+(r.capital?' \u2605':'')+'</h4><div class="cs">'+owner+' \u00b7 '+CAMP_TERRAIN[r.terrain]+' \u00b7 battle map '+bs+'\u00d7'+bs+(r.capital?' \u00b7 capital':'')+'</div>'+
       (r.bonus?'<div class="cperk">'+CAMP_BONUS[r.bonus].icon+' '+esc(campBonusText(r))+'</div>':'');
-    if(campCanAttack(c,r)){
+    if(can){
       const bn=campBonuses(c,r,c.fac,r.owner), list=a=>a.length?a.map(q=>CAMP_BONUS[q.bonus].icon+' '+CAMP_BONUS[q.bonus].name).join(', '):'none';
-      card.innerHTML+='<div class="cs cbn">You bring: <b>'+list(bn.me)+'</b><br>They bring: <b>'+list(bn.enemy)+'</b></div>';
+      card.innerHTML+='<div class="cs cbn">You bring: <b>'+list(bn.me)+'</b><br>They bring: <b>'+list(bn.enemy)+'</b></div>'+
+        '<div class="cs cobj"><b>'+CAMP_OBJ[o.k]+':</b> '+esc(campObjText(o,r.owner))+'</div>';
+      btn('Attack '+esc(r.name),CAMP_OBJ[o.k].toLowerCase()+' against '+FACTIONS[r.owner].name,()=>campBattle('attack',r.id,r.owner,o));
     }
-    if(campCanAttack(c,r)) btn('Attack '+esc(r.name),'a normal game against '+FACTIONS[r.owner].name,()=>campBattle('attack',r.id,r.owner));
-    else if(r.owner!==c.fac){ const d=document.createElement('div'); d.className='cs'; d.style.marginTop='6px'; d.textContent='Not next to any of your regions yet.'; card.appendChild(d); }
+    else if(r.owner!==c.fac){ const d=document.createElement('div'); d.className='cs'; d.style.marginTop='6px';
+      const n=campNear(c,r,c.fac);
+      d.textContent=r.capital&&n?'A capital can only be attacked once you hold 2 of the regions next to it. You hold '+n+'.':
+        r.capital?'Not next to any of your regions yet. A capital can only be attacked once you hold 2 of the regions next to it.':'Not next to any of your regions yet.';
+      card.appendChild(d); }
   } else {
     card.innerHTML='<div class="cs">Tap a region with a dashed ring to attack it. Each piece shows the region\u2019s perk, and \u2605 marks a capital. Hills, trees and waves on the land decide the battle map, and dashed lines across the sea link neighbours. In a battle over a region, you get the perks of your regions next to it, and the defender gets theirs plus the contested region\u2019s.</div>';
   }
@@ -6609,6 +6681,7 @@ function endGame(winner){
   if(firstTime&&!hotOn()){ const d=document.createElement('div'); d.innerHTML=xpHtml(awardXP(winner===MYSIDE)); b.appendChild(d.firstChild); renderRankBtn(); }
   const camp=(gcfg||{}).campaign;
   if(camp&&!NET.on&&!hotOn()){
+    if(camp.end){ b.firstChild.textContent=camp.end+tally; if(winner!==MYSIDE) t.textContent='Out of time'; }
     const line=firstTime?campaignResult(camp, winner===MYSIDE):null;
     if(line){ const d=document.createElement('div'); d.className='ovNote'; d.textContent=line; b.appendChild(d); }
     btn.textContent='Campaign map';
