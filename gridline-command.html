@@ -43,14 +43,14 @@ button{font:inherit; transition:background .15s ease, color .15s ease, border-co
 /* Top centre stat bar with turn, stars and cities */
 #hud{position:fixed; top:calc(env(safe-area-inset-top,0px) + 10px); left:50%; transform:translateX(-50%);
   z-index:10; display:flex; gap:6px; pointer-events:none}
-.hud-box{display:flex; flex-direction:column; align-items:center; min-width:70px; padding:6px 13px 5px;
+.hud-box{flex:none; display:flex; flex-direction:column; align-items:center; min-width:70px; padding:6px 13px 5px;
   background:rgba(14,20,16,.8); border:1px solid rgba(255,255,255,.07); border-radius:14px;
   backdrop-filter:blur(8px); box-shadow:0 6px 18px rgba(0,0,0,.35)}
 .hud-box .v{font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:24px; line-height:1; color:#f4f7f4;
   font-variant-numeric:tabular-nums; white-space:nowrap}
 .hud-box .v.stars{color:var(--amber)}
 .hud-box .v small{font-size:14px; font-weight:500; color:#d9b779; margin-left:3px}
-.hud-box .k{font-size:9px; letter-spacing:.18em; color:var(--dim); text-transform:uppercase; margin-top:4px}
+.hud-box .k{font-size:11px; letter-spacing:.03em; color:#a3b5a5; margin-top:3px; line-height:1.1}
 .hb-side{display:none}
 
 /* Small round buttons in the top corners */
@@ -161,7 +161,7 @@ body.nogame #hud, body.nogame .dock, body.nogame #topRight, body.nogame #fitBtn,
   background:rgba(14,20,16,.9); border:1px solid rgba(255,255,255,.14); color:#eef3ee; box-shadow:0 6px 18px rgba(0,0,0,.4);
   font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em; text-transform:uppercase}
 #speedBtn i{font-style:normal; color:var(--amber)}
-#speedBtn span{font-family:'Nunito',system-ui,sans-serif; font-weight:400; font-size:10px; letter-spacing:.04em; text-transform:none; color:var(--dim)}
+#speedBtn span{font-family:'Nunito',system-ui,sans-serif; font-weight:400; font-size:11px; letter-spacing:.04em; text-transform:none; color:var(--dim)}
 #speedBtn:hover{border-color:var(--amber)}
 #speedBtn:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
 /* Post-game bar to browse the revealed map and start over */
@@ -226,13 +226,13 @@ body.nogame #hud, body.nogame .dock, body.nogame #topRight, body.nogame #fitBtn,
 .toast.turn .trow{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text)}
 .toast.turn .trow i{flex:none; width:20px; height:20px; border-radius:6px; display:grid; place-items:center; color:var(--rc,var(--amber)); background:color-mix(in srgb, var(--rc,var(--amber)) 18%, transparent)}
 .toast.turn .trow i svg{width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round}
-.toast.turn .tfoot{font-size:10.5px; color:var(--dim)}
+.toast.turn .tfoot{font-size:11.5px; color:var(--dim)}
 .toast.out{animation:toastOut .3s ease both}
 @keyframes toastIn{from{opacity:0; transform:translateY(-6px)}to{opacity:1; transform:none}}
 @keyframes toastOut{to{opacity:0; transform:translateY(-6px)}}
 
 /* Selection card above the dock */
-#command{position:fixed; z-index:9; left:50%; bottom:calc(env(safe-area-inset-bottom,0px) + 104px);
+#command{position:fixed; z-index:9; left:50%; bottom:calc(env(safe-area-inset-bottom,0px) + 114px);
   width:min(560px, calc(100vw - 24px)); max-height:min(50vh, 400px); overflow-y:auto;
   background:rgba(14,20,16,.92); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.07); border-radius:18px;
   box-shadow:0 16px 40px rgba(0,0,0,.5);
@@ -268,12 +268,15 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
   .por{width:40px; height:40px}
   #info .title{font-size:16.5px}
   .chips{margin-top:6px; gap:4px}
-  .chip{font-size:10.5px; padding:2px 7px}
-  #infoBody{font-size:11px; line-height:1.45; margin-top:5px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+  .chip{font-size:12px; padding:2px 7px}
+  .isub{font-size:12px}
+  #info .stat{font-size:12px}
+  #infoBody{font-size:12px; line-height:1.45; margin-top:5px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
   #train{flex-wrap:wrap; overflow-x:visible; padding-top:8px; gap:4px 4px}
   .abtn{width:56px}
   .abtn .disc{width:44px; height:44px}
-  .abtn .nm{font-size:11.5px}
+  .abtn .nm{font-size:12px}
+  .abtn .cost{font-size:12px}
 }
 @media (min-width:1100px), (orientation:landscape) and (max-height:560px){
   #command{left:24px; transform:translate(0,18px); width:min(480px, 46vw)}
@@ -295,12 +298,12 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 #command.mini .por{width:36px; height:36px}
 #command.mini .por svg{width:19px; height:19px}
 #command.mini #info .title{font-size:15.5px}
-#command.mini .isub{font-size:10.5px; line-height:1.3; margin-top:1px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+#command.mini .isub{font-size:12px; line-height:1.3; margin-top:1px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
 #command.mini .chips, #command.mini #info .stat{grid-column:1/-1}
 #command.mini .chips{margin-top:6px; gap:4px}
-#command.mini .chip{font-size:10.5px; padding:2px 7px; gap:4px}
+#command.mini .chip{font-size:12px; padding:2px 7px; gap:4px}
 #command.mini .chip .bar{width:26px; height:5px}
-#command.mini #info .stat{font-size:11px; line-height:1.4; margin-top:5px}
+#command.mini #info .stat{font-size:12px; line-height:1.4; margin-top:5px}
 #command.mini #train{grid-column:3; grid-row:1; padding:0; gap:5px; overflow:visible; flex-wrap:wrap; justify-content:flex-end}
 #command.mini.many #train{grid-column:1/-1; grid-row:auto; justify-content:flex-start; margin-top:7px}
 #command.mini .abtn{width:auto; flex-direction:row; gap:6px; height:36px; padding:0 11px 0 4px; border-radius:999px;
@@ -359,7 +362,7 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
   padding:22px 24px 26px; border-radius:18px; box-shadow:0 24px 70px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04)}
 #setupInner.home{max-width:440px; background:rgba(22,29,24,.9)}
 .fmed{display:flex; gap:5px; margin-top:8px}
-.md{min-width:30px; padding:1px 6px; border-radius:999px; font-size:10px; font-weight:700; text-align:center; border:1px solid var(--line); color:var(--dim)}
+.md{min-width:30px; padding:1px 6px; border-radius:999px; font-size:11px; font-weight:700; text-align:center; border:1px solid var(--line); color:var(--dim)}
 .md.s1{border-color:#c08457; color:#e0a070}
 .md.s2{border-color:#c9d1d6; color:#e6ecef}
 .md.s3{border-color:var(--amber); background:rgba(240,179,92,.16); color:var(--amber)}
@@ -429,7 +432,7 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
 .bigbtn{display:flex; flex-direction:column; align-items:center; gap:2px; width:100%; cursor:pointer;
   padding:13px 16px; border-radius:14px; border:1px solid var(--line); background:var(--panel2); color:var(--text);
   font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:19px; letter-spacing:.14em; text-transform:uppercase}
-.bigbtn span{font-family:'Nunito',system-ui,sans-serif; font-weight:400; font-size:10.5px; letter-spacing:.04em; text-transform:none; color:var(--dim)}
+.bigbtn span{font-family:'Nunito',system-ui,sans-serif; font-weight:400; font-size:11.5px; letter-spacing:.04em; text-transform:none; color:var(--dim)}
 .bigbtn:hover{filter:brightness(1.15)}
 .bigbtn:active{transform:translateY(1px)}
 .bigbtn.primary{background:linear-gradient(180deg,#3d73a0,#24496a); border-color:#5aa7e8; color:#eaf4ff}
@@ -451,11 +454,11 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
   padding:10px 12px; cursor:pointer; text-align:left; font-family:'Nunito',system-ui,sans-serif; color:var(--text);
   transition:transform .14s ease, border-color .14s ease, box-shadow .14s ease, background .14s ease}
 .fcard .fn{font-family:'Saira Condensed',sans-serif; font-size:16px; letter-spacing:.08em; text-transform:uppercase}
-.fcard .fp, #campFacInfo .fp{font-size:10.5px; color:var(--dim); line-height:1.55; margin-top:4px}
+.fcard .fp, #campFacInfo .fp{font-size:11px; color:var(--dim); line-height:1.55; margin-top:4px}
 .fstyle{font-size:11.5px; line-height:1.45; margin-top:3px; color:var(--text)}
 .fstyle em{font-style:normal; color:var(--amber); font-size:10.5px; white-space:nowrap}
 .fstats{display:grid; grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); gap:2px 10px; margin:6px 0 2px}
-.fstats span{display:flex; align-items:center; gap:3px; font-size:10px; color:var(--dim)}
+.fstats span{display:flex; align-items:center; gap:3px; font-size:11px; color:var(--dim)}
 .fstats i{font-style:normal; width:52px; flex:none}
 .fstats b{width:9px; height:6px; border-radius:2px; background:rgba(255,255,255,.12)}
 .fstats b.on{background:var(--amber)}
@@ -490,7 +493,7 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
 .opt{background:var(--panel2); border:1px solid var(--line); border-radius:9px; color:var(--text); cursor:pointer;
   font-family:'Saira Condensed',sans-serif; font-size:15px; letter-spacing:.08em; text-transform:uppercase;
   padding:8px 16px; display:flex; flex-direction:column; align-items:center; gap:1px}
-.opt span{font-family:'Nunito',system-ui,sans-serif; font-size:10px; color:var(--dim); text-transform:none}
+.opt span{font-family:'Nunito',system-ui,sans-serif; font-size:11px; color:var(--dim); text-transform:none}
 .opt:hover{border-color:var(--dim); transform:translateY(-1px)}
 .opt.sel{border-color:var(--amber); background:#221f15; color:var(--amber)}
 #startBtn{margin-top:22px}
@@ -526,7 +529,13 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
 #techTree .tn.avail:not(.cant) .tn-c{filter:drop-shadow(0 0 5px rgba(244,240,227,.55))}
 @keyframes tnGlow{0%,100%{stroke-opacity:.2}50%{stroke-opacity:.95}}
 #techTree .tn.avail.cant .tn-c{stroke:#8a7a5c; stroke-width:2}
-#techTree .tn.locked{opacity:.42}
+/* locked nodes are dimmed by colour and a dashed ring, so their labels stay readable */
+#techTree .tn.locked .tn-c{fill:#151c17; stroke-dasharray:5 4; stroke-opacity:.75}
+#techTree .tn.locked .tn-t{fill:#b4c2b5}
+#techTree .tn.locked image{opacity:.55}
+#techTree .tn-lock circle{fill:#0f1412; stroke:#3b4b3f; stroke-width:1}
+#techTree .tn-lock rect{fill:#b4c2b5}
+#techTree .tn-lock path{fill:none; stroke:#b4c2b5; stroke-width:1.5}
 #techTree .tn.locked .tn-cost{fill:var(--dim)}
 #techTree .tn-pill{fill:#0f1412; stroke:rgba(240,179,92,.5); stroke-width:1}
 #techTree .tn.locked .tn-pill,#techTree .tn.cant .tn-pill{stroke:#3b4b3f}
@@ -535,8 +544,8 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
 #techTree .tn:focus-visible .tn-ring{stroke:var(--amber); stroke-width:2.5; fill:none}
 #techTree .hub{fill:var(--fac)}
 #techTree .hub-t{font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:17px; fill:#0f1412; text-anchor:middle}
-#techTree .hub-k{font-family:'Nunito',system-ui,sans-serif; font-size:8px; letter-spacing:.14em; fill:#0f1412; text-anchor:middle}
-#techLegend{display:flex; flex-wrap:wrap; justify-content:center; gap:4px 14px; font-size:10.5px; color:var(--dim); padding:2px 12px 8px}
+#techTree .hub-k{font-family:'Nunito',system-ui,sans-serif; font-size:10px; letter-spacing:.08em; fill:#0f1412; text-anchor:middle}
+#techLegend{display:flex; flex-wrap:wrap; justify-content:center; gap:4px 14px; font-size:11.5px; color:var(--dim); padding:2px 12px 8px}
 #techLegend i{display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; vertical-align:-1px}
 #techDetail{width:min(540px, calc(100vw - 24px)); margin:0 auto calc(env(safe-area-inset-bottom,0px) + 14px);
   background:rgba(22,29,24,.95); border:1px solid var(--line); border-radius:16px; padding:12px 14px;
@@ -544,7 +553,7 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
 @media (max-width:360px){ #techDetail{flex-direction:column; align-items:stretch; gap:8px} #techDetail .rbtn{width:100%} }
 #techDetail .tdx{flex:1; min-width:0}
 #techDetail .tdn{font-family:'Saira Condensed',sans-serif; font-weight:700; font-size:18px; letter-spacing:.08em; text-transform:uppercase}
-#techDetail .tdm{font-size:10.5px; color:var(--dim); letter-spacing:.06em; text-transform:uppercase}
+#techDetail .tdm{font-size:11px; color:var(--dim); letter-spacing:.06em; text-transform:uppercase}
 #techDetail .tdd{font-size:12px; color:var(--text); margin-top:3px; line-height:1.5}
 #techDetail .tdq{font-size:11px; color:var(--dim); margin-top:2px}
 #techDetail .rbtn{flex:none; cursor:pointer; border-radius:12px; padding:10px 16px; border:1px solid var(--amber);
@@ -591,20 +600,53 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
   .hud-box{min-width:60px; padding:5px 10px 4px}
   .hud-box .v{font-size:21px}
   .rb{width:42px; height:42px}
-  #hud{top:calc(env(safe-area-inset-top,0px) + 12px)}
+  /* centre the stats in the space between the menu button and the help and sound buttons */
+  #hud{top:calc(env(safe-area-inset-top,0px) + 12px); left:calc(env(safe-area-inset-left,0px) + 60px);
+    right:calc(env(safe-area-inset-right,0px) + 108px); transform:none; justify-content:center}
   #setupInner{padding:18px 16px 22px}
 }
 @media (max-width:440px){
   .hb-side{display:none}
-  .hud-box{min-width:52px; padding:5px 8px 4px}
+  #hud{gap:4px}
+  .hud-box{min-width:46px; padding:5px 7px 4px}
 }
 @media (max-width:340px){
   .hb-cities{display:none}
+  #hud:has(#hudTimerBox:not([hidden])) .hud-box{min-width:40px; padding:5px 5px 4px}
+  #hud:has(#hudTimerBox:not([hidden])) .hud-box .v{font-size:19px}
+}
+/* the online turn timer takes the Cities slot on narrow phones */
+@media (max-width:400px){ #hud:has(#hudTimerBox:not([hidden])) .hb-cities{display:none} }
+@media (min-width:521px) and (max-width:600px){
+  #hud:has(#hudTimerBox:not([hidden])){left:calc(env(safe-area-inset-left,0px) + 64px); right:calc(env(safe-area-inset-right,0px) + 118px); transform:none; justify-content:center}
+  #hud:has(#hudTimerBox:not([hidden])) .hud-box{min-width:56px; padding:6px 9px 5px}
+}
+/* Text size setting. Large and Larger scale the panels that carry most of the reading */
+body.tsz :is(#command>*, .toast, .apInner>*, #techDetail>*, #techLegend, .rwInner>*, .hoBox>*, #overlay>*, #endBar>*,
+  #homePane, #soloPane, #profilePane, #mpPane, #campNew, #campStatus, #campLegend, #campCard, #campLog){zoom:var(--tz)}
+body.tsz .hud-box .k{font-size:12px}
+body.tsxl .hud-box .k{font-size:13px}
+body.tsz .dock .lb{font-size:13.5px}
+body.tsz #turnBanner{font-size:15px}
+body.tsz #speedBtn span{font-size:12px}
+body.tsz #techTree .tn-t{font-size:12.5px}
+body.tsxl #techTree .tn-t{font-size:13.5px}
+body.tsz #techTree .tn-cost{font-size:12px}
+@media (pointer:coarse){
+  #command.mini .abtn{height:40px}
+  .dpBtns button{min-height:40px}
+  .apHead button{width:40px; height:40px}
 }
 @media (prefers-reduced-motion:reduce){
   button,.fcard,.opt,#command{transition:none}
   #factionGrid,.optRow,.homeBtns,.toast,.toast.out{animation:none}
-  #endTurn.pulse .disc,#techBtn.avail .disc::after,.coach-ping .disc{animation:none}
+  #endTurn.pulse .disc,#techBtn.avail .disc::after,.coach-ping .disc,.abtn.coach-ping .disc{animation:none}
+  .coach-ping .disc,.abtn.coach-ping .disc{box-shadow:0 0 0 3px rgba(244,240,227,.3), inset 0 0 0 2px rgba(244,240,227,.9)}
+  #powerBtn.ready,#turnBanner.show,#turnBanner .tbDots i,#mpJoinBtn.invited{animation:none}
+  #turnBanner .tbDots i{opacity:.7}
+  #techTree .tn.avail:not(.cant) .tn-ring{animation:none; stroke-opacity:.8}
+  #powerBtn.ready{box-shadow:0 6px 18px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.09), 0 0 0 3px rgba(255,255,255,.16)}
+  #endTurn.pulse .disc{box-shadow:0 8px 22px rgba(0,0,0,.5), inset 0 0 0 2px rgba(240,179,92,.9)}
 }
 
 /* Multiplayer */
@@ -739,7 +781,7 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
       </div>
       <div class="saveNote">Your campaign auto-saves every move on this device.</div>
       <div class="saveNote" id="progLine" hidden></div>
-      <div class="setRow"><button id="speedMenuBtn" class="speedMenu"></button><button id="soundMenuBtn" class="speedMenu"></button><button id="musicMenuBtn" class="speedMenu"></button><button id="gfxMenuBtn" class="speedMenu"></button><button id="followMenuBtn" class="speedMenu"></button><button id="installBtn" class="speedMenu install" hidden></button></div>
+      <div class="setRow"><button id="speedMenuBtn" class="speedMenu"></button><button id="soundMenuBtn" class="speedMenu"></button><button id="musicMenuBtn" class="speedMenu"></button><button id="gfxMenuBtn" class="speedMenu"></button><button id="followMenuBtn" class="speedMenu"></button><button id="textMenuBtn" class="speedMenu"></button><button id="installBtn" class="speedMenu install" hidden></button></div>
       <div id="installTip" hidden>On iPhone or iPad, tap the <b>Share</b> button, then <b>Add to Home Screen</b>. Gridline Command opens full-screen from its icon and plays offline.</div>
     </div>
     <div id="soloPane" style="display:none">
@@ -967,7 +1009,7 @@ const FACTIONS={
   BASTION:{key:'BASTION',name:'Iron Bastion',     color:0xefe6cc, trim:0x8c8370, css:'#efe6cc',
            perk:'Fortress doctrine: every city you hold has City Walls (+50% defense), including your HQ from the very first turn, and Bastion starts with Fortification.',
            startTech:'FORT', walls:true},
-  VERDANT:{key:'VERDANT',name:'Verdant Collective',color:0xa6d94e, trim:0x5e8a2a, css:'#a6d94e',
+  VERDANT:{key:'VERDANT',name:'Verdant Collective',color:0xc2fa2e, trim:0x5e8a2a, css:'#c2fa2e',
            perk:'Green revolution: crop harvests give +1 extra population, and Farms cost 1\u2605 less.',
            cropBonus:1, farmDiscount:1},
   TIDE:   {key:'TIDE',   name:'Tidewatch Rangers', color:0x22d3b0, trim:0x16806c, css:'#22d3b0',
@@ -2615,8 +2657,12 @@ const SPEEDS=[{v:1,l:'Normal',i:'\u25b6'},{v:2.5,l:'Fast',i:'\u25b6\u25b6'},{v:0
 let aiSpeed=1;
 try{ const v=localStorage.getItem('foothold-ai-speed'); if(SPEEDS.some(s=>String(s.v)===v)) aiSpeed=+v; }catch(e){}
 const aiDelay=ms=>aiSpeed?ms/aiSpeed:0;
-let followAI=true;
-try{ followAI=localStorage.getItem('foothold-follow')!=='off'; }catch(e){}
+/* the system reduced-motion setting: camera snaps instead of gliding, no idle bobbing or breathing rings */
+const RM_Q=matchMedia('(prefers-reduced-motion: reduce)');
+let RM=RM_Q.matches;
+try{ RM_Q.addEventListener('change',e=>{ RM=e.matches; }); }catch(e){}
+let followAI=!RM;
+try{ const v=localStorage.getItem('foothold-follow'); if(v) followAI=v!=='off'; }catch(e){}
 /* the camera glides to an enemy action only if you can see it, it's off screen, and following is on */
 const aiPan=(x,y)=>{
   if(!aiSpeed||!followAI||!visXY(x,y)) return;
@@ -3854,9 +3900,10 @@ function drawCityLabel(sp,city){
   ctx.clearRect(0,0,160,64);
   const col=city.owner?meta(city.owner).css:'#aab6aa';
   ctx.fillStyle='rgba(0,0,0,.55)'; ctx.fillRect(10,6,140,46);
+  if(city.owner) drawGlyph(ctx, city.owner, 26, 21, 22);
   ctx.font='700 24px Saira Condensed, sans-serif';
   ctx.textAlign='center'; ctx.fillStyle=col;
-  ctx.fillText((city.capital?'HQ':'CITY')+' · LV'+city.level, 80, 28);
+  ctx.fillText((city.capital?'HQ':'CITY')+' · LV'+city.level, city.owner?86:80, 28);
   // population pips toward next level
   if(city.level<MAX_LEVEL){
     const w=110/need;
@@ -4059,9 +4106,9 @@ function syncTerritory(){
   }
 }
 /* Flag emblems, drawn once per colour and shape */
-function drawEmblem(g, em, w, h){
+function drawEmblem(g, em, w, h, fill){
   const cx=w/2, cy=h/2, r=h*0.34;
-  g.fillStyle=em==='gstar'?'#ffd56a':'#ffffff'; g.strokeStyle='rgba(0,0,0,.35)'; g.lineWidth=Math.max(1,h/24);
+  g.fillStyle=fill||(em==='gstar'?'#ffd56a':'#ffffff'); g.strokeStyle='rgba(0,0,0,.35)'; g.lineWidth=Math.max(1,h/24);
   g.beginPath();
   const star=(R,ri)=>{ for(let i=0;i<10;i++){ const a=-Math.PI/2+i*Math.PI/5, rr=i%2?ri:R; g.lineTo(cx+Math.cos(a)*rr, cy+Math.sin(a)*rr); } };
   if(em==='star'||em==='gstar') star(r*1.15, r*0.48);
@@ -4075,7 +4122,30 @@ function drawEmblem(g, em, w, h){
     for(const sd of [-1,1]) for(let i=0;i<6;i++){ const ph=(100+i*28)*Math.PI/180, a=sd<0?ph:Math.PI-ph, x=cx+Math.cos(a)*lr, y=cy+Math.sin(a)*lr;
       g.beginPath(); g.ellipse(x,y,r*0.27,r*0.12,a+Math.PI/2+sd*0.35,0,Math.PI*2); g.fill(); g.stroke(); }
     g.beginPath(); star(r*0.42,r*0.18); g.closePath(); g.fill(); g.stroke(); return; }
+  // faction glyphs for name plates, so sides can be told apart without colour
+  else if(em==='flame'){ const B=(a,b,c,d,e,f)=>g.bezierCurveTo(cx+r*a,cy+r*b,cx+r*c,cy+r*d,cx+r*e,cy+r*f);
+    g.moveTo(cx,cy+r*1.1); B(-0.6,1.1,-0.95,0.7,-0.8,0.2); B(-0.72,-0.1,-0.6,-0.3,-0.55,-0.6); B(-0.35,-0.35,-0.3,-0.2,-0.2,-0.1);
+    B(-0.25,-0.6,0,-0.95,0.15,-1.25); B(0.2,-0.75,0.9,-0.4,0.85,0.3); B(0.82,0.8,0.45,1.1,0,1.1); }
+  else if(em==='sun'){ for(let i=0;i<16;i++){ const a=-Math.PI/2+i*Math.PI/8, rr=i%2?r*0.68:r*1.15; g.lineTo(cx+Math.cos(a)*rr, cy+Math.sin(a)*rr); } }
+  else if(em==='ghost'){ g.moveTo(cx-r*0.85,cy+r*1.05); g.lineTo(cx-r*0.85,cy-r*0.15); g.arc(cx,cy-r*0.15,r*0.85,Math.PI,0); g.lineTo(cx+r*0.85,cy+r*1.05);
+    for(let i=1;i<=5;i++) g.lineTo(cx+r*0.85-i*r*0.34, cy+(i%2?r*0.7:r*1.05));
+    g.closePath(); g.fill(); g.stroke();
+    g.fillStyle='rgba(0,0,0,.7)'; g.beginPath(); g.arc(cx-r*0.32,cy-r*0.15,r*0.17,0,7); g.arc(cx+r*0.32,cy-r*0.15,r*0.17,0,7); g.fill(); return; }
+  else if(em==='tower'){ g.moveTo(cx-r*0.8,cy+r*1.05);
+    for(const [px,py] of [[-0.8,-1.05],[-0.48,-1.05],[-0.48,-0.7],[-0.16,-0.7],[-0.16,-1.05],[0.16,-1.05],[0.16,-0.7],[0.48,-0.7],[0.48,-1.05],[0.8,-1.05],[0.8,1.05]]) g.lineTo(cx+r*px,cy+r*py); }
+  else if(em==='leaf'){ g.moveTo(cx-r*0.95,cy+r*0.95); g.quadraticCurveTo(cx-r*1.0,cy-r*0.95,cx+r*1.0,cy-r*1.0); g.quadraticCurveTo(cx+r*0.95,cy+r*0.95,cx-r*0.95,cy+r*0.95);
+    g.closePath(); g.fill(); g.stroke();
+    g.strokeStyle='rgba(0,0,0,.55)'; g.lineWidth=Math.max(1,h/14); g.beginPath(); g.moveTo(cx-r*0.8,cy+r*0.8); g.lineTo(cx+r*0.55,cy-r*0.55); g.stroke(); return; }
+  else if(em==='wave'){ for(const oy of [-0.5,0.45]){ const y0=cy+r*oy;
+      g.moveTo(cx-r*1.15,y0); for(let i=1;i<=12;i++){ const x=cx-r*1.15+i*r*2.3/12; g.lineTo(x,y0-Math.sin(i/12*Math.PI*2)*r*0.3); }
+      for(let i=12;i>=0;i--){ const x=cx-r*1.15+i*r*2.3/12; g.lineTo(x,y0+r*0.42-Math.sin(i/12*Math.PI*2)*r*0.3); } g.closePath(); } }
   g.closePath(); g.fill(); g.stroke();
+}
+const FACTION_GLYPH={AEGIS:'shield', CRIMSON:'flame', SOLARIS:'sun', GHOST:'ghost', BASTION:'tower', VERDANT:'leaf', TIDE:'wave'};
+/* the owner's glyph in its colour, centred on (x,y) in a box of size sz */
+function drawGlyph(g, owner, x, y, sz){
+  const m=meta(owner), em=m&&FACTION_GLYPH[m.faction.key]; if(!em) return;
+  g.save(); g.translate(x-sz/2,y-sz/2); drawEmblem(g, em, sz, sz, m.css); g.restore();
 }
 /* Flag cloth in the faction colour with a darker hoist, folds, a trim line and the emblem */
 function drawFlag(g, col, em, w, h){
@@ -4183,9 +4253,9 @@ const BUILDERS=Object.fromEntries(Object.keys(UNIT_MODELS).map(k=>[k,fm=>makeUni
 const UNIT_LABEL={PTB:'PATROL', LND:'LANDER', DST:'DESTROYER', BTL:'BATTLESHIP', INF:'INF', SNP:'SNIPER', TNK:'TANK', ART:'ARTY', AA:'FLAK', HEL:'HELI', NUKE:'NUKE', TTN:'TITAN',
   AMB:'MEDIC', SHK:'SHOCK', MRT:'MORTAR', DRN:'DRONE', GRD:'GUARD', STK:'STALKER', HOV:'HOVER'};
 /* labels keep the same size on screen at any zoom (a little smaller when zoomed far out) */
-const LBL={ux:0.1,uy:0.05,cx:0.12,cy:0.048,k:0};
+const LBL={ux:0.1,uy:0.05,cx:0.12,cy:0.048,k:0,tz:1};
 function labelScale(){
-  const z=Math.min(1.12,Math.max(0.72,11/cam.dist));
+  const z=Math.min(1.12,Math.max(0.72,11/cam.dist))*LBL.tz;
   const k=2/(camera.projectionMatrix.elements[5]*Math.max(320,innerHeight))*z;   // world scale per CSS pixel for size-fixed sprites
   if(Math.abs(k-LBL.k)<LBL.k*0.005) return false;
   LBL.k=k; LBL.ux=66*k; LBL.uy=33*k; LBL.cx=82*k; LBL.cy=33*k;
@@ -4202,7 +4272,8 @@ function makeLabel(){
 }
 function drawLabel(sp,u){
   const t=UNIT_TYPES[u.type];
-  const state=u.type+'|'+(u.cargo?u.cargo.type:'')+'|'+u.hp+'|'+u.maxHp+'|'+u.owner+'|'+(u.owner===side&&u.attacked?1:0)+'|'+(u.vet?2:canPromote(u)?1:0);
+  const own=u.owner===MYSIDE;
+  const state=u.type+'|'+(u.cargo?u.cargo.type:'')+'|'+u.hp+'|'+u.maxHp+'|'+u.owner+'|'+(own?1:0)+'|'+(u.owner===side&&u.attacked?1:0)+'|'+(u.vet?2:canPromote(u)?1:0);
   if(sp.userData.last===state) return;
   sp.userData.last=state;
   const ctx=sp.userData.c.getContext('2d');
@@ -4213,21 +4284,26 @@ function drawLabel(sp,u){
   ctx.font='700 26px Saira Condensed, sans-serif';
   ctx.textAlign='center';
   ctx.fillStyle='rgba(0,0,0,.55)';
-  ctx.fillRect(24,2,80,30);
+  ctx.fillRect(8,2,112,30);
+  if(own){ ctx.strokeStyle='rgba(244,240,227,.85)'; ctx.lineWidth=2; ctx.strokeRect(9,3,110,28); }   // your own units get a light outline
+  drawGlyph(ctx, u.owner, 22, 17, 24);
   ctx.fillStyle=col;
   const nm=u.cargo?'LANDER+'+(UNIT_LABEL[u.cargo.type]||u.cargo.type):UNIT_LABEL[u.type]||t.key;
-  let fs=27; while(fs>16){ ctx.font='700 '+fs+'px Saira Condensed, sans-serif'; if(ctx.measureText(nm).width<=(u.vet?52:72)) break; fs-=2; }
-  ctx.fillText(nm,u.vet?70:64,26);
-  if(u.vet){ ctx.fillStyle='#f0b35c'; ctx.font='700 20px Saira Condensed, sans-serif'; ctx.fillText('\u2605',34,25); }
-  else if(canPromote(u)){ ctx.fillStyle='#f0b35c'; ctx.beginPath(); ctx.arc(99,9,6,0,7); ctx.fill(); }
-  // hp bar
-  const r=Math.max(0,u.hp/u.maxHp);
-  ctx.fillStyle='rgba(0,0,0,.6)'; ctx.fillRect(18,38,70,9);
+  let fs=27; while(fs>16){ ctx.font='700 '+fs+'px Saira Condensed, sans-serif'; if(ctx.measureText(nm).width<=76) break; fs-=2; }
+  const nw=ctx.measureText(nm).width;
+  if(nw>80){ ctx.save(); ctx.translate(76,0); ctx.scale(80/nw,1); ctx.fillText(nm,0,26); ctx.restore(); }   // squeeze long cargo names clear of the glyph
+  else ctx.fillText(nm,76,26);
+  // hp bar, then the veteran star or promotion dot after the number
+  const r=Math.max(0,u.hp/u.maxHp), hp=String(Math.max(0,u.hp));
+  ctx.fillStyle='rgba(0,0,0,.6)'; ctx.fillRect(10,38,66,9);
   ctx.fillStyle=r<0.34?'#e8625a':r<0.67?'#f0b35c':'#7ed87e';
-  ctx.fillRect(19,39,68*r,7);
+  ctx.fillRect(11,39,64*r,7);
   ctx.font='800 17px Nunito, system-ui, sans-serif'; ctx.textAlign='left';
-  ctx.lineWidth=4; ctx.strokeStyle='rgba(0,0,0,.75)'; ctx.strokeText(String(Math.max(0,u.hp)),92,48);
-  ctx.fillStyle='#f1f5f1'; ctx.fillText(String(Math.max(0,u.hp)),92,48);
+  ctx.lineWidth=4; ctx.strokeStyle='rgba(0,0,0,.75)'; ctx.strokeText(hp,80,48);
+  ctx.fillStyle='#f1f5f1'; ctx.fillText(hp,80,48);
+  const ax=80+ctx.measureText(hp).width+11;
+  if(u.vet){ ctx.font='700 18px Saira Condensed, sans-serif'; ctx.textAlign='center'; ctx.lineWidth=3; ctx.strokeText('\u2605',ax,48); ctx.fillStyle='#f0b35c'; ctx.fillText('\u2605',ax,48); }
+  else if(canPromote(u)){ ctx.fillStyle='#f0b35c'; ctx.beginPath(); ctx.arc(ax-2,42,5,0,7); ctx.fill(); }
   ctx.globalAlpha=1;
   sp.userData.tex.needsUpdate=true;
 }
@@ -4486,8 +4562,8 @@ const fx={
     if(!visXY(ax,ay)&&!visXY(tx,ty)) return;
     const ga=unitMeshes.get(aid), gt=unitMeshes.get(tid);
     const dx=wx(tx)-wx(ax), dz=wz(ty)-wz(ay), L=Math.hypot(dx,dz)||1;
-    if(ga) ga.userData.lunge={x:dx/L, z:dz/L, t:0, amp:kind==='melee'?0.3:-0.08};
-    if(gt) gt.userData.shake=0.38;
+    if(ga&&!RM) ga.userData.lunge={x:dx/L, z:dz/L, t:0, amp:kind==='melee'?0.3:-0.08};
+    if(gt&&!RM) gt.userData.shake=0.38;
     const a=new THREE.Vector3(wx(ax),TOP+0.34,wz(ay)), b=new THREE.Vector3(wx(tx),TOP+0.3,wz(ty));
     if(kind==='shot'){
       const len=a.distanceTo(b);
@@ -4593,8 +4669,8 @@ const fx={
         continue;
       }
       if(p.nukeFlash){
-        const life=0.45, k=p.t/life; const s=1+k*(p.R*3.5);
-        p.sp.scale.set(s,s,s); p.sp.material.opacity=Math.max(0,1-k);
+        const life=RM?0.25:0.45, k=p.t/life; const s=1+k*(p.R*(RM?1.5:3.5));
+        p.sp.scale.set(s,s,s); p.sp.material.opacity=Math.max(0,(RM?0.5:1)*(1-k));
         if(p.t>life){ fxFree(p.sp); this.pops.splice(i,1); }
         continue;
       }
@@ -4683,7 +4759,7 @@ function loop(now){
   for(const [id,g] of unitMeshes){
     const ud=g.userData;
     if(!ud.base) ud.base=g.position.clone();
-    if(ud.target) ud.base.lerp(ud.target, Math.min(1, dt*9));
+    if(ud.target) ud.base.lerp(ud.target, Math.min(1, dt*(RM?30:9)));
     g.position.copy(ud.base);
     if(ud.lunge){
       ud.lunge.t+=dt; const k=ud.lunge.t/0.3;
@@ -4694,7 +4770,7 @@ function loop(now){
     if(ud.rotor){
       ud.rotor.rotation.y+=adt*16;
       ud.tailRotor.rotation.x+=adt*22;
-      g.position.y+=Math.sin(at*0.003+id)*0.04; // hover bob
+      if(!RM) g.position.y+=Math.sin(at*0.003+id)*0.04; // hover bob
     }
     if(g.userData.radar) g.userData.radar.rotation.y+=adt*2.4;
   }
@@ -4714,7 +4790,7 @@ function loop(now){
     if(t.on) writeTile(t);
   }
   if(!gfxLow&&draw) waveOcean(now);
-  if(title&&!gfxLow){ cam.theta+=raw*0.04; applyCam(); }   // the title screen drifts slowly over the sea
+  if(title&&!gfxLow&&!RM){ cam.theta+=raw*0.04; applyCam(); }   // the title screen drifts slowly over the sea
   if(surf) surf.material.opacity=0.42+Math.sin(at*0.0016)*0.18;
   // labels keep a fixed size on screen; unit labels hide in the whole-map view where they would crowd together
   {
@@ -4729,11 +4805,11 @@ function loop(now){
   coachTick();
   NET.timerTick();
   if(camDistGoal!=null){
-    cam.dist+=(camDistGoal-cam.dist)*Math.min(1,dt*5); applyCam();
+    cam.dist+=(camDistGoal-cam.dist)*(RM?1:Math.min(1,dt*5)); applyCam();
     if(Math.abs(cam.dist-camDistGoal)<0.05) camDistGoal=null;
   }
   if(camPhiGoal!=null){
-    cam.phi+=(camPhiGoal-cam.phi)*Math.min(1,dt*5); applyCam();
+    cam.phi+=(camPhiGoal-cam.phi)*(RM?1:Math.min(1,dt*5)); applyCam();
     if(Math.abs(cam.phi-camPhiGoal)<0.004) camPhiGoal=null;
   }
   if(glide){
@@ -4743,7 +4819,7 @@ function loop(now){
     applyCam();
   }
   if(camGoal){
-    cam.target.lerp(camGoal, Math.min(1, dt*5));
+    cam.target.lerp(camGoal, RM?1:Math.min(1, dt*5));
     applyCam();
     if(cam.target.distanceTo(camGoal)<0.06) camGoal=null;
   }
@@ -4754,7 +4830,7 @@ function loop(now){
   // selection / attack rings breathe
   for(const c of hlGroup.children){
     if(c.userData.pulse){
-      const s=1+Math.sin(at*0.0045*c.userData.pulse)*0.06;
+      const s=RM?1:1+Math.sin(at*0.0045*c.userData.pulse)*0.06;
       c.scale.set(s,s,s);
     }
   }
@@ -5022,8 +5098,9 @@ function renderTech(){
       inner=lines.map((l,i)=>`<text class="tn-t" y="${(i-(lines.length-1)/2)*11.5+(st==='owned'?4:1)}">${l}</text>`).join('');
     }
     const cost=st==='owned'?'':`<rect class="tn-pill" x="-17" y="18" width="34" height="14" rx="7"/><text class="tn-cost" y="28.5">${techCost(k,MYSIDE)}★</text>`;
+    const lock=st==='locked'?'<g class="tn-lock" transform="translate(19,-19)"><circle r="8"/><rect x="-3.5" y="-1" width="7" height="5.5" rx="1"/><path d="M-2.2-1v-1.8a2.2 2.2 0 0 1 4.4 0V-1"/></g>':'';
     nodes+=`<g class="tn ${st}${techSel===k?' sel':''}" data-k="${k}" transform="translate(${p.x},${p.y})" tabindex="0" role="button" aria-label="${t.name}">`+
-      `<circle class="tn-ring" r="29"/><circle class="tn-c" r="25" style="stroke:${st==='owned'?'#f4f7f4':BRANCH_COL[t.branch]}"/>${inner}${cost}</g>`;
+      `<circle class="tn-ring" r="29"/><circle class="tn-c" r="25" style="stroke:${st==='owned'?'#f4f7f4':BRANCH_COL[t.branch]}"/>${inner}${cost}${lock}</g>`;
   }
   const hub=`<circle class="hub" r="30"/><text class="hub-t" y="5">${stars[MYSIDE]}★</text><text class="hub-k" y="17">STARS</text>`;
   $('techCols').innerHTML=`<svg id="techTree" viewBox="${x0} ${y0} ${x1-x0} ${y1-y0}" style="--fac:${fac}" role="group" aria-label="Tech tree">${edges}${hub}${nodes}</svg>`;
@@ -6693,6 +6770,18 @@ syncMusic();
 function syncFollow(){ $('followMenuBtn').innerHTML='Camera: <b>'+(followAI?'Follows enemies':'Stays put')+'</b>'; $('followMenuBtn').title=followAI?'During enemy turns the camera glides to actions you can see':'The camera stays where you leave it during enemy turns'; }
 $('followMenuBtn').onclick=()=>{ followAI=!followAI; try{ localStorage.setItem('foothold-follow', followAI?'on':'off'); }catch(e){} syncFollow(); sfx.select(); };
 syncFollow();
+/* text size, saved per device. Panels scale with CSS zoom, board labels through labelScale */
+const TEXT_SIZES=[{k:'n',l:'Normal',z:1},{k:'l',l:'Large',z:1.15},{k:'xl',l:'Larger',z:1.3}];
+let textSize='n';
+try{ const v=localStorage.getItem('foothold-text'); if(TEXT_SIZES.some(t=>t.k===v)) textSize=v; }catch(e){}
+function syncText(){
+  const t=TEXT_SIZES.find(x=>x.k===textSize)||TEXT_SIZES[0], b=document.body;
+  b.classList.toggle('tsz',t.z>1); b.classList.toggle('tsxl',t.k==='xl'); b.style.setProperty('--tz',t.z);
+  $('textMenuBtn').innerHTML='Text: <b>'+t.l+'</b>'; $('textMenuBtn').title='Tap to change the size of text in menus, cards and labels';
+  LBL.tz=t.z; LBL.k=0; wake();   // labelScale resizes the board labels on the next frame
+}
+$('textMenuBtn').onclick=()=>{ const i=TEXT_SIZES.findIndex(x=>x.k===textSize); textSize=TEXT_SIZES[(i+1)%TEXT_SIZES.length].k; try{ localStorage.setItem('foothold-text',textSize); }catch(e){} syncText(); sfx.select(); };
+syncText();
 function syncGfx(){ $('gfxMenuBtn').innerHTML='Graphics: <b>'+(gfxLow?'Low':'High')+'</b>'; $('gfxMenuBtn').title=gfxLow?'Fewer trees, no shadows, waves or grass, 30 fps. Easier on the battery':'Shadows, waves and sharp rendering'; }
 function setGfx(low){
   gfxLow=low; gfxProbe=null;
