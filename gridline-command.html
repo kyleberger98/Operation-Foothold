@@ -682,7 +682,7 @@ body.tsz #techTree .tn-cost{font-size:12px}
   border:1px dashed var(--amber); border-radius:10px; padding:10px 14px; text-align:center; margin:12px 0}
 #mpCodeBox b{color:var(--amber); font-size:26px; letter-spacing:.3em; margin-left:10px; vertical-align:-2px}
 #mpInvite{display:flex; gap:8px; flex-wrap:wrap; margin:-4px 0 12px}
-#mpInvite .opt{flex:1 1 160px}
+#mpInvite .opt{flex:1 1 140px; min-width:0}
 #mpInvite .opt span{max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 #mpJoinBtn.invited{border-color:var(--amber); color:var(--amber); animation:etPulse 1.4s ease-in-out infinite}
 #mpSlots{margin-bottom:6px}
@@ -8540,7 +8540,7 @@ function mpShowLobby(){
   $('mpJoinBtn').classList.remove('invited');
   $('mpInvite').style.display=NET.host&&CAN_LINK?'':'none';
   $('mpShareBtn').style.display=navigator.share?'':'none';
-  $('mpInviteUrl').textContent=CAN_LINK?inviteUrl().replace(/^https?:\/\//,''):'';
+  $('mpInviteUrl').textContent='room '+NET.code;   // the full address is long; the code says enough
   $('mpEntry').style.display='none';
   $('mpLobby').style.display='';
   $('mpHostOpts').style.display=NET.host?'':'none';
