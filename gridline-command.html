@@ -1341,7 +1341,7 @@ const TECHS={
   CAMO: {key:'CAMO',  name:'Camouflage',        branch:'Support',  tier:2, req:'MEDIC', unlocks:'Forest cover doubles defense (2x instead of 1.5x), and units attacking from a forest deal +20% damage.'},
   HOSP: {key:'HOSP',  name:'Field Hospitals',   branch:'Support',  tier:3, req:'FORT',  unlocks:'Units inside your cities heal 5 HP every turn, even after acting; anywhere in your territory they heal 2 HP.'},
   CIVDEF:{key:'CIVDEF',name:'Civil Defense',    branch:'Support',  tier:3, req:'FORT',  unlocks:'Artillery and nuclear blasts deal half damage to your units and can\u2019t kill them inside your cities. Units in your cities gain +1 DEF.'},
-  RADIO:{key:'RADIO', name:'Field Radio',       branch:'Intel',    tier:1, req:null,    unlocks:'+1 vision, every village and supply drop is revealed, and each supply drop you open also yields +3\u2605.'},
+  RADIO:{key:'RADIO', name:'Field Radio',       branch:'Intel',    tier:1, req:null,    unlocks:'+1 vision, every village and supply drop is revealed, and each supply drop you open (not airdrops) also yields +3\u2605.'},
   AIRDEF:{key:'AIRDEF',name:'Air Defense',      branch:'Intel',    tier:2, req:'RADIO', unlocks:'Unlocks the Flak Battery. Helicopters deal 25% less damage to all your units.'},
   FWDOBS:{key:'FWDOBS',name:'Forward Observers',branch:'Intel',    tier:3, req:'RADIO', unlocks:'Artillery and Flak gain +1 range, and Artillery, Flak, Mortars and ships deal +15% damage.'},
   SAT:  {key:'SAT',  name:'Satellite Network', branch:'Strategic', tier:4, req:'AVIA',  unlocks:'Reveals the whole map. Artillery, Flak and Nuclear Missiles gain +1 range, and precision targeting gives all units +10% damage.'},
@@ -2615,7 +2615,7 @@ function openDrop(u,x,y){
     addPop(home.c,2);
     msg='settlers bringing +2 population to the nearest city';
   }
-  if(hasTech(s,'RADIO')){ stars[s]+=3; msg+=' (+3\u2605 radio intel)'; }
+  if(hasTech(s,'RADIO')&&!big){ stars[s]+=3; msg+=' (+3\u2605 radio intel)'; }
   fx.popup(x,y,'SUPPLY DROP','#f0b35c');
   if(s===MYSIDE) sfx.level();
   log(s, `${whose} opened a supply drop: ${msg}.`);
