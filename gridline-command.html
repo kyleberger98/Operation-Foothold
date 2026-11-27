@@ -648,7 +648,7 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
 #emoteBar{position:fixed; z-index:12; right:calc(env(safe-area-inset-right,0px) + 64px); top:calc(env(safe-area-inset-top,0px) + 306px); display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px; max-width:260px}
 #emoteBar button{background:var(--panel2); border:1px solid var(--line); color:#eef3ee; border-radius:99px; padding:7px 12px; font:inherit; font-size:12.5px; cursor:pointer}
 #emoteBar button:disabled{opacity:.4}
-@media (max-height:520px){ #emoteBtn{top:calc(env(safe-area-inset-top,0px) + 262px); right:calc(env(safe-area-inset-right,0px) + 64px)} #emoteBar{top:calc(env(safe-area-inset-top,0px) + 212px); right:calc(env(safe-area-inset-right,0px) + 116px)} }
+@media (max-height:520px){ #emoteBtn{top:calc(env(safe-area-inset-top,0px) + 162px); right:calc(env(safe-area-inset-right,0px) + 64px)} #emoteBar{top:calc(env(safe-area-inset-top,0px) + 162px); right:calc(env(safe-area-inset-right,0px) + 116px)} }
 .mpslot img.flg,.dpName img.flg{width:22px; height:13px; flex:none; border-radius:2px; box-shadow:0 0 4px rgba(0,0,0,.4)}
 .dpName img.flg{vertical-align:-1px; margin-right:6px}
 .mpslot .rkBadge{margin-left:6px; vertical-align:middle}
@@ -739,7 +739,7 @@ i.rkBadge{font-style:normal; width:30px; height:33px; font-size:15px}
         <button id="resumeBtn" class="bigbtn primary" style="display:none">Resume<span>back to the battlefield</span></button>
         <button id="continueBtn" class="bigbtn primary" style="display:none">Continue campaign<span id="continueInfo"></span></button>
         <button id="rejoinBtn" class="bigbtn primary" style="display:none">Rejoin online game<span id="rejoinInfo"></span></button>
-        <button id="hostResumeBtn" class="bigbtn primary" style="display:none">Resume hosting<span id="hostResumeInfo"></span></button>
+        <button id="hostResumeBtn" class="bigbtn primary" style="display:none">Resume room<span id="hostResumeInfo"></span></button>
         <button id="quickBtn" class="bigbtn gold">Quick play<span id="quickInfo"></span></button>
         <button id="campBtn" class="bigbtn">Campaign<span id="campInfo">conquer a region map, one battle at a time</span></button>
         <div class="homeRow">
@@ -7005,6 +7005,7 @@ const NET={
     }
   },
   hostDrop(conn){
+    if(this._ask===conn){ this._ask=null; netBar(null); }
     const s=conn._side;
     if(!s||!this.host) return;
     if(!this.inGame){
@@ -7014,7 +7015,6 @@ const NET={
       this.renderLobby(); this.lobbySync();
       return;
     }
-    if(this._ask===conn){ this._ask=null; netBar(null); }
     const h=this.humans[s];
     if(!h||h.conn!==conn) return;
     h.conn=null;
@@ -7041,8 +7041,9 @@ const NET={
     const h=this.humans[s]; if(!h||h.conn||h.bot) return;
     clearTimeout(this._takeT);
     const g0=gen, take=()=>{ if(gen===g0&&this.humans[s]&&!this.humans[s].conn&&side===s) this.aiTakeover(s); };
-    this._takeT=setTimeout(take, this.GRACE*1000); this._held=s;
-    netBar(h.name+' disconnected. Their seat is held for '+this.GRACE+' s.', 'AI plays', take,
+    const ms=this.turnEnds?Math.max(0,Math.min(this.GRACE*1000, this.turnEnds-Date.now()-1500)):this.GRACE*1000;   // the AI steps in before a short turn timer runs out
+    this._takeT=setTimeout(take, ms); this._held=s;
+    netBar(h.name+' disconnected. Their seat is held for '+Math.round(ms/1000)+' s.', 'AI plays', take,
       'Wait', ()=>{ clearTimeout(this._takeT); this._takeT=null; netBar('Waiting for '+h.name+' to rejoin.', 'AI plays', take); });
   },
   turnStart(s){
@@ -7078,6 +7079,7 @@ const NET={
     const nm=this.humans[s].name;
     this.humans[s].bot=true;
     clearTimeout(this._takeT); this._takeT=null;
+    if(side===s) this.turnEnds=0;
     if(!this._ask) netBar(null);
     log('sys', nm+"'s forces follow AI command until they rejoin.");
     this.flushSoon(true);
@@ -7231,6 +7233,7 @@ const NET={
     this.leave();
     this.myName=mpGetName();
     this.code=code;
+    const r=rejoinInfo(); if(r&&r.code===code&&r.name===this.myName) this.tok=r.tok||null;   // same device: keep the seat key
     this.client=true; this.on=true;
     mpMsg('Contacting host\u2026');
     this.newClientPeer();
@@ -7272,7 +7275,7 @@ const NET={
     if(m.t==='deny'){ const dm=m.m||'The host declined the connection.'; this.leave(); mpMsg(dm); return; }
     if(m.t==='lobby'){
       if(this.inGame){   // the host called a rematch: back to the lobby
-        this.inGame=false; netBar(null);
+        this.inGame=false; this.fs=null; netBar(null);
         $('overlay').classList.remove('show'); resetOverlayButton(); $('endBar').hidden=true; $('handoff').hidden=true;
         showSetup();
       }
@@ -7329,6 +7332,8 @@ const NET={
     if(el.textContent!==txt) el.textContent=txt;
     el.classList.toggle('low', sec<=15);
     if(this.host&&left<=0&&(side===P||this.isHuman(side))&&alive[side]){
+      const h=this.humans[side];
+      if(h&&!h.conn&&this._takeT){ this.aiTakeover(side); return; }   // held seat: the AI plays the turn instead
       this.turnEnds=0;
       log('sys', meta(side).name+' ran out of time.');
       doAction(side,{t:'endturn'});
@@ -7337,12 +7342,12 @@ const NET={
 
   /* quick messages: a fixed set of phrases, relayed by the host to everyone, at most one per player every 3 s */
   emote(s,k){
-    if(!this.host||!this.inGame||!EMOTES[k]||!turnOrder.includes(s)) return;
+    if(!this.host||!this.inGame||!emoteOk(k)||!turnOrder.includes(s)) return;
     if(Date.now()-(this._emoT[s]||0)<3000) return;
     this._emoT[s]=Date.now();
     this.showEmote(s,k); this.evt({t:'emote', s, k}); this.flushSoon(false);
   },
-  showEmote(s,k){ if(EMOTES[k]&&meta(s)) note({icon:'chat', title:meta(s).name, text:EMOTES[k], color:meta(s).css}); },
+  showEmote(s,k){ if(emoteOk(k)&&meta(s)) note({icon:'chat', title:meta(s).name, text:EMOTES[k], color:meta(s).css}); },
   // Shared UI
   uiTick(){
     const eb=$('emoteBtn'), on=this.on&&this.inGame&&!!map;
@@ -7529,6 +7534,7 @@ function showDefeat(){
 }
 
 const EMOTES=['Good luck','Nice move','Thanks','Oops','Watch out','Good game'];
+const emoteOk=k=>Number.isInteger(k)&&k>=0&&k<EMOTES.length;
 $('emoteBtn').onclick=()=>{
   const bar=$('emoteBar');
   if(!bar.hidden){ bar.hidden=true; return; }
@@ -7639,7 +7645,7 @@ function syncRejoin(){
   const h=!NET.on&&hostResume(), hb=$('hostResumeBtn');
   hb.style.display=h?'':'none';
   if(h){ let t=''; try{ t='turn '+JSON.parse(h.save).turn; }catch(e){}
-    hb.firstChild.textContent='Resume hosting room '+h.code;
+    hb.firstChild.textContent='Resume room '+h.code;
     $('hostResumeInfo').textContent=[t, Object.values(h.humans||{}).map(x=>x.name).join(', ')].filter(Boolean).join(' \u00b7 '); }
 }
 $('rejoinBtn').onclick=()=>{
