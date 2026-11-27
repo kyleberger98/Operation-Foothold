@@ -1948,7 +1948,7 @@ const coastal=(x,y)=>[[0,1],[1,0],[-1,0],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]].som
 /* empty friendly landing craft next to a tile this land unit can reach, so it could board this turn */
 function boardable(u){
   if(naval(u)||UNIT_TYPES[u.type].fly||u.type==='NUKE'||u.moved||u.attacked) return [];
-  const spots=[{x:u.x,y:u.y},...reachable(u).values()];
+  const spots=[{x:u.x,y:u.y},...[...reachable(u).values()].filter(p=>!p.zoc)];   // boarding is one more step, so not from a tile held by an enemy
   return units.filter(c=>c.owner===u.owner&&UNIT_TYPES[c.type].carry&&!c.cargo&&spots.some(p=>cheb(p,c)<=1));
 }
 /* land tiles next to a loaded craft where its passenger can step ashore */
@@ -2382,11 +2382,24 @@ function treatyLand(s,x,y,f){
   const tg=terrGrid(), o=tg[y][x];
   return !!o&&pp.includes(o)&&!(f&&tg[f.y][f.x]===o);
 }
+/* zone of control: a unit that moves next to a hostile unit it can see must stop there. Aircraft ignore it and
+   don't exert it, ships only hold ships, and missiles and unarmed units hold nothing */
+function zocTiles(u,maxMv){
+  const ut=UNIT_TYPES[u.type]; if(ut.fly) return null;
+  const nv=!!ut.naval;
+  const es=units.filter(e=>{ const et=UNIT_TYPES[e.type];
+    return !et.fly&&!!et.naval===nv&&et.range>0&&e.type!=='NUKE'&&cheb(e,u)<=maxMv+1&&hostile(e.owner,u.owner); });
+  if(!es.length) return null;
+  const g=sightOf(u.owner), z=new Set();
+  for(const e of es) if(g[e.y][e.x]) for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++) z.add(key(e.x+dx,e.y+dy));
+  return z;
+}
 function reachable(u){
   if(u.moved||u.attacked) return new Map();
   const maxMv=uMove(u);
   const seen=new Map(); seen.set(key(u.x,u.y),0);
   const out=new Map();
+  const zoc=zocTiles(u,maxMv);
   const pp=peaceWith(u.owner), tg=pp.length?terrGrid():null;   // treaty partners' land is closed (a unit already inside may walk out)
   let frontier=[{x:u.x,y:u.y,d:0}];
   while(frontier.length){
@@ -2401,10 +2414,11 @@ function reachable(u){
       if(!passable(u,nx,ny)) continue;
       if(tg){ const o=tg[ny][nx]; if(o&&pp.includes(o)&&tg[cur.y][cur.x]!==o) continue; }
       const blk=unitAt(nx,ny);
-      if(blk){ if(blk.owner!==u.owner&&relOf(blk.owner,u.owner)==='ally'){ seen.set(k,cur.d+1); frontier.push({x:nx,y:ny,d:cur.d+1}); } continue; }   // pass through allies, never stop on them
+      const stop=zoc&&zoc.has(k);
+      if(blk){ if(!stop&&blk.owner!==u.owner&&relOf(blk.owner,u.owner)==='ally'){ seen.set(k,cur.d+1); frontier.push({x:nx,y:ny,d:cur.d+1}); } continue; }   // pass through allies, never stop on them
       seen.set(k,cur.d+1);
-      out.set(k,{x:nx,y:ny});
-      frontier.push({x:nx,y:ny,d:cur.d+1});
+      out.set(k,stop?{x:nx,y:ny,zoc:true}:{x:nx,y:ny});
+      if(!stop) frontier.push({x:nx,y:ny,d:cur.d+1});
     }
   }
   return out;
@@ -7583,6 +7597,7 @@ const MANUAL=[
     ['Goal','Capture every enemy HQ. You lose if your own HQ falls.'],
     ['Your turn','Each unit can move once and attack once per turn. Next jumps to a unit that can still act. When you are done, tap End turn.'],
     ['Move & attack',()=>COARSE?'Tap a unit to see where it can move (blue tiles) and what it can attack (red rings). Tap a red ring to see the battle forecast, then tap again to strike. Melee units (range 1) move into the tile when they destroy its defender.':'Click a unit to see where it can move (blue tiles) and what it can attack (red rings). Point at a red ring to see the battle forecast, then click to strike. Right-click a tile to move or fire straight away. Melee units (range 1) move into the tile when they destroy its defender.'],
+    ['Zone of control','A unit that moves next to an enemy unit you can see must stop there, so a line of troops can screen the units behind it. A unit that starts its turn next to an enemy can still move away. Helicopters and Recon Drones fly past and hold nobody. Ships only stop next to enemy ships, and land units, Hovercraft included, only next to enemy land units. Factions at peace or allied with you don\u2019t stop you, and neither do missiles or Landing Craft. The blue tiles always show where you can go.'],
     ['Capturing','Move a unit onto a village or enemy city, then at the start of your next turn select it and tap Capture (it uses the unit\u2019s action). The defender gets a turn to strike back.'],
     ['Fog','Cloud cover hides undiscovered land. Units and cities see 2 tiles around them. Explored ground stays on the map, but enemy units only show where you can see right now. Shaded tiles are out of sight.'],
     ['Recon','Tap any rival unit or city to inspect it. You see its stats or income, and for a unit the red zone shows where it can reach next turn. Your own units dim once they\u2019ve acted.'],
