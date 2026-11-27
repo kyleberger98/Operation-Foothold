@@ -4097,6 +4097,7 @@ function freeTree(o, mats){
   });
 }
 function fxFree(o){ fxGroup.remove(o); freeTree(o,true); }
+function fxReset(){ for(const f of fx.flashes) fxFree(f.m); for(const p of fx.pops) fxFree(p.sp); fxGroup.clear(); fx.flashes.length=0; fx.pops.length=0; }
 function box(w,h,d,mat){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.castShadow=true;m.receiveShadow=true;return m}
 function cyl(rt,rb,h,mat,seg=10){const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg),mat);m.castShadow=true;m.receiveShadow=true;return m}
 function cone(r,h,mat,seg=7){const m=new THREE.Mesh(new THREE.ConeGeometry(r,h,seg),mat);m.castShadow=true;m.receiveShadow=true;return m}
@@ -4258,6 +4259,7 @@ function drawCityLabel(sp,city){
 /* Static board */
 function buildBoard(){
   applyTheme(cosmetics().theme, false);
+  for(const k in cityDecor){ const cd=cityDecor[k]; cd.sprite.material.map.dispose(); cd.sprite.material.dispose(); cd.flagMat.dispose(); cd.roof.dispose(); }
   freeTree(boardGroup,false); freeTree(fogGroup,false); freeTree(terrGroup,false); freeTree(dimGroup,false);
   boardGroup.clear(); terrGroup.clear(); terrSig=''; dimGroup.clear(); dimSig=''; scat={}; tileInst={}; pickTiles=[]; cityDecor={}; tileGroups={}; resourceDecor={}; buildingDecor={}; dropDecor={}; pumpjacks=[]; forestTrees={};
   fogGroup.clear(); fogClouds={}; dissolving=[];
@@ -4648,7 +4650,8 @@ function drawLabel(sp,u){
 /* Unit mesh sync */
 function unitBaseY(u){ return UNIT_TYPES[u.type].fly ? TOP+0.55 : (UNIT_TYPES[u.type].hover||UNIT_TYPES[u.type].naval)&&inb(u.x,u.y)&&tileAt(u.x,u.y).terrain==='water' ? TOP-0.12 : TOP; }
 const dyingUnits=[], deathDelay={};
-function freeUnitMesh(g){ freeTree(g,false); for(const m of g.userData.mats||[]) m.dispose(); }
+function freeLabel(g){ const l=g.userData.label; if(l){ l.material.map.dispose(); l.material.dispose(); g.remove(l); g.userData.label=null; } }
+function freeUnitMesh(g){ freeLabel(g); freeTree(g,false); for(const m of g.userData.mats||[]) m.dispose(); }
 let labelF=1, labelShow=true;
 let fullResync=false;   // set while a whole game is rebuilt (new game, load, undo) to skip death animations
 /* your own units wear the finish picked in Profile (on your screen only) */
@@ -4697,8 +4700,7 @@ function syncUnits(){
   }
   for(const [id,g] of unitMeshes){
     if(!live.has(id)){
-      const lbl=g.userData.label;
-      if(lbl){ lbl.material.map.dispose(); lbl.material.dispose(); g.remove(lbl); }
+      freeLabel(g);
       unitMeshes.delete(id);
       const aboard=units.some(c=>c.cargo&&c.cargo.id===id);   // boarded a landing craft, so it just disappears
       if(g.visible&&!fullResync&&!aboard) dyingUnits.push({g,t:-(deathDelay[id]||0)}); else { unitGroup.remove(g); freeUnitMesh(g); }   // a destroyed unit sinks and fades
@@ -5612,7 +5614,7 @@ function restoreGame(data, net){
     if(net){ for(const r of data.rv||[]) if(r.s===MYSIDE) revealAround(r.x,r.y,r.r); computeVision(); }
     for(const [,g] of unitMeshes){ unitGroup.remove(g); freeUnitMesh(g); }
     dyingUnits.forEach(d=>{ unitGroup.remove(d.g); freeUnitMesh(d.g); }); dyingUnits.length=0;
-    unitMeshes.clear(); hlGroup.clear(); fxGroup.clear(); fx.flashes.length=0; fx.pops.length=0;
+    unitMeshes.clear(); hlGroup.clear(); fxReset();
     buildBoard();
     buildSkyClouds();
     const sb=Math.max(9, W*0.85);
@@ -8683,7 +8685,7 @@ function newGame(){
   }
   for(const [,g] of unitMeshes){ unitGroup.remove(g); freeUnitMesh(g); }
   dyingUnits.forEach(d=>{ unitGroup.remove(d.g); freeUnitMesh(d.g); }); dyingUnits.length=0;
-  unitMeshes.clear(); hlGroup.clear(); fxGroup.clear(); fx.flashes.length=0; fx.pops.length=0;
+  unitMeshes.clear(); hlGroup.clear(); fxReset();
   const caps=genMap();
   explored=Array.from({length:H},()=>Array(W).fill(false));
   for(const s of turnOrder){
