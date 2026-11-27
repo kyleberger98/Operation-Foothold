@@ -1056,7 +1056,7 @@ function aiUsePower(me){
   const hurt=mine.reduce((n,u)=>n+(u.maxHp-u.hp),0);
   if(k==='triage') go=hurt>=10;
   else if(k==='assault'||k==='ambush') go=inRange>=3||(inRange>=2&&mine.length<=4);
-  else if(k==='windfall') go=income(me)>=8;
+  else if(k==='windfall') go=income(me)>=20||(turn>=14&&income(me)>=12);   // 20 income pays the full 30 stars
   else if(k==='bulwark') go=mine.filter(u=>foes.some(e=>cheb(e,u)<=3)).length>=3;
   else if(k==='festival'||k==='airdrop') go=cityCount(me)>=3;
   if(go||(cornered&&mine.length&&(k!=='triage'||hurt>=8))) usePower(me);
@@ -2659,6 +2659,10 @@ async function aiTurn(me){
   const AI_TECH_ORDER=['MINING','MARKS','MECH','DRILL','LOGI','MEDIC','URBAN','DRILLS','SIEGE','FORT','AVIA',
                        'ARMOR','HOSP','AIRDEF','SPG','TURBO','FWDOBS','NUKE','RADIO','CAMO','CIVDEF','SAT'];
   const D=diff();
+  // stars beyond three of its dearest unit are surplus, which go into buildings, techs and barracks
+  const fu0=FACTION_UNIT[meta(me).faction.key];
+  const dear=Math.max(...['TTN',fu0,'HEL','ART','TNK','SNP','INF'].filter(k=>k&&unitUnlocked(me,k)&&(k!=='TTN'||titanCap(me)>0)&&!UNIT_TYPES[k].medic&&!UNIT_TYPES[k].sight).map(k=>unitCost(me,k)));
+  const rich=()=>D.sharp&&stars[me]>3*dear;
   // economy: harvest best value resources while comfortably affordable
   let did=true, hguard=0;
   while(did && hguard++<8){
@@ -2674,7 +2678,7 @@ async function aiTurn(me){
     }
   }
   // buildings: after harvests, put spare stars into growth and income (two a turn at most)
-  for(let i=0;i<2;i++){
+  for(let i=0;i<2||(i<6&&rich());i++){
     const o=aiBuildPick(me); if(!o) break;
     if(stars[me]<bldCost(me,o.k)+D.reserve+2||!build(me,o.x,o.y,o.k)) break;
   }
@@ -2690,8 +2694,8 @@ async function aiTurn(me){
     if(D.sharp&&!hasTech(me,'AIRDEF')&&units.some(q=>hostile(q.owner,me)&&q.type==='HEL')) order=['RADIO','AIRDEF',...order.filter(k=>k!=='RADIO'&&k!=='AIRDEF')];
     for(const k of order){
       if(hasTech(me,k)||(TECHS[k].req&&!hasTech(me,TECHS[k].req))) continue;
-      if(stars[me]>=techCost(k,me)+(TECHS[k].tier>=4?2:4)){ research(me,k); if(++learned>=D.techs) break; }
-      if(++looked>=3) break;
+      if(stars[me]>=techCost(k,me)+(TECHS[k].tier>=4?2:4)){ research(me,k); if(++learned>=D.techs&&!rich()) break; }
+      if(++looked>=(rich()?8:3)) break;
     }
   }
   aiUsePower(me);
@@ -2699,13 +2703,14 @@ async function aiTurn(me){
   refresh();
   await sleep(240); if(stale()) return;
   if(stale()) return;
-  // training
+  // training: the cap per turn grows with the empire
   const cities=[];
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const c=tileAt(x,y).city;
     if(c&&c.owner===me&&!unitAt(x,y)) cities.push({x,y,cap:c.capital});
   }
   cities.sort((a,b)=>b.cap-a.cap);
+  const trainCap=D.sharp?Math.max(D.train,Math.floor(cityCount(me)/2)):D.train;
   let trained=0;
   // sharper AIs save up for a Titan once a high-level city can field one, as long as nothing threatens home
   let saving=false;
@@ -2716,7 +2721,7 @@ async function aiTurn(me){
     saving=stars[me]<tc&&stars[me]>=tc/2&&armySize(me)>=3&&!units.some(q=>hostile(q.owner,me)&&home.some(h=>cheb(q,h)<=3));
   }
   for(const c of cities){
-    if(saving||trained>=D.train||armySize(me)>=armyCap(me)) break;
+    if(saving||trained>=trainCap||armySize(me)>=armyCap(me)) break;
     // strategic: build a nuke if affordable and none in flight yet
     if(D.nukes && hasTech(me,'NUKE') && stars[me]>=UNIT_TYPES.NUKE.cost+6 && turn-(lastNuke[me]??-99)>=5 &&
        !units.some(q=>q.owner===me&&q.type==='NUKE')){
@@ -2773,7 +2778,7 @@ async function aiTurn(me){
   {
     const own=[];
     const full=armySize(me)>=armyCap(me);
-    for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.owner===me&&canDevelop(c)&&(c.level<MAX_LEVEL||full)) own.push({x,y,c}); }
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const c=tileAt(x,y).city; if(c&&c.owner===me&&canDevelop(c)&&(c.level<MAX_LEVEL||full||rich())) own.push({x,y,c}); }
     own.sort((a,b)=>developCost(a.c)-developCost(b.c));
     for(const o of own) if(!saving&&stars[me]>=developCost(o.c)+D.reserve) develop(me,o.x,o.y);
     aiRewards(me);
@@ -2877,6 +2882,9 @@ async function aiTurn(me){
       if(visXY(tg.x,tg.y)){ aiPan(tg.x,tg.y); await sleep(280); if(stale()) return; }
       attack(u,tg);
       acted=visXY(u.x,u.y);
+    } else if(D.sharp&&!guarding&&u.hp<=u.maxHp*0.6&&!(hqThreat&&hq&&!unitAt(hq.x,hq.y))&&
+              (hasTech(me,'MEDIC')||(hasTech(me,'HOSP')&&tileAt(u.x,u.y).city))&&!units.some(e=>hostile(e.owner,me)&&cheb(e,u)<=uMove(e)+uRange(e))){
+      // wounded and out of reach of every enemy: rest a turn to heal
     } else if(!guarding && (Math.random()<D.press || (hqThreat&&hq&&!unitAt(hq.x,hq.y)))){
       const r=reachable(u);
       if(r.size){
