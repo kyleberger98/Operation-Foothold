@@ -286,8 +286,8 @@ body.selOpen #command{transform:translate(-50%,0); opacity:1; pointer-events:aut
 }
 @media (orientation:landscape) and (max-height:560px){
   #command{bottom:calc(env(safe-area-inset-bottom,0px) + 12px); max-height:calc(100vh - 80px)}
-  body.dockR #command{bottom:calc(env(safe-area-inset-bottom,0px) + 12px); right:178px}
-  #command{left:104px; width:min(420px, 42vw)}
+  body.dockR #command{bottom:calc(env(safe-area-inset-bottom,0px) + 12px); right:calc(env(safe-area-inset-right,0px) + 178px)}
+  #command{left:calc(env(safe-area-inset-left,0px) + 104px); width:min(420px, 42vw)}   /* clear of the Tech button, which moves in past a notch */
 }
 @media (pointer:coarse){ *{backdrop-filter:none !important; -webkit-backdrop-filter:none !important} }
 #train:empty{display:none}
